@@ -3,69 +3,63 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Erweiterte Server-Verschlüsselung</title>
+<title>Mehrstufige Server-Verschlüsselung</title>
 
+<!-- Tailwind CSS -->
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 body { font-family: 'Inter', sans-serif; }
 </style>
 </head>
-
 <body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center p-4">
 
-<div class="w-full max-w-lg bg-gray-800 p-6 rounded-xl shadow-xl border border-gray-700">
+<div class="w-full max-w-lg bg-gray-800 p-6 rounded-xl shadow-2xl border border-gray-700">
+  <h1 class="text-3xl font-bold text-green-400 mb-4 text-center">🔐 Mehrstufige Verschlüsselung</h1>
+  <p class="text-gray-400 mb-6 text-center">Server-Freigabe erforderlich. Passwort Pflicht, Extras optional.</p>
 
-<h1 class="text-2xl font-bold text-green-400 mb-4">
-🔐 Mehrstufige Verschlüsselung
-</h1>
+  <!-- Eingaben -->
+  <input id="msg" placeholder="Text zum Verschlüsseln" class="w-full p-3 mb-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-green-500 focus:border-green-500 text-gray-200">
+  <input id="password" type="password" placeholder="Pflicht-Passwort" class="w-full p-3 mb-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-green-500 focus:border-green-500 text-gray-200">
+  <input id="extra1" placeholder="Zusatz 1 (optional)" class="w-full p-3 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-200">
+  <input id="extra2" placeholder="Zusatz 2 (optional)" class="w-full p-3 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-200">
+  <input id="extra3" placeholder="Zusatz 3 (optional)" class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 rounded-lg text-gray-200">
 
-<input id="msg" placeholder="Text"
-class="w-full p-2 mb-3 bg-gray-700 rounded border border-gray-600">
+  <!-- Button -->
+  <button onclick="encrypt()" class="w-full p-3 bg-green-600 hover:bg-green-700 rounded-lg font-semibold shadow-md shadow-green-900/50 transition duration-200">
+    Verschlüsseln (Server-Freigabe)
+  </button>
 
-<input id="password" type="password" placeholder="Pflicht-Passwort"
-class="w-full p-2 mb-3 bg-gray-700 rounded border border-gray-600">
-
-<input id="extra1" placeholder="Zusatz 1 (optional)"
-class="w-full p-2 mb-2 bg-gray-700 rounded border border-gray-600">
-
-<input id="extra2" placeholder="Zusatz 2 (optional)"
-class="w-full p-2 mb-2 bg-gray-700 rounded border border-gray-600">
-
-<input id="extra3" placeholder="Zusatz 3 (optional)"
-class="w-full p-2 mb-4 bg-gray-700 rounded border border-gray-600">
-
-<button onclick="encrypt()"
-class="w-full bg-green-600 hover:bg-green-700 p-3 rounded font-semibold">
-Verschlüsseln (Server-Freigabe)
-</button>
-
-<pre id="out" class="mt-4 p-4 bg-gray-700 rounded text-sm h-48 overflow-auto">
-Warten…
-</pre>
-
+  <!-- Ausgabe -->
+  <pre id="out" class="mt-6 p-4 bg-gray-700 border border-gray-600 rounded-lg h-48 overflow-auto text-sm">
+Warten auf Eingabe…
+  </pre>
 </div>
 
 <script>
+// ----------------------
+// KONSTANTEN
+// ----------------------
 const API = "https://unwintry-strapping-winford.ngrok-free.dev/api/approve";
 const TOKEN = "d9F3kL1bQ7rXp2VwZ8nM5tC4sJ6yH0uR";
 
+// ----------------------
+// SHA256 HASH-FUNKTION
+// ----------------------
 async function sha256(str) {
-  const buf = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(str)
-  );
-  return [...new Uint8Array(buf)]
-    .map(b => b.toString(16).padStart(2,"0"))
-    .join("");
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,"0")).join("");
 }
 
+// ----------------------
+// ENCRYPT FUNCTION
+// ----------------------
 async function encrypt() {
-  const msg = msg.value;
-  const pwd = password.value;
-  const e1 = extra1.value || "";
-  const e2 = extra2.value || "";
-  const e3 = extra3.value || "";
+  const msg = document.getElementById("msg").value;
+  const pwd = document.getElementById("password").value;
+  const e1 = document.getElementById("extra1").value || "";
+  const e2 = document.getElementById("extra2").value || "";
+  const e3 = document.getElementById("extra3").value || "";
   const out = document.getElementById("out");
 
   if (!msg || !pwd) {
@@ -75,7 +69,6 @@ async function encrypt() {
 
   out.textContent = "⏳ Server wird kontaktiert…";
 
-  // 🔑 Client-Basis (Passwort ist Pflicht!)
   const baseMaterial = msg + "|" + pwd + "|" + e1 + "|" + e2 + "|" + e3;
   const clientHash = await sha256(baseMaterial);
 
@@ -95,10 +88,7 @@ async function encrypt() {
       return;
     }
 
-    // 🔒 Server-Approval
     const approval = data.approval;
-
-    // 🔐 Finaler Key (ohne Server + Passwort unmöglich)
     const finalKey = await sha256(clientHash + approval);
 
     out.textContent =
@@ -110,12 +100,12 @@ async function encrypt() {
       "Zusatz 3: " + (e3 ? "✔️" : "—") + "\n" +
       "---------------------------------\n" +
       "Finaler Key:\n" +
-      finalKey.slice(0, 64) + "…\n\n" +
-      "🔒 Ohne exakt diese Daten + Server\n" +
-      "ist Entschlüsselung unmöglich.";
+      finalKey.slice(0,64) + "…\n\n" +
+      "🔒 Ohne Server + exaktes Passwort + Extras ist Entschlüsselung unmöglich.";
 
-  } catch {
-    out.textContent = "❌ Server nicht erreichbar.";
+  } catch(err) {
+    console.error(err);
+    out.textContent = "❌ Server nicht erreichbar oder Netzwerkfehler.";
   }
 }
 </script>
