@@ -2,178 +2,149 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Secure Crypto Gateway</title>
+<title>Ultra Secure Encryption</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <script src="https://cdn.tailwindcss.com"></script>
-
 <style>
-body {
-  background: radial-gradient(circle at top, #0f172a, #020617);
-}
-.fade-in {
-  animation: fade 0.6s ease-out;
-}
-@keyframes fade {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+body { font-family: system-ui, sans-serif; }
+.glow { box-shadow: 0 0 25px rgba(34,197,94,.35); }
 </style>
 </head>
 
-<body class="min-h-screen flex items-center justify-center text-slate-200">
+<body class="bg-gray-950 text-gray-100 min-h-screen flex items-center justify-center p-6">
 
-<div class="w-full max-w-xl p-6 bg-slate-900/90 rounded-xl shadow-2xl border border-slate-700 fade-in">
-  <h1 class="text-2xl font-bold text-cyan-400 mb-2">🔐 Secure Encryption Gateway</h1>
-  <p class="text-xs text-slate-400 mb-6">
-    Verschlüsselung nur mit Server-Freigabe · PBKDF2 · AES‑256‑GCM
-  </p>
+<div class="w-full max-w-xl bg-gray-900 p-6 rounded-xl glow">
+  <h1 class="text-2xl font-bold text-green-400 mb-4">🔐 Server‑gebundene Verschlüsselung</h1>
 
-  <!-- Passwort -->
+  <textarea id="plain" placeholder="Text eingeben"
+    class="w-full p-3 mb-3 bg-gray-800 rounded resize-none h-24"></textarea>
+
   <input id="pw" type="password" placeholder="Pflicht‑Passwort"
-    class="w-full mb-3 p-3 bg-slate-800 border border-slate-600 rounded focus:ring-2 focus:ring-cyan-400">
+    class="w-full p-3 mb-2 bg-gray-800 rounded">
 
-  <!-- Zusatz-Faktoren -->
-  <input id="f1" type="password" placeholder="Zusatz‑Faktor 1 (optional)"
-    class="w-full mb-2 p-2 bg-slate-800 border border-slate-700 rounded">
-  <input id="f2" type="password" placeholder="Zusatz‑Faktor 2 (optional)"
-    class="w-full mb-2 p-2 bg-slate-800 border border-slate-700 rounded">
-  <input id="f3" type="password" placeholder="Zusatz‑Faktor 3 (optional)"
-    class="w-full mb-4 p-2 bg-slate-800 border border-slate-700 rounded">
+  <input id="f1" placeholder="Zusatzfaktor 1 (optional)"
+    class="w-full p-2 mb-2 bg-gray-800 rounded text-sm">
+  <input id="f2" placeholder="Zusatzfaktor 2 (optional)"
+    class="w-full p-2 mb-2 bg-gray-800 rounded text-sm">
+  <input id="f3" placeholder="Zusatzfaktor 3 (optional)"
+    class="w-full p-2 mb-4 bg-gray-800 rounded text-sm">
 
-  <!-- Klartext -->
-  <textarea id="plain" rows="3" placeholder="Text eingeben"
-    class="w-full p-3 bg-black border border-cyan-600 rounded mb-4"></textarea>
-
-  <!-- Buttons -->
-  <div class="flex gap-3 mb-4">
-    <button onclick="encrypt()"
-      class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-black font-bold py-2 rounded">
-      🔒 Verschlüsseln
+  <div class="flex gap-2 mb-3">
+    <button onclick="encrypt()" class="flex-1 bg-green-600 hover:bg-green-700 p-3 rounded font-semibold">
+      Verschlüsseln
     </button>
-    <button onclick="decrypt()"
-      class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-black font-bold py-2 rounded">
-      🔓 Entschlüsseln
+    <button onclick="decrypt()" class="flex-1 bg-blue-600 hover:bg-blue-700 p-3 rounded font-semibold">
+      Entschlüsseln
     </button>
   </div>
 
-  <!-- Ausgabe -->
-  <pre id="out"
-    class="min-h-[90px] p-3 bg-black border border-slate-700 rounded text-xs overflow-auto">
+  <button onclick="copyOut()" class="text-xs bg-gray-700 px-3 py-1 rounded mb-2">
+    📋 Ergebnis kopieren
+  </button>
+
+  <pre id="out" class="bg-black p-3 rounded text-xs break-all h-40 overflow-auto">
 Warten…
   </pre>
 </div>
 
 <script>
-/* ================== KONFIG ================== */
-const SERVER = "https://unwintry-strapping-winford.ngrok-free.dev/api/approve";
-const PBKDF2_ROUNDS = 1_000_000;
+const API_URL = "https://unwintry-strapping-winford.ngrok-free.dev/api/approve";
 const ENC = new TextEncoder();
 const DEC = new TextDecoder();
 
-/* ================== HASH ================== */
-async function sha256(data) {
-  const buf = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+/* Utils */
+const rand = n => crypto.getRandomValues(new Uint8Array(n));
+const b64 = b => btoa(String.fromCharCode(...b));
+const ub64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const sha256 = async b => crypto.subtle.digest("SHA-256", b);
+
+/* Server approval */
+async function serverApprove(hashHex) {
+  const r = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ clientHash: hashHex })
+  });
+  if (!r.ok) throw "Server Fehler";
+  const j = await r.json();
+  return j.approval;
 }
 
-/* ================== KEY ================== */
-async function deriveKey(password, serverApproval) {
-  const baseKey = await crypto.subtle.importKey(
-    "raw",
-    ENC.encode(password + serverApproval),
-    "PBKDF2",
-    false,
-    ["deriveKey"]
+/* Key */
+async function deriveKey(material) {
+  const base = await crypto.subtle.importKey(
+    "raw", ENC.encode(material), "PBKDF2", false, ["deriveKey"]
   );
-
-  return crypto.subtle.deriveKey(
-    {
-      name: "PBKDF2",
-      salt: ENC.encode("secure-gateway"),
-      iterations: PBKDF2_ROUNDS,
-      hash: "SHA-256"
-    },
-    baseKey,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["encrypt","decrypt"]
-  );
+  return crypto.subtle.deriveKey({
+    name: "PBKDF2",
+    salt: ENC.encode("srv-bound"),
+    iterations: 1_000_000,
+    hash: "SHA-256"
+  }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt","decrypt"]);
 }
 
-/* ================== ENCRYPT ================== */
+/* Encrypt */
 async function encrypt() {
-  const pw = pwVal();
-  if (!pw) return msg("❌ Passwort fehlt");
-
-  const clientHash = await sha256(ENC.encode(pw));
-  const approval = await requestApproval(clientHash);
-  if (!approval) return;
-
-  const key = await deriveKey(pw, approval);
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-
-  const cipher = await crypto.subtle.encrypt(
-    { name:"AES-GCM", iv },
-    key,
-    ENC.encode(plain.value)
-  );
-
-  out.textContent = JSON.stringify({
-    iv: btoa(String.fromCharCode(...iv)),
-    data: btoa(String.fromCharCode(...new Uint8Array(cipher)))
-  }, null, 2);
-}
-
-/* ================== DECRYPT ================== */
-async function decrypt() {
-  const pw = pwVal();
-  if (!pw) return msg("❌ Passwort fehlt");
-
-  let obj;
-  try { obj = JSON.parse(out.textContent); }
-  catch { return msg("❌ Ungültige Daten"); }
-
-  const clientHash = await sha256(ENC.encode(pw));
-  const approval = await requestApproval(clientHash);
-  if (!approval) return;
-
-  const key = await deriveKey(pw, approval);
-
   try {
-    const plainText = await crypto.subtle.decrypt(
-      { name:"AES-GCM", iv: Uint8Array.from(atob(obj.iv),c=>c.charCodeAt(0)) },
-      key,
-      Uint8Array.from(atob(obj.data),c=>c.charCodeAt(0))
+    const pw = pw.value;
+    if (!pw) return out.textContent = "❌ Passwort fehlt";
+
+    const factors = pw + f1.value + f2.value + f3.value;
+    const hash = await sha256(ENC.encode(factors));
+    const hex = [...new Uint8Array(hash)].map(x=>x.toString(16).padStart(2,"0")).join("");
+
+    const approval = await serverApprove(hex);
+    const key = await deriveKey(factors + approval);
+
+    const iv = rand(12);
+    const cipher = await crypto.subtle.encrypt(
+      { name:"AES-GCM", iv }, key, ENC.encode(plain.value)
     );
-    msg("✅ Entschlüsselt:\n" + DEC.decode(plainText));
-  } catch {
-    msg("❌ Falsches Passwort / Faktoren");
+
+    const padL = rand(8 + Math.random()*8|0);
+    const padR = rand(8 + Math.random()*8|0);
+
+    const full = new Uint8Array(padL.length + iv.length + cipher.byteLength + padR.length);
+    let o=0; full.set(padL,o); o+=padL.length;
+    full.set(iv,o); o+=iv.length;
+    full.set(new Uint8Array(cipher),o); o+=cipher.byteLength;
+    full.set(padR,o);
+
+    out.textContent = "ENCv2:" + b64(full);
+  } catch(e) {
+    out.textContent = "❌ Fehler";
   }
 }
 
-/* ================== SERVER ================== */
-async function requestApproval(clientHash) {
+/* Decrypt */
+async function decrypt() {
   try {
-    const r = await fetch(SERVER, {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ clientHash })
-    });
-    const j = await r.json();
-    return j.ok ? j.approval : null;
+    const txt = out.textContent.trim();
+    if (!txt.startsWith("ENCv2:")) return;
+
+    const data = ub64(txt.slice(6));
+    const iv = data.slice(16, 28);
+    const cipher = data.slice(28, data.length-16);
+
+    const factors = pw.value + f1.value + f2.value + f3.value;
+    const hash = await sha256(ENC.encode(factors));
+    const hex = [...new Uint8Array(hash)].map(x=>x.toString(16).padStart(2,"0")).join("");
+
+    const approval = await serverApprove(hex);
+    const key = await deriveKey(factors + approval);
+
+    const plainBuf = await crypto.subtle.decrypt(
+      { name:"AES-GCM", iv }, key, cipher
+    );
+    out.textContent = DEC.decode(plainBuf);
   } catch {
-    msg("❌ Server nicht erreichbar");
-    return null;
+    out.textContent = "❌ Entschlüsselung fehlgeschlagen";
   }
 }
 
-/* ================== HELPERS ================== */
-function pwVal() {
-  return pw.value + f1.value + f2.value + f3.value;
+function copyOut() {
+  navigator.clipboard.writeText(out.textContent);
 }
-function msg(t){ out.textContent = t; }
 </script>
-
 </body>
 </html>
