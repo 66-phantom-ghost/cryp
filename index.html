@@ -3,172 +3,137 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Secure Crypto Gateway</title>
+<title>Server-gebundene Verschlüsselung</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;600&display=swap');
-
-  body {
+body {
     font-family: 'Fira Code', monospace;
     background-color: #0a0a0a;
     color: #00ff00;
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    min-height: 100vh;
     padding: 2rem;
-  }
-
-  .card {
-    background: #111;
-    border: 2px solid #00ff00;
-    border-radius: 12px;
-    padding: 2rem;
+}
+.container {
     width: 100%;
     max-width: 600px;
-    box-shadow: 0 0 20px #00ff0040, inset 0 0 5px #00ff00;
-    animation: fadeIn 1s ease forwards;
-  }
-
-  input, textarea {
-    background: #0a0a0a;
-    border: 1px solid #00ff00;
+    background-color: #111111;
+    border: 2px solid #00ff00;
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 0 20px #00ff00aa;
+    animation: fadeIn 1s ease;
+}
+@keyframes fadeIn {
+    from {opacity:0; transform: translateY(-20px);}
+    to {opacity:1; transform: translateY(0);}
+}
+input, button, textarea {
+    background-color: #0a0a0a;
     color: #00ff00;
-    padding: 0.75rem;
-    border-radius: 6px;
+    border: 1px solid #00ff00;
+    padding: 0.5rem;
+    margin-bottom: 1rem;
     width: 100%;
-    margin-bottom: 0.75rem;
-  }
-
-  button {
-    background: #00ff00;
-    color: #0a0a0a;
-    padding: 0.75rem;
-    width: 100%;
-    font-weight: bold;
-    border-radius: 6px;
-    margin-top: 0.5rem;
+    border-radius: 4px;
+    font-family: 'Fira Code', monospace;
+}
+button {
+    cursor: pointer;
     transition: all 0.2s;
-  }
-  button:hover {
-    background: #0a0a0a;
-    color: #00ff00;
-    border: 1px solid #00ff00;
-    transform: scale(1.05);
-  }
-
-  .output {
-    background: #0a0a0a;
+}
+button:hover {
+    background-color: #00ff00;
+    color: #0a0a0a;
+    box-shadow: 0 0 10px #00ff00;
+}
+#out {
+    background-color: #0a0a0a;
     border: 1px dashed #00ff00;
     padding: 1rem;
-    min-height: 4rem;
+    min-height: 6rem;
+    word-break: break-all;
     white-space: pre-wrap;
-    word-break: break-word;
-    margin-top: 1rem;
-    animation: fadeIn 1s ease forwards;
-  }
-
-  @keyframes fadeIn {
-    from {opacity: 0; transform: translateY(-10px);}
-    to {opacity: 1; transform: translateY(0);}
-  }
+}
 </style>
 </head>
 <body>
-<div class="card">
-  <h1 class="text-2xl font-bold mb-4">Secure Crypto Gateway</h1>
+<div class="container">
+<h1 class="text-2xl font-bold mb-4">Server-gebundene Verschlüsselung</h1>
 
-  <label>Haupt-Passwort</label>
-  <input type="password" id="primary-pass" placeholder="Passwort eingeben">
+<label>Passwort (Pflicht)</label>
+<input type="password" id="password" placeholder="Passwort eingeben">
 
-  <label>Optionaler Sicherheitsfaktor 1</label>
-  <input type="password" id="sec1" placeholder="Optional">
+<label>Sicherheitsfaktor 1 (optional)</label>
+<input type="password" id="factor1" placeholder="Sekundär-Faktor 1">
 
-  <label>Optionaler Sicherheitsfaktor 2</label>
-  <input type="password" id="sec2" placeholder="Optional">
+<label>Sicherheitsfaktor 2 (optional)</label>
+<input type="password" id="factor2" placeholder="Sekundär-Faktor 2">
 
-  <label>Optionaler Sicherheitsfaktor 3</label>
-  <input type="password" id="sec3" placeholder="Optional">
+<label>Sicherheitsfaktor 3 (optional)</label>
+<input type="password" id="factor3" placeholder="Sekundär-Faktor 3">
 
-  <label>Text zum Verschlüsseln/Entschlüsseln</label>
-  <textarea id="plaintext" rows="4" placeholder="Hier Klartext oder verschlüsselte Daten einfügen"></textarea>
+<button onclick="encrypt()">Verschlüsseln</button>
 
-  <button onclick="encryptData()">🔒 Verschlüsseln</button>
-  <button onclick="decryptData()">🔓 Entschlüsseln</button>
-
-  <div class="output" id="output">Warte auf Server-OK...</div>
+<pre id="out">Warten auf Eingabe...</pre>
 </div>
 
 <script>
-const API_URL = "http://localhost:3000/api/encryption-approval"; // Server-Endpunkt
-const SERVER_TOKEN = "d9F3kL1bQ7rXp2VwZ8nM5tC4sJ6yH0uR"; // Muss mit server.js übereinstimmen
+const API = "https://unwintry-strapping-winford.ngrok-free.dev/api/encryption-approval"; 
+const TOKEN = "9f3c8a1d4e2b7a6c8f1e9d0a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b";
 
 async function sha256(str) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
-  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,"0")).join("");
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,"0")).join("");
 }
 
-async function pbkdf2Hash(password, salt, iterations = 1000000, keyLen = 32) {
-  const enc = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw", enc.encode(password), {name: "PBKDF2"}, false, ["deriveBits"]
-  );
-  const derivedBits = await crypto.subtle.deriveBits(
-    {name: "PBKDF2", hash: "SHA-256", salt: enc.encode(salt), iterations}, keyMaterial, keyLen*8
-  );
-  return [...new Uint8Array(derivedBits)].map(b => b.toString(16).padStart(2,"0")).join("");
+async function requestServerApproval(clientSecret) {
+    try {
+        const res = await fetch(API, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-API-Token": TOKEN
+            },
+            body: JSON.stringify({ clientHash: clientSecret })
+        });
+
+        if (!res.ok) throw new Error(`Server antwortete mit Status ${res.status}`);
+        const data = await res.json();
+        if (!data.approved || !data.secretComponent) throw new Error("Server verweigerte Freigabe oder kein Secret");
+        return data.secretComponent;
+    } catch (err) {
+        console.error("Fehler beim API-Aufruf:", err);
+        throw err;
+    }
 }
 
-async function getServerSecret(clientHash) {
-  try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: {"Content-Type":"application/json", "X-API-Token": SERVER_TOKEN},
-      body: JSON.stringify({ clientHash })
-    });
-    const data = await res.json();
-    if(!data.approved) throw new Error("Server verweigert die Freigabe");
-    return data.secretComponent;
-  } catch(e) {
-    alert("Server-Fehler: " + e.message);
-    throw e;
-  }
-}
+async function encrypt() {
+    const password = document.getElementById("password").value;
+    if (!password) {
+        alert("Passwort ist Pflicht!");
+        return;
+    }
+    const factors = [
+        document.getElementById("factor1").value,
+        document.getElementById("factor2").value,
+        document.getElementById("factor3").value
+    ];
+    const combined = password + factors.join("|");
+    const clientHash = await sha256(combined);
 
-async function encryptData() {
-  const primary = document.getElementById("primary-pass").value;
-  const sec = [document.getElementById("sec1").value,
-               document.getElementById("sec2").value,
-               document.getElementById("sec3").value].filter(s=>s);
-  const text = document.getElementById("plaintext").value;
-  if(!primary || !text) { alert("Passwort und Text sind Pflicht."); return; }
+    try {
+        const serverPart = await requestServerApproval(clientHash);
+        const finalKey = await sha256(clientHash + serverPart);
 
-  document.getElementById("output").textContent = "Anfrage an Server läuft...";
-
-  const clientHash = await pbkdf2Hash(primary + sec.join("|"), "clientSalt", 1000000);
-  const serverSecret = await getServerSecret(clientHash);
-
-  const finalKeyHex = await pbkdf2Hash(clientHash + serverSecret, "finalSalt", 1000000);
-  
-  document.getElementById("output").textContent = `✅ Verschlüsselt!\nFinal Key Hash: ${finalKeyHex}\n\nOriginal: ${text}`;
-}
-
-async function decryptData() {
-  const primary = document.getElementById("primary-pass").value;
-  const sec = [document.getElementById("sec1").value,
-               document.getElementById("sec2").value,
-               document.getElementById("sec3").value].filter(s=>s);
-  const text = document.getElementById("plaintext").value;
-  if(!primary || !text) { alert("Passwort und Text sind Pflicht."); return; }
-
-  document.getElementById("output").textContent = "Anfrage an Server läuft...";
-
-  const clientHash = await pbkdf2Hash(primary + sec.join("|"), "clientSalt", 1000000);
-  const serverSecret = await getServerSecret(clientHash);
-
-  const finalKeyHex = await pbkdf2Hash(clientHash + serverSecret, "finalSalt", 1000000);
-
-  document.getElementById("output").textContent = `🔓 Entschlüsselt!\nFinal Key Hash: ${finalKeyHex}\n\nText: ${text}`;
+        document.getElementById("out").textContent =
+`Client-Hash: ${clientHash}
+Server-Part: ${serverPart}
+Final-Key: ${finalKey}`;
+    } catch (err) {
+        document.getElementById("out").textContent = "Fehler: " + err.message;
+    }
 }
 </script>
 </body>
