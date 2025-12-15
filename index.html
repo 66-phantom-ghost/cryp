@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anonymes Chiffrier-Interface (V10.3 - Terminal Edition)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Import der Terminal-Schriftart für Daten */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Fira+Code:wght@300..700&display=swap');
+        
+        /* Globale Terminal-Ästhetik */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #080808; /* Deep Black */
+            color: #00ff00; /* Neon Green */
+            line-height: 1.4;
+        }
+        .terminal-font {
+            font-family: 'Fira Code', monospace;
+        }
+        
+        /* Haupt-Container */
+        .container-card {
+            background-color: #111111;
+            box-shadow: 0 0 25px rgba(0, 255, 0, 0.2), inset 0 0 5px rgba(0, 255, 0, 0.1);
+            border: 2px solid #005500;
+            border-radius: 4px;
+        }
+        
+        /* Eingabefelder (Input/Textarea) */
+        input[type="password"], textarea, input[type="text"] {
+            background-color: #0d0d0d;
+            border: 1px solid #005500;
+            color: #00ff00;
+            border-radius: 2px;
+            box-shadow: inset 0 0 5px rgba(0, 255, 0, 0.1);
+        }
+        input[type="password"]:focus, textarea:focus, input[type="text"]:focus {
+            border-color: #00ff00;
+            box-shadow: 0 0 5px #00ff00;
+        }
+
+        /* Ergebnis-Box */
+        .result-box {
+            word-break: break-all;
+            white-space: pre-wrap;
+            min-height: 2.5rem;
+            background-color: #0d0d0d !important;
+            border: 1px dashed #005500 !important;
+            overflow-wrap: break-word; 
+            color: #00ff00;
+            font-size: 0.75rem;
+            padding: 8px;
+        }
+        
+        /* Terminal Buttons */
+        .btn-terminal {
+            background-color: #005500;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+            color: #0d0d0d;
+            font-weight: bold;
+            transition: all 0.15s;
+        }
+        .btn-terminal:hover {
+            background-color: #00ff00;
+            color: #080808;
+            box-shadow: 0 0 15px #00ff00;
+        }
+        
+        /* Danger/Destruct Button */
+        .btn-destruct { background-color: #550000; } 
+        .btn-destruct:hover { 
+            background-color: #ff0077; 
+            box-shadow: 0 0 15px #ff0077;
+        }
+        
+        /* Spezial-Hinweise */
+        .security-alert {
+            background-color: #1a0000;
+            color: #ff44aa; 
+            border: 1px solid #ff0077;
+        }
+        
+        /* Datei-Input Label */
+        .file-input-label {
+            cursor: pointer;
+            border: 2px dashed #005500;
+            transition: all 0.2s;
+            background-color: #0d0d0d;
+            color: #00ff00;
+        }
+        .file-input-label:hover {
+            border-color: #00ff00;
+            background-color: #1a1a1a;
+        }
+        
+        /* Session Status */
+        .session-active { background-color: #00ff00; color: #080808; font-weight: bold; }
+        .session-inactive { background-color: #ff0077; color: #080808; font-weight: bold; }
+        .countdown-active { background-color: #1a1a1a; color: #00ff00; border: 1px solid #005500; }
+
+        /* Obfuskierte Daten */
+        .obfuscated-header, .obfuscated-footer {
+            color: #ff0077; 
+            font-size: 0.75rem;
+            text-align: center;
+            padding: 0.25rem 0;
+            border-bottom: 1px dashed #550000; 
+            user-select: none;
+            font-family: 'Fira Code', monospace;
+        }
+        .obfuscated-footer {
+            border-top: 1px dashed #550000;
+            border-bottom: none;
+        }
+        .obfuscated-data {
+            color: #00ff00; 
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+        
+    </style>
+</head>
+<body class="p-4 sm:p-8 min-h-screen flex items-start justify-center">
+
+<div class="w-full max-w-xl container-card p-6 sm:p-8 rounded-lg">
+    <h1 class="text-3xl font-extrabold text-[#ff0077] mb-4 terminal-font">ANONYMES DATEN-GATEWAY V10.3</h1>
+    
+    <!-- SICHERHEITSHINWEISE / ALERT LOG -->
+    <div class="p-3 rounded-lg mb-6 security-alert">
+        <h2 class="text-lg font-bold mb-1 text-[#ff0077] terminal-font">ACCESS WARNING // KERN-PARAMETER</h2>
+        <ul class="text-xs space-y-1 text-gray-300 terminal-font">
+            <li>LOGIC: MFKD / 1.1M Runden + Web-Binding Integrity Check</li>
+            <li>POLICY: RAM Zeroing auf BLUR/EXIT/TIMEOUT</li>
+            <li>RISK ASSESSMENT: Host-Environment muss vertrauenswürdig sein.</li>
+        </ul>
+    </div>
+
+    <!-- Session Status und Kontrolle -->
+    <div class="p-4 bg-[#0d0d0d] rounded-lg border border-[#005500] mb-6 space-y-3 terminal-font">
+        <div id="session-status-message" class="text-lg font-semibold p-3 rounded-sm text-center session-inactive">
+            SESSION_STATUS: OFFLINE
+        </div>
+        
+        <div id="countdown-display" class="text-xl font-extrabold text-center p-3 rounded-sm countdown-active hidden">
+            KEY_CACHE_TTL: <span id="time-display">05:00</span>
+        </div>
+        
+        <button id="end-session-button" onclick="manualZeroing()" class="w-full btn-destruct text-white font-bold py-2 rounded-sm transition duration-200 hidden">
+            [COMMAND] > DESTROY KEY / ZERO MEMORY
+        </button>
+        
+        <div class="flex items-center justify-center pt-2">
+            <input type="checkbox" id="paranoia-mode" onchange="toggleParanoiaMode()" class="h-4 w-4 text-[#ff0077] border-gray-300 rounded focus:ring-[#ff0077] bg-gray-800 border-gray-600">
+            <label for="paranoia-mode" class="ml-2 text-sm font-medium text-[#ff0077] cursor-pointer">
+                PARANOIA_MODE: AKTIVIERT (Kein Key-Cache / Copy-Protect)
+            </label>
+        </div>
+        <p id="kdf-note" class="text-xs mt-2 font-bold text-yellow-400 text-center">
+            [SYSTEM]: KDF initiiert, wenn KEY_CACHE_TTL abgelaufen ist.
+        </p>
+    </div>
+
+    <!-- Passwort & Input-Wahl -->
+    <div class="p-4 bg-[#1a1a1a] rounded-lg border border-[#005500] mb-6">
+        
+        <!-- 1. PRIMÄR PASSWORT -->
+        <label for="primary-password-input" class="block text-sm font-medium mb-2 terminal-font">1. AUTH-FACTOR PRIMARY (High Entropy Required):</label>
+        <input type="password" id="primary-password-input" value="MeinSuperSicheresPasswort16+" oninput="checkPasswordStrength()" autocomplete="off" class="w-full p-3 border rounded-sm focus:ring-[#00ff00] focus:border-[#00ff00] transition duration-150 terminal-font text-sm mb-2">
+        
+        <!-- Passwort Stärke Indikator -->
+        <div id="password-strength" class="h-2 rounded-full mb-4 bg-[#0d0d0d] border border-[#005500]">
+            <div id="strength-bar" class="h-full rounded-full transition-all duration-300" style="width: 0%;"></div>
+        </div>
+        <p id="strength-text" class="text-xs text-gray-400 mb-4 terminal-font"></p>
+        
+        <!-- 2. SEKUNDÄRE PASSPHRASEN (MFKD) -->
+        <div class="space-y-3 pt-4 border-t border-[#005500]">
+            <h3 class="text-sm font-medium mb-1 terminal-font">2. AUTH-FACTOR SECONDARY (MFKD 1-3)</h3>
+            <p class="text-xs text-gray-400 italic mb-1 terminal-font">
+                HINWEIS: Bei Verschlüsselung verwendet, MÜSSEN diese Faktoren für die Entschlüsselung exakt übereinstimmen.
+            </p>
+            <input type="password" id="secondary-password-input-1" placeholder="Sekundär-Faktor 1 (Optional)" autocomplete="off" class="w-full p-3 border rounded-sm terminal-font text-sm">
+            <input type="password" id="secondary-password-input-2" placeholder="Sekundär-Faktor 2 (Optional)" autocomplete="off" class="w-full p-3 border rounded-sm terminal-font text-sm">
+            <input type="password" id="secondary-password-input-3" placeholder="Sekundär-Faktor 3 (Optional)" autocomplete="off" class="w-full p-3 border rounded-sm terminal-font text-sm">
+        </div>
+
+        
+        <!-- 3. DATENQUELLE -->
+        <div class="mt-6 border-t border-[#005500] pt-4">
+            <label class="block text-sm font-medium mb-2 terminal-font">3. INPUT SOURCE SELECTION:</label>
+            <div class="flex space-x-3">
+                <button id="mode-text-btn" onclick="setInputMode('text')" class="flex-1 p-3 rounded-sm text-sm terminal-font btn-terminal transition">RAW TEXT</button>
+                <button id="mode-file-btn" onclick="setInputMode('file')" class="flex-1 p-3 rounded-sm text-sm terminal-font btn-terminal transition">FILE STREAM</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Input Bereiche -->
+    <div id="text-input-container" class="mb-6">
+        <label for="input-text" class="block text-sm font-medium mb-2 terminal-font">EINGABE-BUFFER (Klartext ODER Chiffre-Block):</label>
+        <textarea id="input-text" rows="3" class="w-full p-3 border rounded-sm transition duration-150 terminal-font" placeholder="Fügen Sie hier Klartext ODER den verschlüsselten Datenblock für die Entschlüsselung ein."></textarea>
+    </div>
+
+    <div id="file-input-container" class="mb-6 hidden">
+        <input type="file" id="file-input" class="hidden" onchange="updateFileName()">
+        <label for="file-input" id="file-label" class="file-input-label flex items-center justify-center h-24 p-4 rounded-sm text-gray-400 terminal-font">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            <span id="file-name-display">DROP FILE FOR ENCRYPT/DECRYPT</span>
+        </label>
+    </div>
+
+    <!-- Meldungsbereich -->
+    <div id="message-area" class="text-sm text-center mb-4 py-2 rounded-sm transition duration-300 hidden terminal-font"></div>
+
+    <!-- Aktionen -->
+    <div class="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 mb-6">
+        <button onclick="encryptData()" class="w-full sm:w-1/2 btn-terminal text-[#080808] font-semibold py-3 rounded-sm shadow-lg transform hover:scale-[1.01]">
+            [ENCRYPT] > OBFUSCATE DATA
+        </button>
+        <button onclick="decryptData()" class="w-full sm:w-1/2 btn-terminal text-[#080808] font-semibold py-3 rounded-sm shadow-lg transform hover:scale-[1.01]">
+            [DECRYPT] > RESTORE DATA
+        </button>
+    </div>
+
+    <!-- Ergebnisbereich -->
+    <div id="output-section">
+        <h2 class="text-xl font-bold text-[#ff0077] mb-4 border-b border-[#550000] pb-2 terminal-font">OUTPUT LOG // RESULTS</h2>
+        
+        <!-- Chiffre-Daten (Obfuskierter Block) -->
+        <div class="mb-4 p-3 bg-[#1a1a1a] rounded-sm border border-[#005500]">
+            <div class="flex justify-between items-start mb-2">
+                <h3 class="font-bold text-[#00ff00] terminal-font">DATA_BLOCK_OBFUSCATED (Cipher + Metadata)</h3>
+                <button onclick="copyToInputAndPrepare()" class="ml-4 flex-shrink-0 text-xs font-semibold px-3 py-1 bg-[#ff0077] text-white rounded-sm hover:bg-[#ff44aa] transition duration-150 terminal-font">
+                    COPY & PREPARE DECRYPT
+                </button>
+            </div>
+            <!-- Export-Warnung V10.1 -->
+            <div id="export-warning" class="text-xs font-bold text-yellow-500 bg-[#333300] p-2 rounded mb-2 hidden terminal-font">
+                <!-- Wird dynamisch gefüllt -->
+            </div>
+            <div id="encrypted-output" class="result-box terminal-font select-all">---</div>
+        </div>
+
+        <!-- Entschlüsselungs-Resultat -->
+        <div id="decrypted-text-container" class="p-3 bg-[#1a1a1a] rounded-sm border border-[#005500]">
+            <h3 class="font-bold text-[#00ff00] mb-1 terminal-font">DECRYPTED PAYLOAD / RESTORATION</h3>
+            <div id="decrypted-output" class="result-box terminal-font select-all">---</div>
+            <div id="decrypted-file-download" class="mt-3 hidden text-center"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Globale Krypto-Konstanten ---
+    const KEY_ALGO = "AES-GCM"; 
+    const KEY_LENGTH = 256;     
+    const HASH_ALGO = "SHA-512"; 
+    
+    // Passworthärtung V10.1: MFKD mit 1.1M Runden
+    const MASTER_ITERATIONS = 1000000; 
+    const INTERMEDIATE_ITERATIONS = 100000; 
+    const MIN_PASS_LENGTH = 16; 
+    
+    const SALT_BYTE_SIZE = 16;
+    const IV_BYTE_SIZE = 12; 
+
+    // V10.2 Versionsbindungen und Formate
+    const APP_VERSION = "V10-3-ANON"; 
+    const CUSTOM_DELIMITER = '|'; 
+    const EXTRA_PASS_COUNT = 3; 
+
+    // WICHTIG: Dieses lange, statische Geheimnis ist die Web-Bindung. 
+    const APP_BINDING_SECRET = "SecureArchitecturalIntegrityProofForVersionTenZeroMultiFactorKDFDoNotModifyOrCopyOfflineToPreventDecryptionAbuse1A2B3C4D5E6F7G8H9I0J1K2L3M4N5O6P7Q8R9S0T1U2V3W4X5Y6Z7A8B9C0D1E2F3G4H5I6J7K8L9M0N1O2P3Q4R5S6T7U8V9V90"; 
+    
+    const SECRET_SPLIT_POINT = 110; 
+    const SECRET_A = APP_BINDING_SECRET.substring(0, SECRET_SPLIT_POINT); 
+    const SECRET_B = APP_BINDING_SECRET.substring(SECRET_SPLIT_POINT);     
+
+    // Session Key Cache
+    const ABSOLUTE_DURATION_SECONDS = 5 * 60; 
+    
+    let isParanoiaMode = false; 
+    let bindingHashPartA = null; 
+    let bindingHashPartB = null; 
+    
+    let sessionKeyCache = {
+        key: null,
+        passwordHash: null, 
+    };
+    
+    let timeRemaining = ABSOLUTE_DURATION_SECONDS;
+    let timerInterval = null;
+
+    let inputMode = 'text';
+
+    // V10.2: Globaler Object URL Halter für Speicherbereinigung
+    let lastObjectURL = null; 
+
+    // --- Core Web-Binding Funktion (Anti-Offline) ---
+    /**
+     * V10.1: Berechnet den SHA-512 Hash der statischen App-Binding-Secrets A und B.
+     */
+    async function getAppBindingHashes() {
+        if (bindingHashPartA && bindingHashPartB) {
+            return { hashA: bindingHashPartA, hashB: bindingHashPartB };
+        }
+
+        const bufferA = new TextEncoder().encode(SECRET_A);
+        const bufferB = new TextEncoder().encode(SECRET_B);
+
+        const [hashA, hashB] = await Promise.all([
+            crypto.subtle.digest(HASH_ALGO, bufferA),
+            crypto.subtle.digest(HASH_ALGO, bufferB)
+        ]);
+
+        bindingHashPartA = hashA;
+        bindingHashPartB = hashB;
+        
+        return { hashA, hashB };
+    }
+
+    // --- UX und Hilfsfunktionen ---
+    
+    /**
+     * V10.2: Bereinigt die letzte erstellte Object URL, um Speicherlecks zu verhindern.
+     */
+    function cleanUpLastURL() {
+        if (lastObjectURL) {
+            URL.revokeObjectURL(lastObjectURL);
+            lastObjectURL = null;
+            console.log("Cleanup: Vorherige Object URL wurde widerrufen.");
+        }
+    }
+
+    function preventDefault(e) { 
+        if (isParanoiaMode) {
+            e.preventDefault(); 
+            displayMessage('Copy/Paste/Cut ist im Paranoia-Modus für das Passwortfeld blockiert.', 'error');
+        }
+    }
+
+    function togglePasswordProtection(enable) {
+        const primaryInput = document.getElementById('primary-password-input');
+        const secondaryInputs = [
+            document.getElementById('secondary-password-input-1'),
+            document.getElementById('secondary-password-input-2'),
+            document.getElementById('secondary-password-input-3'),
+        ];
+        
+        const allInputs = [primaryInput, ...secondaryInputs];
+
+        allInputs.forEach(input => {
+            input.removeEventListener('copy', preventDefault);
+            input.removeEventListener('cut', preventDefault);
+            input.removeEventListener('paste', preventDefault);
+            if (enable) {
+                input.addEventListener('copy', preventDefault);
+                input.addEventListener('cut', preventDefault);
+                input.addEventListener('paste', preventDefault);
+            }
+        });
+    }
+
+    function toggleParanoiaMode() {
+        isParanoiaMode = document.getElementById('paranoia-mode').checked;
+        
+        zeroSessionKey(); 
+        
+        if (isParanoiaMode) {
+            document.getElementById('primary-password-input').value = ''; 
+            document.getElementById('secondary-password-input-1').value = '';
+            document.getElementById('secondary-password-input-2').value = '';
+            document.getElementById('secondary-password-input-3').value = '';
+            
+            displayMessage('PARANOIA_MODE_ACTIVE: Key-Caching und Session-Timer deaktiviert. Passwörter werden nach Nutzung gelöscht.', 'error');
+            togglePasswordProtection(true); 
+            checkPasswordStrength(); 
+        } else {
+            displayMessage('PARANOIA_MODE_INACTIVE: Session-Caching ist für 5 Minuten aktiv.', 'info');
+            togglePasswordProtection(false); 
+        }
+        updateSessionUI();
+    }
+    
+    function secureClear(buffer) {
+        if (buffer) {
+            const view = buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : buffer;
+            view.fill(0);
+        }
+    }
+
+    function zeroSessionKey() {
+        if (sessionKeyCache.key === null && timerInterval === null) {
+            return; 
+        }
+        
+        if (sessionKeyCache.key) {
+            sessionKeyCache.key = null; 
+        }
+        sessionKeyCache.passwordHash = null;
+        
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+        
+        timeRemaining = ABSOLUTE_DURATION_SECONDS;
+
+        updateSessionUI();
+        console.warn("🔒 [SECURITY] Session Key im RAM wurde auf Null gesetzt (Zeroing).");
+    }
+
+    function manualZeroing() {
+        zeroSessionKey();
+        displayMessage('[SYSTEM_MESSAGE] > DESTROY: Master Key aus dem RAM gelöscht.', 'info');
+    }
+    
+    /**
+     * Erzeugt einen einfachen Hash aus allen Passwörtern zur Cache-Validierung.
+     */
+    async function getCombinedPasswordHash(primaryPass, secondaryPasses) {
+        const combinedString = primaryPass + secondaryPasses.join('|');
+        const buffer = new TextEncoder().encode(combinedString);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+        return bufferToBase64(hashBuffer);
+    }
+    
+    // --- Session Timer Management (Unverändert) ---
+    
+    function startTimer() {
+        if (isParanoiaMode) return; 
+
+        if (timerInterval) {
+            clearInterval(timerInterval);
+        }
+        
+        timeRemaining = ABSOLUTE_DURATION_SECONDS; // Reset timer on successful action/cache use
+
+        timerInterval = setInterval(() => {
+            timeRemaining--;
+
+            if (timeRemaining <= 0) {
+                console.log("⏱️ Session Timer abgelaufen. Key wird gelöscht.");
+                zeroSessionKey(); 
+                displayMessage('[TIMEOUT] > KEY_CACHE_TTL abgelaufen. KDF ist für die nächste Operation erforderlich.', 'error');
+            } else {
+                updateSessionUI();
+            }
+        }, 1000);
+        
+        updateSessionUI(); 
+    }
+    
+    function updateSessionUI() {
+        const isActive = sessionKeyCache.key !== null;
+        const msgElement = document.getElementById('session-status-message');
+        const countdownElement = document.getElementById('countdown-display');
+        const endButton = document.getElementById('end-session-button');
+        const kdfNote = document.getElementById('kdf-note');
+        
+        if (isParanoiaMode) {
+            msgElement.textContent = 'SESSION_STATUS: PARANOIA / KEY-DISCARD';
+            msgElement.classList.remove('session-active');
+            msgElement.classList.add('session-inactive');
+            countdownElement.classList.add('hidden');
+            endButton.classList.add('hidden');
+            kdfNote.textContent = '[POLICY]: Paranoia-Modus erzwingt KDF bei jeder Operation.';
+            return;
+        }
+
+        msgElement.textContent = isActive ? 'SESSION_STATUS: ONLINE / KEY-CACHED' : 'SESSION_STATUS: OFFLINE';
+        msgElement.classList.remove('session-active', 'session-inactive');
+        msgElement.classList.add(isActive ? 'session-active' : 'session-inactive');
+
+        if (isActive) {
+            countdownElement.classList.remove('hidden');
+            endButton.classList.remove('hidden');
+            kdfNote.textContent = `[SYSTEM]: Nächste ${timeRemaining}s KDF-frei (Key-Cache-Valid).`;
+            updateTimeDisplay();
+        } else {
+            countdownElement.classList.add('hidden');
+            endButton.classList.add('hidden');
+            kdfNote.textContent = `[SYSTEM]: KDF initiiert, wenn KEY_CACHE_TTL abgelaufen ist.`;
+            updateTimeDisplay(); 
+        }
+    }
+
+    function updateTimeDisplay() {
+        const timeDisplay = document.getElementById('time-display');
+        const minutes = Math.floor(timeRemaining / 60);
+        const seconds = timeRemaining % 60;
+        timeDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    function checkPasswordStrength() {
+        const passwordInput = document.getElementById('primary-password-input');
+        const password = passwordInput.value;
+        const strengthBar = document.getElementById('strength-bar');
+        const strengthText = document.getElementById('strength-text');
+        
+        // KDF-Cache wird bei jeder Änderung des Primärpassworts gelöscht
+        if (passwordInput._lastValue !== password) {
+            zeroSessionKey(); 
+            passwordInput._lastValue = password;
+        }
+
+        let score = 0;
+        let classes = 0;
+        let warnings = [];
+
+        if (password.length >= MIN_PASS_LENGTH) {
+            score += 30;
+        } else {
+            warnings.push(`Min. ${MIN_PASS_LENGTH} Zeichen (aktuell ${password.length}).`);
+        }
+        
+        if (/[A-Z]/.test(password)) { score += 20; classes++; } else { warnings.push('Nutze Großbuchstaben.'); }
+        if (/[a-z]/.test(password)) { score += 10; classes++; } else { warnings.push('Nutze Kleinbuchstaben.'); }
+        if (/\d/.test(password)) { score += 20; classes++; } else { warnings.push('Nutze Ziffern.'); }
+        if (/[^A-Za-z0-9\s]/.test(password)) { score += 20; classes++; } else { warnings.push('Nutze Sonderzeichen.'); }
+        
+        if (classes >= 4 && password.length >= MIN_PASS_LENGTH) {
+            score += 20; 
+        } else if (classes >= 3 && password.length >= 20) {
+             score += 10; 
+        } else if (password.length > 0) {
+            warnings.push('Zu geringe Entropie. Erhöhe die Vielfalt der Zeichenklassen (G/K Buchstaben, Ziffern, Sonderzeichen).');
+        }
+
+        let strength = 'WEAK';
+        let color = 'bg-red-700';
+        score = Math.min(score, 100);
+
+        if (password.length === 0) {
+             score = 0;
+             strengthText.textContent = '';
+        } else if (score >= 90 && classes >= 4) { 
+            strength = 'EXCELLENT (MAX_RECOMMENDED)';
+            color = 'bg-lime-500'; /* Neon Green */
+        } else if (score >= 80 && classes >= 3 && password.length >= 20) {
+            strength = 'STRONG (RECOMMENDED)';
+            color = 'bg-yellow-500';
+        } else if (score >= 60) {
+            strength = 'MEDIUM (IMPROVE)';
+            color = 'bg-orange-500';
+        }
+
+        strengthBar.style.width = `${score}%`;
+        strengthBar.className = `h-full rounded-full transition-all duration-300 ${color}`;
+        
+        if (password.length === 0) {
+             strengthBar.style.width = '0%';
+        } else if (warnings.length > 0) {
+            strengthText.textContent = `ENTROPY_LEVEL: ${strength}. HINTS: ${warnings.join(' ')}`;
+        } else {
+            strengthText.textContent = `ENTROPY_LEVEL: ${strength}. STATUS: OK.`;
+        }
+    }
+
+    function setInputMode(mode) {
+        inputMode = mode;
+        const textContainer = document.getElementById('text-input-container');
+        const fileContainer = document.getElementById('file-input-container');
+        const textBtn = document.getElementById('mode-text-btn');
+        const fileBtn = document.getElementById('mode-file-btn');
+
+        const activate = (btn) => { 
+            btn.classList.add('btn-terminal'); 
+            btn.classList.remove('bg-gray-700', 'text-gray-300'); 
+            btn.style.backgroundColor = '#00ff00';
+            btn.style.color = '#080808';
+        };
+        const deactivate = (btn) => { 
+            btn.classList.remove('btn-terminal'); 
+            btn.classList.add('bg-[#0d0d0d]', 'text-[#00ff00]', 'border', 'border-[#005500]'); 
+            btn.style.backgroundColor = '';
+            btn.style.color = '#00ff00';
+        };
+
+
+        if (mode === 'text') {
+            textContainer.classList.remove('hidden');
+            fileContainer.classList.add('hidden');
+            activate(textBtn);
+            deactivate(fileBtn);
+        } else {
+            textContainer.classList.add('hidden');
+            fileContainer.classList.remove('hidden');
+            activate(fileBtn);
+            deactivate(textBtn);
+        }
+        
+        document.getElementById('encrypted-output').textContent = '---';
+        document.getElementById('decrypted-output').textContent = '---';
+        document.getElementById('decrypted-file-download').classList.add('hidden');
+        document.getElementById('export-warning').classList.add('hidden');
+        cleanUpLastURL(); 
+    }
+
+    function updateFileName() {
+        const fileInput = document.getElementById('file-input');
+        const display = document.getElementById('file-name-display');
+        if (fileInput.files.length > 0) {
+            display.textContent = `FILE_SELECTED: ${fileInput.files[0].name}`;
+            display.classList.remove('text-gray-400');
+            display.classList.add('text-[#00ff00]', 'font-semibold');
+        } else {
+            display.textContent = 'DROP FILE FOR ENCRYPT/DECRYPT';
+            display.classList.add('text-gray-400');
+            display.classList.remove('text-[#00ff00]', 'font-semibold');
+        }
+    }
+
+    const displayMessage = (message, type = 'info') => {
+        const msgArea = document.getElementById('message-area');
+        msgArea.className = `text-sm text-center mb-4 py-2 rounded-sm transition duration-300 terminal-font`;
+        msgArea.textContent = message;
+        msgArea.classList.remove('hidden');
+
+        const classes = {
+            success: ['bg-[#005500]', 'text-[#00ff00]', 'border', 'border-[#00ff00]'],
+            error: ['bg-[#550000]', 'text-[#ff0077]', 'border', 'border-[#ff0077]'],
+            info: ['bg-[#0d0d0d]', 'text-[#00ff00]', 'border', 'border-[#005500]']
+        };
+        
+        // Remove previous type classes
+        msgArea.classList.remove('bg-[#005500]', 'bg-[#550000]', 'bg-[#0d0d0d]', 'text-[#00ff00]', 'text-[#ff0077]', 'border', 'border-[#00ff00]', 'border-[#ff0077]', 'border-[#005500]');
+
+        msgArea.classList.add(...classes[type] || classes['info']);
+        setTimeout(() => msgArea.classList.add('hidden'), 8000); 
+    };
+
+    function copyToInputAndPrepare() {
+        const encryptedOutput = document.getElementById('encrypted-output').textContent.trim();
+        if (encryptedOutput === '---' || encryptedOutput.startsWith('FEHLER')) {
+            displayMessage('ERROR: Encrypted output is empty or corrupted. Execute ENCRYPT first.', 'error');
+            return;
+        }
+
+        document.getElementById('input-text').value = encryptedOutput;
+        setInputMode('text'); 
+        displayMessage('COMMAND: Cipher-Block in das Eingabefeld kopiert. EXECUTE DECRYPT.', 'success');
+    }
+    
+    /**
+     * V10.1: Liest die sekundären Passphrasen aus den Feldern.
+     * @returns {Array<string>} Array mit 3 Elementen (string oder leere strings).
+     */
+    function readSecondaryPassphrases() {
+        return [
+            document.getElementById('secondary-password-input-1').value,
+            document.getElementById('secondary-password-input-2').value,
+            document.getElementById('secondary-password-input-3').value,
+        ];
+    }
+    
+    // V10.1: Obfuskierte Formatierung für den Output
+    function formatObfuscatedOutput(base64Metadata, base64Ciphertext) {
+        // Der Block enthält die Version, das Base64(JSON) Metadata und den Ciphertext, getrennt durch den CUSTOM_DELIMITER.
+        const rawContent = `[${APP_VERSION}]` + CUSTOM_DELIMITER + base64Metadata + CUSTOM_DELIMITER + base64Ciphertext;
+        
+        // Zerlege den Base64 String in kleinere Blöcke für einen "Key"-Look
+        const CHUNK_SIZE = 64; 
+        let chunks = [];
+        for (let i = 0; i < rawContent.length; i += CHUNK_SIZE) {
+            chunks.push(rawContent.substring(i, i + CHUNK_SIZE));
+        }
+
+        const dataBlock = chunks.join('\n');
+
+        // Das finale Format mit optischen Begrenzern (nur für die Anzeige)
+        const obfuscatedBlock = `
+<div class="obfuscated-header terminal-font font-bold text-[#ff0077]">--- [DATA-CONDUIT-ARCHIVE v${APP_VERSION}] ---</div>
+<div class="obfuscated-data terminal-font">
+${dataBlock}
+</div>
+<div class="obfuscated-footer terminal-font font-bold text-[#ff0077]">--- [EOC-INTEGRITY-FINGERPRINT] ---</div>
+        `.trim();
+        
+        return { html: obfuscatedBlock, raw: rawContent };
+    }
+    
+    // V10.1: Extrahiert reinen Base64-String aus obfuskierter Darstellung und Metadaten
+    function parseObfuscatedInput(input) {
+        const prefix = `[${APP_VERSION}]` + CUSTOM_DELIMITER;
+        if (!input.startsWith(prefix)) {
+            
+            // Auch wenn die Struktur ähnlich ist, verweigern wir die Entschlüsselung
+            // aufgrund der strengen Versionsbindung, die das Web-Binding sicherstellt.
+            if (input.startsWith(`[V`)) {
+                 throw new Error("VERSION_MISMATCH: Inkompatibler Datenblock. Möglicherweise ältere Version.");
+            }
+            throw new Error("INVALID_DATA_FORMAT: Präfix nicht gefunden. Ungültiger Datenblock.");
+        }
+        
+        const rawData = input.substring(prefix.length);
+        const parts = rawData.split(CUSTOM_DELIMITER);
+
+        if (parts.length !== 2) { 
+            throw new Error(`Erwartete 2 Hauptteile (Metadata${CUSTOM_DELIMITER}Ciphertext), aber ${parts.length} gefunden.`);
+        }
+        
+        const [base64Metadata, base64Ciphertext] = parts;
+        
+        // Robustes Parsing des JSON-Metadatenblocks
+        try {
+            const metadataJson = new TextDecoder().decode(base64ToBuffer(base64Metadata));
+            const metadata = JSON.parse(metadataJson);
+
+            // Validierung der Metadatenstruktur (secondaryIndices ist NEU und erforderlich)
+            if (!metadata.salt || !metadata.iv || !metadata.filename || !metadata.mimeType || !Array.isArray(metadata.secondaryIndices)) {
+                 throw new Error("Fehlende Metadaten-Felder (salt, iv, filename, mimeType oder secondaryIndices).");
+            }
+
+            return {
+                salt: metadata.salt,
+                iv: metadata.iv,
+                filename: metadata.filename,
+                mimeType: metadata.mimeType,
+                secondaryIndices: metadata.secondaryIndices, 
+                ciphertext: base64Ciphertext, 
+            };
+        } catch (e) {
+            console.error("Metadaten-Parsing Fehler:", e);
+            throw new Error("INVALID_METADATA: Ungültige oder beschädigte Metadaten-Struktur.");
+        }
+    }
+
+
+    // --- Hilfsfunktionen für Base64 und ArrayBuffer (Unverändert) ---
+    
+    const BASE64_CHUNK_SIZE = 16384; 
+
+    const bufferToBase64 = (buffer) => {
+        const bytes = new Uint8Array(buffer);
+        const len = bytes.byteLength;
+        let binary = '';
+
+        for (let i = 0; i < len; i += BASE64_CHUNK_SIZE) {
+            const chunk = bytes.subarray(i, Math.min(i + BASE64_CHUNK_SIZE, len));
+            binary += String.fromCharCode.apply(null, chunk);
+        }
+
+        return btoa(binary);
+    };
+
+    const base64ToBuffer = (base64) => {
+        if (!base64 || base64.length === 0) return new ArrayBuffer(0);
+        try {
+            const binaryString = atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        } catch (e) {
+            throw new Error("INVALID_BASE64: Ungültiges Base64-Format.");
+        }
+    };
+
+    function readInput() {
+        return new Promise((resolve, reject) => {
+            if (inputMode === 'text') {
+                const text = document.getElementById('input-text').value;
+                if (!text) { reject(new Error("Bitte geben Sie Klartext ein.")); return; }
+                
+                const buffer = new TextEncoder().encode(text).buffer;
+                resolve({ buffer, filename: 'decrypted_raw_text.txt', mimeType: 'text/plain' });
+                
+            } else {
+                const fileInput = document.getElementById('file-input');
+                const file = fileInput.files[0];
+                if (!file) { reject(new Error("Bitte wählen Sie eine Datei aus.")); return; }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    resolve({ buffer: e.target.result, filename: file.name, mimeType: file.type || 'application/octet-stream' });
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            }
+        });
+    }
+
+    // --- Krypto-Kernfunktionen (V10.1 MFKD) ---
+    
+    /**
+     * Führt eine KDF-Ableitung durch. Hilfsfunktion.
+     */
+    async function deriveBitsWithPBKDF2(keyMaterialBuffer, salt, iterations, outputLengthBits) {
+        const baseKey = await crypto.subtle.importKey(
+            'raw',
+            keyMaterialBuffer,
+            { name: "PBKDF2" },
+            false,
+            ["deriveBits"]
+        );
+
+        return crypto.subtle.deriveBits(
+            { name: "PBKDF2", salt: salt, iterations: iterations, hash: HASH_ALGO },
+            baseKey,
+            outputLengthBits
+        );
+    }
+    
+    /**
+     * V10.1: Master Key Ableitung mit 2-Phasen KDF, Web-Binding-Hash und MFKD.
+     * @param {string} primaryPass - Das Primärpasswort.
+     * @param {string[]} secondaryPasses - Array aller 3 möglichen Sekundärpassphrasen (auch leer).
+     * @param {Uint8Array} salt - Der Salt-Buffer.
+     * @param {number[]} requiredIndices - Die Indizes (1-3) der sekundären PPs, die MFKD-Material bilden.
+     * @returns {Promise<{key: CryptoKey, fromCache: boolean}>}
+     */
+    async function deriveMasterKey(primaryPass, secondaryPasses, salt, requiredIndices) {
+        // 1. INPUT VALIDIERUNG & CACHE CHECK
+        const currentPassHash = await getCombinedPasswordHash(primaryPass, secondaryPasses);
+        
+        if (!isParanoiaMode && sessionKeyCache.key && 
+            sessionKeyCache.passwordHash === currentPassHash && 
+            timeRemaining > 0) { 
+            
+            startTimer(); 
+            return { key: sessionKeyCache.key, fromCache: true };
+        }
+        
+        if (isParanoiaMode && sessionKeyCache.key) {
+             zeroSessionKey(); 
+        }
+
+        const { hashA, hashB } = await getAppBindingHashes(); 
+
+        let primaryBuffer = null;
+        let combinedPasswordBuffer = null;
+        let intermediateSecretBuffer = null;
+        let finalSecretBuffer = null;
+        let key = null;
+
+        try {
+            // 1.1 MFKD Material Preparation (Concatenation)
+            let mfkdMaterial = primaryPass;
+            
+            // Füge nur die Secondary Passphrasen hinzu, die auch verwendet werden sollen (gemäß requiredIndices)
+            const secondaryUsed = requiredIndices.map(index => {
+                const pass = secondaryPasses[index - 1]; 
+                if (!pass) {
+                    // ACHTUNG: Dieser Fehler wird später im Entschlüsselungsprozess erneut (und expliziter) geworfen
+                    throw new Error(`Fehler: Die sekundäre Passphrase ${index} ist erforderlich, aber nicht eingegeben.`);
+                }
+                return pass;
+            }).join(CUSTOM_DELIMITER);
+
+            if (secondaryUsed.length > 0) {
+                 mfkdMaterial += CUSTOM_DELIMITER + secondaryUsed;
+            }
+            
+            primaryBuffer = new TextEncoder().encode(mfkdMaterial);
+
+            // --- PHASE 1: INTERMEDIATE KEY DERIVATION (100K RUNDEN) ---
+            
+            // Kombiniere MFKD-Material und Web-Binding-Hash A
+            intermediateSecretBuffer = new Uint8Array(primaryBuffer.byteLength + hashA.byteLength); 
+            intermediateSecretBuffer.set(primaryBuffer, 0);
+            intermediateSecretBuffer.set(new Uint8Array(hashA), primaryBuffer.byteLength);
+            
+            // PBKDF2 Phase 1
+            const intermediateKeyBuffer = await deriveBitsWithPBKDF2(
+                intermediateSecretBuffer, 
+                salt, 
+                INTERMEDIATE_ITERATIONS, 
+                KEY_LENGTH 
+            ); 
+            
+            secureClear(intermediateSecretBuffer); 
+            secureClear(primaryBuffer); 
+
+            // --- PHASE 2: FINAL MASTER KEY DERIVATION (1M RUNDEN) ---
+            
+            // Kombiniere Intermediate Key und Web-Binding-Hash B
+            finalSecretBuffer = new Uint8Array(intermediateKeyBuffer.byteLength + hashB.byteLength);
+            finalSecretBuffer.set(new Uint8Array(intermediateKeyBuffer), 0);
+            finalSecretBuffer.set(new Uint8Array(hashB), intermediateKeyBuffer.byteLength);
+            
+            // Importiere den Master Secret als Base Key
+            const baseKey = await crypto.subtle.importKey(
+                'raw',
+                finalSecretBuffer,
+                { name: "PBKDF2" },
+                false,
+                ["deriveKey"]
+            );
+            
+            // PBKDF2 Phase 2 (mit 1.000.000 Runden)
+            key = await crypto.subtle.deriveKey(
+                {
+                    name: "PBKDF2",
+                    salt: salt,
+                    iterations: MASTER_ITERATIONS, 
+                    hash: HASH_ALGO,       
+                },
+                baseKey,
+                { name: KEY_ALGO, length: KEY_LENGTH }, 
+                false,
+                ["encrypt", "decrypt"]
+            );
+            
+            secureClear(intermediateKeyBuffer); 
+
+            // 2. CACHE UPDATE (WENN KEIN PARANOIA-MODUS)
+            if (!isParanoiaMode) {
+                sessionKeyCache.key = key; 
+                sessionKeyCache.passwordHash = currentPassHash;
+                timeRemaining = ABSOLUTE_DURATION_SECONDS;
+                startTimer();
+            }
+            
+            return { key, fromCache: false };
+
+        } finally {
+            secureClear(primaryBuffer); 
+            secureClear(combinedPasswordBuffer); 
+            secureClear(intermediateSecretBuffer); 
+            secureClear(finalSecretBuffer); 
+        }
+    }
+
+    async function showGenericDecryptionError(kdfDuration, isFromCache = false, isMfkdFailure = false) {
+        const outputElement = document.getElementById('decrypted-output');
+        outputElement.textContent = "DECRYPTION FAILED. (Check Auth-Factors, Binding and Integrity).";
+        outputElement.classList.remove('text-red-300', 'text-white', 'text-gray-300', 'text-[#00ff00]');
+        outputElement.classList.add('text-[#ff0077]');
+        document.getElementById('encrypted-output').textContent = "---";
+        
+        displayMessage("ERROR: Decryption failed. ACCESS DENIED.", 'error');
+
+        outputElement.innerHTML = `
+            <div class="text-center p-4 bg-[#1a0000] border border-[#ff0077] rounded-sm terminal-font">
+                <p class="text-sm font-semibold text-[#ff0077]">
+                    DECRYPTION FAILED. 
+                    ${isMfkdFailure ? '🚨 MISSING_SECONDARY_FACTOR (Hard-Fail-Policy). The required factors were not provided.' : '(Wrong Primary Auth-Factor or missing Web-Binding Signature).'}
+                </p>
+                <p class="text-xs text-gray-400 mt-2">
+                    ARCHITECTURAL_BINDING: Active.
+                    ${isFromCache ? 'Key from Cache used.' : `KDF-Duration: ${kdfDuration}s (Timing Resistance).`}
+                </p>
+            </div>
+        `;
+    }
+    
+    /**
+     * Prozess: Verschlüsseln (V10.3)
+     */
+    async function encryptData() {
+        cleanUpLastURL(); // V10.2: Cleanup
+        
+        const primaryPassword = document.getElementById('primary-password-input').value;
+        const secondaryPasswords = readSecondaryPassphrases(); 
+        
+        const outputElement = document.getElementById('encrypted-output');
+        const decryptedOutputElement = document.getElementById('decrypted-output');
+        const exportWarning = document.getElementById('export-warning');
+
+        decryptedOutputElement.textContent = "---";
+        exportWarning.classList.add('hidden');
+        document.getElementById('decrypted-file-download').classList.add('hidden');
+
+        if (document.getElementById('strength-bar').style.width === '0%' || document.getElementById('strength-bar').className.includes('bg-red-700')) {
+            displayMessage(`ERROR: Primary Auth-Factor does not meet minimum entropy requirements.`, 'error');
+            return;
+        }
+
+        let plaintextBuffer = null;
+        let salt = null;
+        let iv = null;
+        let key = null;
+        let ciphertextBuffer = null;
+        let kdfDuration = 0;
+        let isFromCache = false;
+
+        try {
+            // Bestimme, welche sekundären Passphrasen tatsächlich verwendet werden (1-basierte Indizes)
+            const requiredIndices = secondaryPasswords.map((pass, index) => pass.length > 0 ? index + 1 : 0).filter(index => index > 0);
+            const secondaryUsedCount = requiredIndices.length;
+            
+            outputElement.textContent = "STATUS: Reading input stream...";
+            const inputResult = await readInput();
+            plaintextBuffer = inputResult.buffer;
+            const { filename, mimeType } = inputResult;
+
+            if (plaintextBuffer.byteLength === 0) {
+                 displayMessage("ERROR: Selected file or text is empty.", 'error');
+                 return;
+            }
+
+            salt = crypto.getRandomValues(new Uint8Array(SALT_BYTE_SIZE));
+            iv = crypto.getRandomValues(new Uint8Array(IV_BYTE_SIZE));
+            
+            outputElement.innerHTML = `
+                <div class="obfuscated-header text-yellow-500">INIT: Starting 2-Phase MFKD (${secondaryUsedCount} Secondary Factors)...</div>
+            `;
+            
+            const kdfStartTime = Date.now();
+            // MFKD-Schlüsselableitung
+            const keyResult = await deriveMasterKey(primaryPassword, secondaryPasswords, salt, requiredIndices); 
+            key = keyResult.key;
+            isFromCache = keyResult.fromCache;
+            
+            if (!isFromCache) {
+                kdfDuration = ((Date.now() - kdfStartTime) / 1000).toFixed(2);
+            }
+            
+            outputElement.innerHTML = `
+                <div class="obfuscated-header text-yellow-500">ENCRYPT: ${isFromCache ? 'Using Cached Key' : `KDF-Duration: ${kdfDuration}s`}...</div>
+            `;
+
+            ciphertextBuffer = await crypto.subtle.encrypt(
+                { name: KEY_ALGO, iv: iv },
+                key,
+                plaintextBuffer
+            );
+
+            secureClear(plaintextBuffer);
+            
+            // --- V10.1: Robustes JSON-Metadata-Format (inkl. MFKD-Info) ---
+            const base64Salt = bufferToBase64(salt);
+            const base64Iv = bufferToBase64(iv);
+            
+            const metadataObject = {
+                salt: base64Salt,
+                iv: base64Iv,
+                filename: filename,
+                mimeType: mimeType,
+                secondaryIndices: requiredIndices 
+            };
+            
+            // JSON -> String -> Base64
+            const base64Metadata = bufferToBase64(new TextEncoder().encode(JSON.stringify(metadataObject)));
+            const base64Ciphertext = bufferToBase64(ciphertextBuffer);
+
+            // Erzeuge den finalen Block, der auch den Prefix enthält
+            const { html, raw } = formatObfuscatedOutput(base64Metadata, base64Ciphertext);
+
+            // 6. Output und Download Link & V10.1 Hard-Fail Warnung
+            exportWarning.classList.remove('hidden');
+
+            if (secondaryUsedCount > 0) {
+                 exportWarning.innerHTML = `
+                    <p class="text-sm font-bold text-[#ff0077] bg-[#330000] p-2 rounded-sm">
+                        ⚠️ **ACCESS_LOCKOUT_RISK:** Block is PERMANENTLY LOST without ALL **${secondaryUsedCount}** secondary factors. SAVE THEM!
+                    </p>
+                 `;
+            } else {
+                 exportWarning.innerHTML = `
+                    <p class="text-xs font-bold text-yellow-500 bg-[#333300] p-2 rounded-sm">
+                        WARNING: This block only works with the correct Primary Key and Web-Binding.
+                    </p>
+                 `;
+            }
+
+
+            // Der rohe, kopierbare String MUSS im Text-Content des result-box DIVs gespeichert werden.
+            outputElement.innerHTML = html;
+            outputElement.textContent = raw; 
+
+            const sessionMsg = isParanoiaMode 
+                ? 'Key was immediately discarded.' 
+                : 'Session valid for 5 minutes.';
+            const factorMsg = secondaryUsedCount > 0 ? `with ${secondaryUsedCount} secondary factor(s).` : 'without secondary factor.';
+
+            decryptedOutputElement.innerHTML = `
+                <div class="text-center p-4 bg-[#005500] border border-[#00ff00] rounded-sm terminal-font">
+                    <p class="text-sm font-semibold text-[#080808]">ENCRYPTION_STATUS: SUCCESS ${factorMsg}</p>
+                    <p class="text-xs text-[#080808] mt-2">${isFromCache ? 'Key from Cache used' : `KDF-Duration: ${kdfDuration}s`}. ${sessionMsg}</p>
+                </div>
+            `;
+            displayMessage(`ENCRYPT_COMPLETE: Data successfully obfuscated.`, 'success');
+
+            if (isParanoiaMode) {
+                document.getElementById('primary-password-input').value = '';
+                document.getElementById('secondary-password-input-1').value = '';
+                document.getElementById('secondary-password-input-2').value = '';
+                document.getElementById('secondary-password-input-3').value = '';
+                checkPasswordStrength();
+            }
+
+        } catch (error) {
+            console.error("Verschlüsselungsfehler:", error);
+            outputElement.textContent = "ERROR: ENCRYPTION FAILED.";
+            decryptedOutputElement.textContent = "---";
+            exportWarning.classList.add('hidden');
+            displayMessage(`FATAL_ERROR: ${error.message}`, 'error');
+        } finally {
+            secureClear(plaintextBuffer);
+            secureClear(salt);
+            secureClear(iv);
+            secureClear(ciphertextBuffer);
+        }
+    }
+
+
+    /**
+     * Prozess: Entschlüsseln (V10.3)
+     */
+    async function decryptData() {
+        cleanUpLastURL(); // V10.2: Cleanup
+        
+        const primaryPassword = document.getElementById('primary-password-input').value;
+        const secondaryPasswords = readSecondaryPassphrases();
+        const encryptedDataInput = document.getElementById('input-text').value.trim();
+        const outputElement = document.getElementById('decrypted-output');
+        const downloadContainer = document.getElementById('decrypted-file-download');
+        
+        outputElement.textContent = "---";
+        outputElement.classList.remove('text-[#ff0077]');
+        outputElement.classList.add('text-[#00ff00]');
+        downloadContainer.classList.add('hidden');
+
+        if (document.getElementById('strength-bar').style.width === '0%' || document.getElementById('strength-bar').className.includes('bg-red-700')) {
+            displayMessage(`ERROR: Primary Auth-Factor does not meet minimum entropy requirements.`, 'error');
+            return;
+        }
+
+        if (encryptedDataInput.length === 0) {
+            displayMessage("ERROR: Input data block is empty. Paste cipher block above.", 'error');
+            return;
+        }
+
+        let saltArray = crypto.getRandomValues(new Uint8Array(SALT_BYTE_SIZE)); 
+        let ivArray = null;
+        let ciphertextBuffer = null;
+        let key = null;
+        let isFromCache = false;
+        let filename = "decrypted_file";
+        let mimeType = 'application/octet-stream';
+        let kdfDuration = 0;
+        let isDataInvalid = false;
+        let parsedData = {};
+        let requiredIndices = [];
+        let isMfkdFailure = false; 
+
+        try {
+            // 1. Format-Detektion und Extraktion (Vor-KDF)
+            try {
+                parsedData = parseObfuscatedInput(encryptedDataInput);
+                
+                requiredIndices = parsedData.secondaryIndices; 
+                
+                // --- V10.1 Hard-Fail Check: Prüfe, ob die notwendigen sekundären Passphrasen eingegeben wurden ---
+                const missingPasses = requiredIndices.filter(index => !secondaryPasswords[index - 1] || secondaryPasswords[index - 1].length === 0);
+                if (missingPasses.length > 0) {
+                     isMfkdFailure = true; 
+                     isDataInvalid = true; // Markiere als ungültig, um Decrypt-Versuch zu verhindern
+                     console.error(`MFKD_ERROR: Missing required secondary factor(s): ${missingPasses.join(', ')}.`);
+                }
+                
+                // Extrahiere Salt und setze für KDF
+                const saltBuffer = base64ToBuffer(parsedData.salt);
+                if (saltBuffer.byteLength === SALT_BYTE_SIZE) {
+                    saltArray.set(new Uint8Array(saltBuffer)); 
+                } else {
+                    isDataInvalid = true; 
+                }
+
+            } catch (e) {
+                isDataInvalid = true; 
+                console.error("Datenblock-Strukturfehler:", e);
+                // KDF läuft mit Dummy-Salt oder echtem Salt, aber isDataInvalid = true
+            }
+            
+            // 2. Master Key Ableitung (EXPENSIVE - 1.100.000 Runden mit Web-Binding und MFKD-Faktoren)
+            outputElement.innerHTML = `
+                <div class="text-center p-4">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00ff00] mx-auto mb-2"></div>
+                    <p class="text-sm font-semibold text-[#00ff00]">EXECUTING MFKD (FACTORS: ${requiredIndices.length}) - AWAITING BINDING-CHECK...</p>
+                </div>
+            `;
+            
+            const kdfStartTime = Date.now();
+            // Die Ableitung MUSS mit den VOM ANWENDER EINGEGEBENEN Passwörtern erfolgen.
+            // Wenn isMfkdFailure=true ist, wird der Key-Ableitungs-Pfad nicht stimmen.
+            const keyResult = await deriveMasterKey(primaryPassword, secondaryPasswords, saltArray, requiredIndices);
+            key = keyResult.key;
+            isFromCache = keyResult.fromCache;
+            
+            if (!isFromCache) {
+                kdfDuration = ((Date.now() - kdfStartTime) / 1000).toFixed(2);
+            }
+            
+            // 3. Decryption Attempt (NUR wenn Strukturprüfung und MFKD-Faktoren erfolgreich waren)
+            if (isDataInvalid) {
+                // Wenn KDF erfolgreich war, aber das Format fehlerhaft oder MFKD-Faktoren fehlen, 
+                // werfen wir den Fehler hier, um die Timing-Verzögerung zu garantieren.
+                throw new Error("Input data structure or required MFKD factors are invalid/missing after KDF.");
+            }
+            
+            // Konvertiere die Komponenten nach KDF
+            ivArray = new Uint8Array(base64ToBuffer(parsedData.iv));
+            ciphertextBuffer = base64ToBuffer(parsedData.ciphertext);
+            filename = parsedData.filename; 
+            mimeType = parsedData.mimeType; 
+
+            if (ivArray.byteLength !== IV_BYTE_SIZE || ciphertextBuffer.byteLength === 0) {
+                 throw new Error("IV or Ciphertext size is incorrect.");
+            }
+
+            let decryptedBuffer = await crypto.subtle.decrypt(
+                { name: KEY_ALGO, iv: ivArray },
+                key,
+                ciphertextBuffer
+            );
+
+            // 4. Erfolg: Ergebnisbehandlung (Wiederherstellung)
+            const blob = new Blob([decryptedBuffer], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            lastObjectURL = url; // V10.2: Object URL speichern
+            
+            const isText = mimeType.startsWith('text/') || filename.toLowerCase().endsWith('.txt');
+            const isImage = mimeType.startsWith('image/'); // V10.2: Bildprüfung
+            
+            const sessionMsg = isParanoiaMode 
+                ? 'Key was immediately discarded.' 
+                : 'Session extended.';
+            const kdfMsg = isFromCache ? 'Key from Cache used' : `KDF-Duration: ${kdfDuration}s`;
+            const factorMsg = requiredIndices.length > 0 ? `with ${requiredIndices.length} secondary factor(s).` : 'without secondary factor.';
+            
+            const downloadButton = `
+                <a href="${url}" download="${filename}" class="inline-flex items-center px-4 py-2 btn-terminal text-[#080808] font-semibold rounded-sm transition duration-200">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 11.586V3a1 1 0 112 0v8.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                    [DOWNLOAD] ${filename}
+                </a>
+                <p class="text-xs text-gray-400 mt-2">PAYLOAD_TYPE: ${mimeType}, PAYLOAD_SIZE: ${(blob.size / 1024).toFixed(2)} KB.</p>
+            `;
+            
+            downloadContainer.innerHTML = downloadButton;
+            downloadContainer.classList.remove('hidden');
+
+            let contentPreview = '';
+            let previewMessage = 'PAYLOAD_STATUS: Ready for download.';
+
+            if (isImage) {
+                // V10.2: Bild-Vorschau
+                contentPreview = `<img src="${url}" alt="Decrypted Image Preview" class="max-w-full h-auto rounded-sm shadow-lg mt-3 mb-3 mx-auto border border-[#00ff00]" style="max-height: 200px; object-fit: contain;">`;
+                previewMessage = 'PAYLOAD_STATUS: Image preview available.';
+            } else if (isText) {
+                // Text-Vorschau
+                contentPreview = `<div class="text-xs text-[#00ff00] terminal-font text-left max-h-40 overflow-auto border border-[#005500] p-2 mb-3 rounded-sm">${new TextDecoder().decode(decryptedBuffer)}</div>`;
+                previewMessage = 'PAYLOAD_STATUS: Raw text preview available.';
+            }
+            
+            outputElement.innerHTML = `
+                <div class="text-center p-4 bg-[#005500] border border-[#00ff00] rounded-sm terminal-font">
+                    <p class="text-sm font-semibold text-[#080808] mb-3">DECRYPTION_STATUS: SUCCESS ${factorMsg}. ${previewMessage}</p>
+                    ${contentPreview}
+                    <p class="text-xs text-[#080808] mt-2">${kdfMsg}. ${sessionMsg}</p>
+                    <p class="text-xs font-bold text-[#080808] mt-4">
+                        [INTEGRITY_CHECK]: Authentication successful.
+                    </p>
+                </div>
+            `;
+            
+            displayMessage(`DECRYPT_COMPLETE: Data successfully restored.`, 'success');
+
+            if (isParanoiaMode) {
+                document.getElementById('primary-password-input').value = '';
+                document.getElementById('secondary-password-input-1').value = '';
+                document.getElementById('secondary-password-input-2').value = '';
+                document.getElementById('secondary-password-input-3').value = '';
+                checkPasswordStrength();
+            }
+
+        } catch (error) {
+            // 5. Fehler: Zeige generischen Fehler (nachdem KDF gelaufen ist)
+            console.error("Entschlüsselungsversuch fehlgeschlagen:", error);
+            
+            // Wenn der MFKD-Faktor explizit fehlte, zeige den spezifischen Hard-Fail Fehler
+            if (isMfkdFailure) {
+                await showGenericDecryptionError(kdfDuration, isFromCache, true);
+            } else {
+                 await showGenericDecryptionError(kdfDuration, isFromCache);
+            }
+        } finally {
+            secureClear(saltArray);
+            secureClear(ivArray);
+            secureClear(ciphertextBuffer);
+        }
+    }
+    
+    // --- Härtung Event Listener ---
+    
+    window.addEventListener('blur', () => {
+        if (sessionKeyCache.key !== null) {
+            console.log("Event: 'blur' (Fokusverlust). Zeroing wird ausgeführt.");
+            zeroSessionKey();
+        }
+    });
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden' && sessionKeyCache.key !== null) {
+            console.log("Event: 'visibilitychange' (Tab versteckt). Zeroing wird ausgeführt.");
+            zeroSessionKey();
+        }
+    });
+
+    window.addEventListener('beforeunload', (e) => {
+        if (sessionKeyCache.key !== null) {
+            console.log("Event: 'beforeunload' (Seite wird verlassen/neu geladen). Zeroing wird ausgeführt.");
+            zeroSessionKey(); 
+        }
+        cleanUpLastURL(); // V10.2: Letzte Bereinigung
+    });
+    
+    window.onload = () => {
+        const passwordInput = document.getElementById('primary-password-input');
+        passwordInput._lastValue = passwordInput.value;
+        
+        getAppBindingHashes(); 
+        
+        setInputMode('text');
+        checkPasswordStrength(); 
+        updateSessionUI();       
+        togglePasswordProtection(false); 
+    };
+</script>
+</body>
+</html>
