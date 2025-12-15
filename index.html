@@ -7,66 +7,91 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
 body {
-  background: #0a0a0a;
-  color: #ff0000;
+  background: #0f0f0f;
+  color: #ff4d4d;
   font-family: 'Fira Code', monospace;
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
 }
 .container {
   max-width: 600px;
-  margin: 2rem auto;
-  background: #1a1a1a;
-  border: 2px solid #ff0000;
-  border-radius: 10px;
+  width: 100%;
+  background: linear-gradient(145deg, #1a1a1a, #111111);
+  border: 2px solid #ff4d4d;
+  border-radius: 15px;
   padding: 2rem;
-  box-shadow: 0 0 15px #ff0000;
+  box-shadow: 0 0 20px #ff4d4d50, 0 0 40px #ff0000;
+}
+h1 {
+  text-align: center;
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+  color: #ff6b6b;
 }
 input, textarea {
   width: 100%;
-  background: #111;
-  color: #ff0000;
-  border: 1px solid #ff0000;
-  padding: 0.5rem;
-  border-radius: 5px;
+  background: #1a1a1a;
+  color: #ff9999;
+  border: 1px solid #ff4d4d;
+  border-radius: 8px;
+  padding: 0.6rem;
   margin-bottom: 1rem;
+  transition: 0.2s;
+}
+input:focus, textarea:focus {
+  border-color: #ff9999;
+  box-shadow: 0 0 8px #ff4d4d50;
+  outline: none;
 }
 button {
   width: 48%;
-  padding: 0.5rem;
-  background: #ff0000;
-  color: #0a0a0a;
+  padding: 0.6rem;
+  background: #ff4d4d;
+  color: #0f0f0f;
   font-weight: bold;
-  border-radius: 5px;
+  border-radius: 8px;
   margin-right: 2%;
   transition: 0.2s;
+  cursor: pointer;
 }
-button:hover { background: #ff5555; }
+button:hover {
+  background: #ff6b6b;
+  box-shadow: 0 0 12px #ff4d4d80;
+}
 .output {
-  background: #111;
-  color: #ff0000;
+  background: #1a1a1a;
+  color: #ff9999;
   padding: 1rem;
-  border: 1px dashed #ff0000;
-  border-radius: 5px;
+  border: 1px dashed #ff4d4d;
+  border-radius: 8px;
   white-space: pre-wrap;
-  word-break: break-all;
+  word-break: break-word;
   margin-top: 1rem;
   position: relative;
+  transition: 0.2s;
+}
+.output:hover {
+  box-shadow: 0 0 15px #ff4d4d60;
 }
 .copy-btn {
   position: absolute;
   top: 5px;
   right: 5px;
-  background: #ff0000;
-  color: #0a0a0a;
+  background: #ff4d4d;
+  color: #0f0f0f;
   border: none;
   padding: 0.2rem 0.5rem;
+  border-radius: 4px;
   cursor: pointer;
+  transition: 0.2s;
 }
-.copy-btn:hover { background: #ff5555; }
+.copy-btn:hover { background: #ff6b6b; }
 </style>
 </head>
 <body>
 <div class="container">
-<h1 class="text-2xl font-bold mb-4">CyberSecure Encryptor</h1>
+<h1>CyberSecure Encryptor</h1>
 
 <label>Text:</label>
 <textarea id="plaintext" rows="4" placeholder="Hier Text eingeben..."></textarea>
@@ -116,7 +141,6 @@ async function getServerApproval(clientHash) {
 async function deriveKey(password, addons) {
   const combined = password + addons.join("|");
   const enc = new TextEncoder().encode(combined);
-  // mind. 1 Million Iterationen PBKDF2
   const keyMaterial = await crypto.subtle.importKey("raw", enc, {name:"PBKDF2"}, false, ["deriveKey"]);
   return crypto.subtle.deriveKey(
     {name:"PBKDF2", salt: enc, iterations: 1000000, hash:"SHA-256"},
@@ -144,10 +168,8 @@ async function encryptData() {
   const ciphertext = await crypto.subtle.encrypt({name:"AES-GCM", iv}, key, enc);
   const combined = ivToBase64(iv) + ":" + arrayBufferToBase64(ciphertext);
 
-  // Client-Hash für Serverfreigabe
   const clientHash = await sha256(main + combined);
   const serverApproval = await getServerApproval(clientHash);
-  // final key binding
   document.getElementById("outputText").textContent = combined;
 }
 
@@ -194,7 +216,6 @@ async function sha256(str) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
   return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
 }
-
 function copyOutput() {
   const el = document.getElementById("outputText");
   navigator.clipboard.writeText(el.textContent).then(()=>alert("Kopiert!"));
