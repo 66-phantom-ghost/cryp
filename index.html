@@ -3,534 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anonymes Chiffrier-Interface (V10.3 - Terminal Edition)</title>
+    <title>Ngrok Gateway Test Client</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Import der Terminal-Schriftart für Daten */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Fira+Code:wght@300..700&display=swap');
-        
-        /* Globale Terminal-Ästhetik */
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #080808; /* Deep Black */
-            color: #00ff00; /* Neon Green */
-            line-height: 1.4;
-        }
-        .terminal-font {
-            font-family: 'Fira Code', monospace;
-        }
-        
-        /* Haupt-Container */
-        .container-card {
-            background-color: #111111;
-            box-shadow: 0 0 25px rgba(0, 255, 0, 0.2), inset 0 0 5px rgba(0, 255, 0, 0.1);
-            border: 2px solid #005500;
-            border-radius: 4px;
-        }
-        
-        /* Eingabefelder */
-        .terminal-input, .terminal-textarea {
-            background-color: #000000;
-            border: 1px solid #005500;
-            color: #00ff00;
-            padding: 0.5rem;
-            border-radius: 2px;
-            transition: all 0.1s;
-        }
-        .terminal-input:focus, .terminal-textarea:focus {
-            border-color: #00ff00;
-            outline: none;
-            box-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
-        }
-
-        /* Buttons (mit Neon-Effekt) */
-        .terminal-button {
-            background-color: #004400;
-            color: #00ff00;
-            padding: 0.75rem 1.5rem;
-            border: 1px solid #005500;
-            border-radius: 4px;
-            font-weight: 600;
-            transition: all 0.2s;
-            cursor: pointer;
-            box-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
-        }
-        .terminal-button:hover:not(:disabled) {
-            background-color: #006600;
-            box-shadow: 0 0 10px rgba(0, 255, 0, 0.7);
-        }
-        .terminal-button:disabled {
-            background-color: #333333;
-            color: #666666;
-            cursor: not-allowed;
-            box-shadow: none;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&display=swap');
+        .terminal-font { font-family: 'Fira Code', monospace; }
     </style>
 </head>
-<body class="p-4 md:p-8 min-h-screen flex items-center justify-center">
+<body class="bg-gray-900 text-lime-400 p-8 min-h-screen">
 
-    <div class="w-full max-w-4xl container-card">
-        <div class="p-6 md:p-8 space-y-4">
-            <h2 class="text-2xl font-extrabold border-b border-[#005500] pb-2 text-white">
-                ANONYMES CHIFFRIER-INTERFACE 
-                <span class="text-xs font-light text-[#00ff00]">(V10.3)</span>
-            </h2>
-            
-            <!-- NEU: Sicherheits-Gateway Status Anzeige -->
-            <div id="gateway-status" class="text-xs p-3 rounded bg-[#002200] border border-[#005500] terminal-font transition duration-300">
-                <span class="animate-pulse">⚫</span> Verbinde mit Sicherheits-Gateway (Token-Prüfung)...
-            </div>
+    <div class="max-w-xl mx-auto bg-gray-800 p-6 rounded-lg shadow-xl border border-lime-600/50">
+        <h1 class="text-2xl font-bold border-b border-lime-600 pb-2 mb-4 text-white">Gateway Test-Client</h1>
+        <p class="mb-4 text-sm">Dieser Client sendet eine GET-Anfrage an Ihr Krypto-Gateway (über Ngrok) und prüft den API-Token.</p>
+        
+        <label for="ngrok-url-input" class="block mb-2 text-sm font-medium">Ihre Ngrok Basis-URL (z.B. https://xxxx.ngrok-free.dev)</label>
+        <input type="url" id="ngrok-url-input" class="terminal-font w-full p-2 mb-4 bg-gray-900 border border-lime-600 rounded" value="https://unwintry-strapping-winford.ngrok-free.dev/api/encryption-approval">
 
-            <!-- Haupt-Eingabegruppe (Passwort) -->
-            <div id="password-group">
-                <label for="primary-password-input" class="block text-sm font-medium">Passwort/Key</label>
-                <input type="password" id="primary-password-input" class="w-full terminal-input mt-1" placeholder="Geben Sie Ihren Key hier ein..." disabled>
-                <p id="password-hint" class="text-xs mt-1 text-yellow-400">Geben Sie einen Key ein, um die Krypto-Funktionen freizuschalten.</p>
-            </div>
+        <button id="test-button" class="px-4 py-2 bg-lime-600 text-gray-900 rounded-md font-semibold hover:bg-lime-500 transition duration-150">
+            API-Zugriff Testen
+        </button>
 
-            <!-- Daten-Eingabe/Ausgabe -->
-            <div>
-                <label for="data-textarea" class="block text-sm font-medium">Klartext / Chiffre-Daten (Base64)</label>
-                <textarea id="data-textarea" rows="8" class="w-full terminal-textarea terminal-font mt-1" placeholder="Geben Sie den Text zum Ver-/Entschlüsseln ein..." disabled></textarea>
-            </div>
-
-            <!-- Aktions-Buttons -->
-            <div id="action-buttons" class="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3 mt-4">
-                <button id="encrypt-button" class="terminal-button flex-1" disabled>
-                    <span id="encrypt-text">Verschlüsseln</span>
-                </button>
-                <button id="decrypt-button" class="terminal-button flex-1" disabled>
-                    <span id="decrypt-text">Entschlüsseln</span>
-                </button>
-            </div>
-            
-            <!-- Session- und Status-Anzeige -->
-            <div class="flex justify-between text-xs mt-4 pt-4 border-t border-[#003300]">
-                <span id="session-info" class="text-yellow-400">Sitzung: Nicht geladen</span>
-                <span id="version-info" class="text-gray-500">Gateway: Erforderlich</span>
-            </div>
-            
+        <div class="mt-6">
+            <h2 class="text-lg font-semibold mb-2">Ergebnis:</h2>
+            <pre id="result-output" class="terminal-font whitespace-pre-wrap p-4 bg-gray-900 border border-gray-700 rounded text-sm h-40 overflow-auto">Warten auf Test...</pre>
         </div>
+        
     </div>
-    
+
 <script>
-    // ---------------------------------------------
-    // GATEWAY KONSTANTEN (MUSS MIT server.js ÜBEREINSTIMMEN!)
-    // ---------------------------------------------
-    const GATEWAY_URL = 'http://localhost:3000/api/encryption-approval';
-    const GATEWAY_TOKEN = 'Your_Ultra_Secret_Token_Change_This_Immediately_1A2B3C'; 
-    let isServerApproved = false;
-    
-    // --- Globale Krypto-Einstellungen ---
-    const KDF_ITERATIONS = 250000;
-    const KDF_SALT_LENGTH = 16; 
-    const AES_IV_LENGTH = 12; // GCM Standard
-    const AES_KEY_LENGTH = 256;
-    const AES_ALGORITHM = 'AES-GCM';
-    const KDF_ALGORITHM = 'PBKDF2';
-    const HASH_ALGORITHM = 'SHA-256';
-    const MIN_PASSWORD_LENGTH = 12;
-    
-    // Cache für den generierten CryptoKey
-    const sessionKeyCache = {
-        key: null,
-        hash: null // Hash des Passworts, um Key-Generation zu vermeiden
-    };
+    // Dies ist der API-Token, der im 'server.js' definiert ist und mitgesendet werden MUSS.
+    const API_TOKEN = 'd9F3kL1bQ7rXp2VwZ8nM5tC4sJ6yH0uR'; 
 
-    // --- Utility Funktionen ---
-
-    /** Löscht sensitive Daten aus dem Speicher (Zeroing). */
-    function secureClear(array) {
-        if (array && typeof array.fill === 'function') {
-            try {
-                array.fill(0);
-            } catch (e) {
-                // Bei TypedArrays, die view-only sind, einfach ignorieren
-            }
-        }
-    }
-
-    /** Zeigt eine Terminal-ähnliche Fehlermeldung an (ersetzt alert()). */
-    function showTerminalMessage(type, message, duration = 5000) {
-        const statusElement = document.getElementById('session-info');
-        const originalText = statusElement.textContent;
-        const originalColor = statusElement.className;
-
-        let colorClass = '';
-        let prefix = '';
-
-        switch (type) {
-            case 'error':
-                colorClass = 'text-red-500';
-                prefix = 'FEHLER: ';
-                break;
-            case 'success':
-                colorClass = 'text-lime-400';
-                prefix = 'ERFOLG: ';
-                break;
-            case 'info':
-            default:
-                colorClass = 'text-yellow-400';
-                prefix = 'INFO: ';
-                break;
-        }
-
-        statusElement.className = colorClass;
-        statusElement.textContent = prefix + message;
-
-        setTimeout(() => {
-            statusElement.className = originalColor;
-            statusElement.textContent = originalText;
-        }, duration);
-    }
-
-    // --- KDF und Key-Management ---
-
-    /** Generiert oder holt den Key aus dem Cache. */
-    async function getCryptoKey(password, salt) {
-        const passwordHash = await hashString(password);
+    document.getElementById('test-button').addEventListener('click', async () => {
+        const output = document.getElementById('result-output');
+        const urlInput = document.getElementById('ngrok-url-input');
+        const fullUrl = urlInput.value.trim();
         
-        if (sessionKeyCache.key !== null && sessionKeyCache.hash === passwordHash) {
-            console.log("Key aus Cache geladen.");
-            return { key: sessionKeyCache.key, isFromCache: true };
-        }
-        
-        const start = performance.now();
-        const keyMaterial = await crypto.subtle.importKey(
-            'raw',
-            new TextEncoder().encode(password),
-            { name: KDF_ALGORITHM },
-            false,
-            ['deriveKey']
-        );
-
-        const key = await crypto.subtle.deriveKey(
-            {
-                name: KDF_ALGORITHM,
-                salt: salt,
-                iterations: KDF_ITERATIONS,
-                hash: HASH_ALGORITHM,
-            },
-            keyMaterial,
-            { name: AES_ALGORITHM, length: AES_KEY_LENGTH },
-            true,
-            ['encrypt', 'decrypt']
-        );
-        
-        const kdfDuration = performance.now() - start;
-        console.log(`KDF-Dauer: ${kdfDuration.toFixed(2)} ms`);
-
-        // Key im Cache speichern und Hash aktualisieren
-        sessionKeyCache.key = key;
-        sessionKeyCache.hash = passwordHash;
-        
-        return { key, kdfDuration, isFromCache: false };
-    }
-    
-    /** Löscht den Session Key sicher aus dem Cache */
-    function zeroSessionKey() {
-        if (sessionKeyCache.key !== null) {
-            console.log("Session Key (CryptoKey) wird durch Zeroing gelöscht.");
-            // Da CryptoKey-Objekte nicht direkt manipulierbar sind, 
-            // setzen wir die Referenz auf null, um GC zu erlauben.
-            sessionKeyCache.key = null;
-            sessionKeyCache.hash = null;
-            updateSessionUI();
-        }
-    }
-    
-    // --- UI/UX Funktionen ---
-
-    /** Schaltet die Krypto-Buttons basierend auf der Passwortlänge und Server-Approval frei. */
-    function toggleCryptoButtons(passwordLength) {
-        const isReady = passwordLength >= MIN_PASSWORD_LENGTH && isServerApproved;
-        document.getElementById('encrypt-button').disabled = !isReady;
-        document.getElementById('decrypt-button').disabled = !isReady;
-        // Daten-Textarea nur freischalten, wenn Key OK UND Server Approved
-        document.getElementById('data-textarea').disabled = !isReady;
-    }
-
-    /** Aktualisiert die UI, um den Key-Cache-Status anzuzeigen. */
-    function updateSessionUI() {
-        const sessionInfo = document.getElementById('session-info');
-        if (sessionKeyCache.key !== null) {
-            sessionInfo.textContent = 'Sitzung: Key im Cache (Aktiv)';
-            sessionInfo.classList.remove('text-yellow-400');
-            sessionInfo.classList.add('text-lime-400');
-        } else {
-            sessionInfo.textContent = 'Sitzung: Nicht geladen (Key gelöscht)';
-            sessionInfo.classList.remove('text-lime-400');
-            sessionInfo.classList.add('text-yellow-400');
-        }
-    }
-
-    /** Überprüft die Passwortstärke und aktualisiert den Hinweis. */
-    function checkPasswordStrength() {
-        const passwordInput = document.getElementById('primary-password-input');
-        const password = passwordInput.value;
-        const hint = document.getElementById('password-hint');
-
-        // NEU: Sofortige Sperre, wenn keine Server-Freigabe
-        if (!isServerApproved) {
-            hint.textContent = 'Krypto-Funktionen durch Sicherheits-Gateway blockiert.';
-            hint.className = 'text-xs mt-1 text-red-500';
-            toggleCryptoButtons(0);
+        if (!fullUrl.startsWith('http')) {
+            output.textContent = "FEHLER: Bitte eine gültige URL (beginnend mit http/https) eingeben.";
             return;
         }
 
-        if (password.length === 0) {
-            hint.textContent = 'Geben Sie einen Key ein, um die Krypto-Funktionen freizuschalten.';
-            hint.className = 'text-xs mt-1 text-yellow-400';
-            zeroSessionKey();
-        } else if (password.length < MIN_PASSWORD_LENGTH) {
-            hint.textContent = `Key zu kurz. Mindestens ${MIN_PASSWORD_LENGTH} Zeichen erforderlich.`;
-            hint.className = 'text-xs mt-1 text-orange-500';
-            zeroSessionKey();
-        } else {
-            hint.textContent = 'Key-Länge OK. Sie können nun Ver- oder Entschlüsseln.';
-            hint.className = 'text-xs mt-1 text-lime-400';
-        }
+        output.textContent = `Sende GET-Anfrage an ${fullUrl}...\n\n`;
 
-        toggleCryptoButtons(password.length);
-    }
-    
-    // --- GATEWAY LOGIK (UNVERÄNDERT) ---
-
-    /** Prüft das Backend-Gateway auf Freigabe der Krypto-Funktionen. */
-    async function checkServerApproval() {
-        const statusElement = document.getElementById('gateway-status');
-        statusElement.innerHTML = '<span class="animate-pulse">🟡</span> Verbinde mit Sicherheits-Gateway (Token-Prüfung)...';
-        statusElement.className = 'text-xs p-3 rounded bg-[#002200] border border-[#005500] terminal-font transition duration-300';
-        
         try {
-            const response = await fetch(GATEWAY_URL, {
+            const response = await fetch(fullUrl, {
                 method: 'GET',
                 headers: {
-                    'X-API-Token': GATEWAY_TOKEN,
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-API-Token': API_TOKEN // Senden des erforderlichen Tokens
                 }
             });
 
-            const data = await response.json().catch(() => ({ message: 'Unbekannter Serverfehler.' }));
+            const data = await response.json();
+            
+            output.textContent += `Status: ${response.status} ${response.statusText}\n`;
+            output.textContent += '--------------------------------------\n';
+            output.textContent += JSON.stringify(data, null, 2);
 
             if (response.ok && data.approval === true) {
-                isServerApproved = true;
-                statusElement.innerHTML = '<span>🟢</span> Sicherheits-Gateway: Verbunden. Krypto freigegeben.';
-                statusElement.classList.remove('bg-[#002200]', 'border-[#005500]');
-                statusElement.classList.add('bg-[#004400]', 'border-[#00ff00]');
-                console.log("Gateway Approval: SUCCESS.");
-                
-                // Schalte Passwortfeld frei
-                document.getElementById('primary-password-input').disabled = false;
-                
-                return true;
+                output.classList.remove('text-red-400');
+                output.classList.add('text-lime-400');
+            } else {
+                output.classList.remove('text-lime-400');
+                output.classList.add('text-red-400');
             }
-            
-            isServerApproved = false;
-            const message = data.message || 'Token ungültig/Fehler im Server-Response.';
-            statusElement.innerHTML = `<span>🔴</span> Gateway verweigert (${response.status}): ${message}`;
-            statusElement.classList.remove('bg-[#002200]', 'border-[#005500]');
-            statusElement.classList.add('bg-[#440000]', 'border-red-600');
-            
-            disableCryptoUI();
-            return false;
 
         } catch (error) {
-            isServerApproved = false;
-            statusElement.innerHTML = `<span>🔴</span> Gateway FEHLER: Server nicht erreichbar. (${error.message})`;
-            statusElement.classList.remove('bg-[#002200]', 'border-[#005500]');
-            statusElement.classList.add('bg-[#440000]', 'border-red-600');
-            console.error("Gateway Connection Error:", error);
-            disableCryptoUI();
-            return false;
-        }
-    }
-    
-    /** Deaktiviert alle kritischen Krypto-UI-Elemente, wenn das Gateway die Freigabe verweigert. */
-    function disableCryptoUI() {
-        document.getElementById('primary-password-input').disabled = true;
-        document.getElementById('encrypt-button').disabled = true;
-        document.getElementById('decrypt-button').disabled = true;
-        document.getElementById('data-textarea').disabled = true;
-
-        const hint = document.getElementById('password-hint');
-        hint.textContent = 'Krypto-Funktionen durch Sicherheits-Gateway blockiert.';
-        hint.className = 'text-xs mt-1 text-red-500';
-    }
-
-
-    // --- Krypto Hauptfunktionen ---
-
-    /** Verschlüsselt Klartext. */
-    async function encryptText(password, plaintext) {
-        if (!isServerApproved) {
-            showTerminalMessage('error', 'Verschlüsselung durch Server-Gateway blockiert.');
-            return;
-        }
-        
-        // Generiere zufälliges Salt und IV
-        const salt = window.crypto.getRandomValues(new Uint8Array(KDF_SALT_LENGTH));
-        const iv = window.crypto.getRandomValues(new Uint8Array(AES_IV_LENGTH));
-        
-        try {
-            const { key, kdfDuration } = await getCryptoKey(password, salt);
-            
-            const plaintextBuffer = new TextEncoder().encode(plaintext);
-
-            // Verschlüsselung
-            const ciphertextBuffer = await crypto.subtle.encrypt(
-                { name: AES_ALGORITHM, iv: iv },
-                key,
-                plaintextBuffer
-            );
-
-            // Kombiniere IV, Salt und Chiffretext
-            // 0-15: Salt (16 Bytes) | 16-27: IV (12 Bytes) | 28+: Chiffretext (+ Tag)
-            const combined = new Uint8Array(KDF_SALT_LENGTH + AES_IV_LENGTH + ciphertextBuffer.byteLength);
-            combined.set(salt, 0);
-            combined.set(iv, KDF_SALT_LENGTH);
-            combined.set(new Uint8Array(ciphertextBuffer), KDF_SALT_LENGTH + AES_IV_LENGTH);
-
-            // Base64-Kodierung
-            const base64Ciphertext = btoa(String.fromCharCode.apply(null, combined));
-            
-            showTerminalMessage('success', `Verschlüsselung erfolgreich. (KDF: ${kdfDuration.toFixed(2)} ms)`);
-            document.getElementById('data-textarea').value = base64Ciphertext;
-
-            // Aufräumen
-            secureClear(plaintextBuffer);
-            secureClear(combined);
-
-        } catch (error) {
-            console.error("Verschlüsselungsfehler:", error);
-            showTerminalMessage('error', 'Verschlüsselung fehlgeschlagen. Ist der Key korrekt?');
-        }
-    }
-
-    /** Entschlüsselt Base64-Chiffretext. */
-    async function decryptText(password, ciphertextBase64) {
-        if (!isServerApproved) {
-            showTerminalMessage('error', 'Entschlüsselung durch Server-Gateway blockiert.');
-            return;
-        }
-
-        let saltArray, ivArray, ciphertextBuffer;
-        
-        try {
-            // Base64 Dekodierung
-            const combinedBuffer = Uint8Array.from(atob(ciphertextBase64), c => c.charCodeAt(0));
-
-            // Aufteilen der Komponenten
-            saltArray = combinedBuffer.slice(0, KDF_SALT_LENGTH);
-            ivArray = combinedBuffer.slice(KDF_SALT_LENGTH, KDF_SALT_LENGTH + AES_IV_LENGTH);
-            ciphertextBuffer = combinedBuffer.slice(KDF_SALT_LENGTH + AES_IV_LENGTH);
-
-            const { key, kdfDuration, isFromCache } = await getCryptoKey(password, saltArray);
-
-            // Entschlüsselung
-            const plaintextBuffer = await crypto.subtle.decrypt(
-                { name: AES_ALGORITHM, iv: ivArray },
-                key,
-                ciphertextBuffer
-            );
-
-            const plaintext = new TextDecoder().decode(plaintextBuffer);
-            
-            showTerminalMessage('success', `Entschlüsselung erfolgreich. (KDF: ${kdfDuration.toFixed(2)} ms${isFromCache ? ' - Cache' : ''})`);
-            document.getElementById('data-textarea').value = plaintext;
-            
-            // Aufräumen
-            secureClear(combinedBuffer);
-
-        } catch (error) {
-            console.error("Entschlüsselungsfehler:", error);
-            // Generische Fehlermeldung, um Angriffe zu erschweren
-            showTerminalMessage('error', 'Entschlüsselung fehlgeschlagen. Key, Chiffretext oder Format ist ungültig.');
-        } finally {
-            secureClear(saltArray);
-            secureClear(ivArray);
-            secureClear(ciphertextBuffer);
-        }
-    }
-    
-    // --- Härtung Event Listener und Initialisierung ---
-    
-    // Hashing-Funktion für Passwort-Cache-Prüfung beibehalten
-    async function hashString(str) {
-        const buffer = new TextEncoder().encode(str);
-        const hashBuffer = await crypto.subtle.digest(HASH_ALGORITHM, buffer);
-        return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-
-    // Zeroing bei Fokusverlust beibehalten
-    window.addEventListener('blur', () => {
-        if (sessionKeyCache.key !== null) {
-            console.log("Event: 'blur' (Fokusverlust). Zeroing wird ausgeführt.");
-            zeroSessionKey();
+            output.textContent += '--------------------------------------\n';
+            output.textContent += `FATALER FEHLER: ${error.message}\n`;
+            output.textContent += 'Mögliche Ursachen: Ngrok-Server offline, Netzwerkproblem oder CORS-Fehler.';
+            output.classList.remove('text-lime-400');
+            output.classList.add('text-red-400');
         }
     });
 
-    // Zeroing bei Tab-Wechsel beibehalten
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden' && sessionKeyCache.key !== null) {
-            console.log("Event: 'visibilitychange' (Tab versteckt). Zeroing wird ausgeführt.");
-            zeroSessionKey();
-        }
-    });
-
-    // Zeroing bei Seitenverlassen beibehalten
-    window.addEventListener('beforeunload', (e) => {
-        if (sessionKeyCache.key !== null) {
-            console.log("Event: 'beforeunload' (Seite wird verlassen/neu geladen). Zeroing wird ausgeführt.");
-            zeroSessionKey(); 
-        }
-    });
-
-    /** Die App-Initialisierung wartet auf die Server-Freigabe (MUSS ASYNC sein). */
-    window.onload = async () => {
-        
-        // Schritt 1: Server-Freigabe prüfen. Warten, bis der Check abgeschlossen ist.
-        const approved = await checkServerApproval();
-        
-        // Erst wenn das Gateway die Krypto-Freigabe erteilt hat, wird die App initialisiert.
-        if (approved) {
-            const passwordInput = document.getElementById('primary-password-input');
-            const encryptButton = document.getElementById('encrypt-button');
-            const decryptButton = document.getElementById('decrypt-button');
-            
-            // Event Listener für Passwort-Eingabe
-            passwordInput.addEventListener('input', checkPasswordStrength);
-            
-            // Event Listener für Krypto-Operationen
-            encryptButton.addEventListener('click', () => {
-                const password = passwordInput.value;
-                const plaintext = document.getElementById('data-textarea').value;
-                if (password.length >= MIN_PASSWORD_LENGTH && plaintext.length > 0) {
-                    encryptText(password, plaintext);
-                } else {
-                    showTerminalMessage('info', 'Bitte Key und Klartext eingeben.');
-                }
-            });
-
-            decryptButton.addEventListener('click', () => {
-                const password = passwordInput.value;
-                const ciphertextBase64 = document.getElementById('data-textarea').value;
-                if (password.length >= MIN_PASSWORD_LENGTH && ciphertextBase64.length > 0) {
-                    decryptText(password, ciphertextBase64);
-                } else {
-                    showTerminalMessage('info', 'Bitte Key und Chiffretext eingeben.');
-                }
-            });
-            
-            // Setze initiale UI-Zustände
-            checkPasswordStrength(); 
-            updateSessionUI();
-            console.log("App initialisiert und Krypto-Funktionen freigegeben.");
-        } else {
-            // Die UI wurde bereits durch disableCryptoUI() gesperrt.
-            console.warn("Krypto-Funktionen blockiert: Server-Freigabe verweigert oder Server nicht erreichbar.");
-        }
+    window.onload = () => {
+        console.log("Ngrok URL wurde automatisch eingefügt. Klicken Sie auf 'API-Zugriff Testen'.");
     };
+
 </script>
 </body>
 </html>
