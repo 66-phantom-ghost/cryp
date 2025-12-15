@@ -2,139 +2,178 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
+<title>Secure Crypto Gateway</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Server-gebundene Verschlüsselung</title>
+
 <script src="https://cdn.tailwindcss.com"></script>
+
 <style>
 body {
-    font-family: 'Fira Code', monospace;
-    background-color: #0a0a0a;
-    color: #00ff00;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding: 2rem;
+  background: radial-gradient(circle at top, #0f172a, #020617);
 }
-.container {
-    width: 100%;
-    max-width: 600px;
-    background-color: #111111;
-    border: 2px solid #00ff00;
-    border-radius: 8px;
-    padding: 2rem;
-    box-shadow: 0 0 20px #00ff00aa;
-    animation: fadeIn 1s ease;
+.fade-in {
+  animation: fade 0.6s ease-out;
 }
-@keyframes fadeIn {
-    from {opacity:0; transform: translateY(-20px);}
-    to {opacity:1; transform: translateY(0);}
-}
-input, button, textarea {
-    background-color: #0a0a0a;
-    color: #00ff00;
-    border: 1px solid #00ff00;
-    padding: 0.5rem;
-    margin-bottom: 1rem;
-    width: 100%;
-    border-radius: 4px;
-    font-family: 'Fira Code', monospace;
-}
-button {
-    cursor: pointer;
-    transition: all 0.2s;
-}
-button:hover {
-    background-color: #00ff00;
-    color: #0a0a0a;
-    box-shadow: 0 0 10px #00ff00;
-}
-#out {
-    background-color: #0a0a0a;
-    border: 1px dashed #00ff00;
-    padding: 1rem;
-    min-height: 6rem;
-    word-break: break-all;
-    white-space: pre-wrap;
+@keyframes fade {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 </style>
 </head>
-<body>
-<div class="container">
-<h1 class="text-2xl font-bold mb-4">Server-gebundene Verschlüsselung</h1>
 
-<label>Passwort (Pflicht)</label>
-<input type="password" id="password" placeholder="Passwort eingeben">
+<body class="min-h-screen flex items-center justify-center text-slate-200">
 
-<label>Sicherheitsfaktor 1 (optional)</label>
-<input type="password" id="factor1" placeholder="Sekundär-Faktor 1">
+<div class="w-full max-w-xl p-6 bg-slate-900/90 rounded-xl shadow-2xl border border-slate-700 fade-in">
+  <h1 class="text-2xl font-bold text-cyan-400 mb-2">🔐 Secure Encryption Gateway</h1>
+  <p class="text-xs text-slate-400 mb-6">
+    Verschlüsselung nur mit Server-Freigabe · PBKDF2 · AES‑256‑GCM
+  </p>
 
-<label>Sicherheitsfaktor 2 (optional)</label>
-<input type="password" id="factor2" placeholder="Sekundär-Faktor 2">
+  <!-- Passwort -->
+  <input id="pw" type="password" placeholder="Pflicht‑Passwort"
+    class="w-full mb-3 p-3 bg-slate-800 border border-slate-600 rounded focus:ring-2 focus:ring-cyan-400">
 
-<label>Sicherheitsfaktor 3 (optional)</label>
-<input type="password" id="factor3" placeholder="Sekundär-Faktor 3">
+  <!-- Zusatz-Faktoren -->
+  <input id="f1" type="password" placeholder="Zusatz‑Faktor 1 (optional)"
+    class="w-full mb-2 p-2 bg-slate-800 border border-slate-700 rounded">
+  <input id="f2" type="password" placeholder="Zusatz‑Faktor 2 (optional)"
+    class="w-full mb-2 p-2 bg-slate-800 border border-slate-700 rounded">
+  <input id="f3" type="password" placeholder="Zusatz‑Faktor 3 (optional)"
+    class="w-full mb-4 p-2 bg-slate-800 border border-slate-700 rounded">
 
-<button onclick="encrypt()">Verschlüsseln</button>
+  <!-- Klartext -->
+  <textarea id="plain" rows="3" placeholder="Text eingeben"
+    class="w-full p-3 bg-black border border-cyan-600 rounded mb-4"></textarea>
 
-<pre id="out">Warten auf Eingabe...</pre>
+  <!-- Buttons -->
+  <div class="flex gap-3 mb-4">
+    <button onclick="encrypt()"
+      class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-black font-bold py-2 rounded">
+      🔒 Verschlüsseln
+    </button>
+    <button onclick="decrypt()"
+      class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-black font-bold py-2 rounded">
+      🔓 Entschlüsseln
+    </button>
+  </div>
+
+  <!-- Ausgabe -->
+  <pre id="out"
+    class="min-h-[90px] p-3 bg-black border border-slate-700 rounded text-xs overflow-auto">
+Warten…
+  </pre>
 </div>
 
 <script>
-const API = "https://unwintry-strapping-winford.ngrok-free.dev/api/encryption-approval"; 
-const TOKEN = "9f3c8a1d4e2b7a6c8f1e9d0a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b";
+/* ================== KONFIG ================== */
+const SERVER = "https://unwintry-strapping-winford.ngrok-free.dev/api/approve";
+const PBKDF2_ROUNDS = 1_000_000;
+const ENC = new TextEncoder();
+const DEC = new TextDecoder();
 
-async function sha256(str) {
-    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
-    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,"0")).join("");
+/* ================== HASH ================== */
+async function sha256(data) {
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
 }
 
-async function requestServerApproval(clientSecret) {
-    try {
-        const res = await fetch(API, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-API-Token": TOKEN
-            },
-            body: JSON.stringify({ clientHash: clientSecret })
-        });
+/* ================== KEY ================== */
+async function deriveKey(password, serverApproval) {
+  const baseKey = await crypto.subtle.importKey(
+    "raw",
+    ENC.encode(password + serverApproval),
+    "PBKDF2",
+    false,
+    ["deriveKey"]
+  );
 
-        if (!res.ok) throw new Error(`Server antwortete mit Status ${res.status}`);
-        const data = await res.json();
-        if (!data.approved || !data.secretComponent) throw new Error("Server verweigerte Freigabe oder kein Secret");
-        return data.secretComponent;
-    } catch (err) {
-        console.error("Fehler beim API-Aufruf:", err);
-        throw err;
-    }
+  return crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt: ENC.encode("secure-gateway"),
+      iterations: PBKDF2_ROUNDS,
+      hash: "SHA-256"
+    },
+    baseKey,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt","decrypt"]
+  );
 }
 
+/* ================== ENCRYPT ================== */
 async function encrypt() {
-    const password = document.getElementById("password").value;
-    if (!password) {
-        alert("Passwort ist Pflicht!");
-        return;
-    }
-    const factors = [
-        document.getElementById("factor1").value,
-        document.getElementById("factor2").value,
-        document.getElementById("factor3").value
-    ];
-    const combined = password + factors.join("|");
-    const clientHash = await sha256(combined);
+  const pw = pwVal();
+  if (!pw) return msg("❌ Passwort fehlt");
 
-    try {
-        const serverPart = await requestServerApproval(clientHash);
-        const finalKey = await sha256(clientHash + serverPart);
+  const clientHash = await sha256(ENC.encode(pw));
+  const approval = await requestApproval(clientHash);
+  if (!approval) return;
 
-        document.getElementById("out").textContent =
-`Client-Hash: ${clientHash}
-Server-Part: ${serverPart}
-Final-Key: ${finalKey}`;
-    } catch (err) {
-        document.getElementById("out").textContent = "Fehler: " + err.message;
-    }
+  const key = await deriveKey(pw, approval);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+
+  const cipher = await crypto.subtle.encrypt(
+    { name:"AES-GCM", iv },
+    key,
+    ENC.encode(plain.value)
+  );
+
+  out.textContent = JSON.stringify({
+    iv: btoa(String.fromCharCode(...iv)),
+    data: btoa(String.fromCharCode(...new Uint8Array(cipher)))
+  }, null, 2);
 }
+
+/* ================== DECRYPT ================== */
+async function decrypt() {
+  const pw = pwVal();
+  if (!pw) return msg("❌ Passwort fehlt");
+
+  let obj;
+  try { obj = JSON.parse(out.textContent); }
+  catch { return msg("❌ Ungültige Daten"); }
+
+  const clientHash = await sha256(ENC.encode(pw));
+  const approval = await requestApproval(clientHash);
+  if (!approval) return;
+
+  const key = await deriveKey(pw, approval);
+
+  try {
+    const plainText = await crypto.subtle.decrypt(
+      { name:"AES-GCM", iv: Uint8Array.from(atob(obj.iv),c=>c.charCodeAt(0)) },
+      key,
+      Uint8Array.from(atob(obj.data),c=>c.charCodeAt(0))
+    );
+    msg("✅ Entschlüsselt:\n" + DEC.decode(plainText));
+  } catch {
+    msg("❌ Falsches Passwort / Faktoren");
+  }
+}
+
+/* ================== SERVER ================== */
+async function requestApproval(clientHash) {
+  try {
+    const r = await fetch(SERVER, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ clientHash })
+    });
+    const j = await r.json();
+    return j.ok ? j.approval : null;
+  } catch {
+    msg("❌ Server nicht erreichbar");
+    return null;
+  }
+}
+
+/* ================== HELPERS ================== */
+function pwVal() {
+  return pw.value + f1.value + f2.value + f3.value;
+}
+function msg(t){ out.textContent = t; }
 </script>
+
 </body>
 </html>
