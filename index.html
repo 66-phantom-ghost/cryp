@@ -3,149 +3,178 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Server-gebundene Verschlüsselung</title>
-
+<title>Secure Crypto Terminal</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-body { font-family: 'Inter', sans-serif; }
+    body {
+        background-color: #080808;
+        color: #00ff00;
+        font-family: 'Fira Code', monospace;
+        min-height: 100vh;
+        padding: 2rem;
+    }
+    .terminal-card {
+        background-color: #111111;
+        border: 2px solid #00ff00;
+        border-radius: 8px;
+        padding: 2rem;
+        max-width: 600px;
+        margin: auto;
+        box-shadow: 0 0 20px rgba(0,255,0,0.3);
+    }
+    input, textarea {
+        background-color: #0d0d0d;
+        border: 1px solid #00ff00;
+        color: #00ff00;
+        border-radius: 4px;
+        padding: 0.5rem;
+        width: 100%;
+        margin-bottom: 0.5rem;
+        font-family: 'Fira Code', monospace;
+    }
+    button {
+        background-color: #00ff00;
+        color: #080808;
+        padding: 0.75rem;
+        font-weight: bold;
+        border-radius: 4px;
+        width: 100%;
+        margin-top: 0.5rem;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    button:hover {
+        background-color: #008800;
+    }
+    .output-box {
+        background-color: #0d0d0d;
+        border: 1px solid #00ff00;
+        border-radius: 4px;
+        padding: 1rem;
+        margin-top: 1rem;
+        white-space: pre-wrap;
+        word-break: break-all;
+        min-height: 3rem;
+    }
 </style>
 </head>
-
-<body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center p-4">
-
-<div class="w-full max-w-xl bg-gray-800 p-6 rounded-xl shadow-2xl border border-gray-700">
-  <h1 class="text-3xl font-bold text-green-400 mb-4 text-center">🔐 Server‑gebundene Krypto‑Box</h1>
-
-  <input id="msg" placeholder="Text" class="w-full p-3 mb-3 bg-gray-700 rounded-lg">
-  <input id="password" type="password" placeholder="Passwort (Pflicht)" class="w-full p-3 mb-3 bg-gray-700 rounded-lg">
-  <input id="extra1" placeholder="Zusatz 1 (optional)" class="w-full p-3 mb-2 bg-gray-700 rounded-lg">
-  <input id="extra2" placeholder="Zusatz 2 (optional)" class="w-full p-3 mb-2 bg-gray-700 rounded-lg">
-  <input id="extra3" placeholder="Zusatz 3 (optional)" class="w-full p-3 mb-4 bg-gray-700 rounded-lg">
-
-  <div class="flex gap-3">
-    <button onclick="encrypt()" class="flex-1 p-3 bg-green-600 hover:bg-green-700 rounded-lg font-semibold">
-      🔒 Verschlüsseln
-    </button>
-    <button onclick="decrypt()" class="flex-1 p-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold">
-      🔓 Entschlüsseln
-    </button>
-  </div>
-
-  <pre id="out" class="mt-6 p-4 bg-gray-700 rounded-lg h-56 overflow-auto text-sm">
-Bereit.
-  </pre>
+<body>
+<div class="terminal-card">
+    <h1 class="text-2xl font-bold mb-4">🔒 Secure Crypto Terminal</h1>
+    
+    <label>Primäres Passwort (Pflicht):</label>
+    <input type="password" id="password" placeholder="Passwort">
+    
+    <label>Sicherheitszusatz 1 (Optional):</label>
+    <input type="password" id="extra1" placeholder="Zusatz 1">
+    
+    <label>Sicherheitszusatz 2 (Optional):</label>
+    <input type="password" id="extra2" placeholder="Zusatz 2">
+    
+    <label>Sicherheitszusatz 3 (Optional):</label>
+    <input type="password" id="extra3" placeholder="Zusatz 3">
+    
+    <label>Text zum Verschlüsseln / Entschlüsseln:</label>
+    <textarea id="plaintext" rows="4" placeholder="Text hier eingeben..."></textarea>
+    
+    <button onclick="encryptData()">🔑 Verschlüsseln</button>
+    <button onclick="decryptData()">🔓 Entschlüsseln</button>
+    
+    <div class="output-box" id="output">Hier erscheinen Ergebnisse...</div>
 </div>
 
 <script>
-const API = "https://unwintry-strapping-winford.ngrok-free.dev/api/approve";
-const TOKEN = "d9F3kL1bQ7rXp2VwZ8nM5tC4sJ6yH0uR";
+const HASH_ALGO = "SHA-512";
+const KEY_ALGO = "AES-GCM";
+const KEY_LENGTH = 256;
+const ITERATIONS = 1_000_000;
+const IV_BYTE_SIZE = 12;
 
-async function sha256(str) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
-  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,"0")).join("");
+async function deriveKey(password, extras, salt) {
+    const encoder = new TextEncoder();
+    const combined = password + '|' + extras.join('|');
+    const baseKey = await crypto.subtle.importKey(
+        "raw",
+        encoder.encode(combined),
+        { name: "PBKDF2" },
+        false,
+        ["deriveKey"]
+    );
+    return crypto.subtle.deriveKey(
+        {
+            name: "PBKDF2",
+            salt: encoder.encode(salt),
+            iterations: ITERATIONS,
+            hash: HASH_ALGO
+        },
+        baseKey,
+        { name: KEY_ALGO, length: KEY_LENGTH },
+        false,
+        ["encrypt","decrypt"]
+    );
 }
 
-async function deriveKey(msg, pwd, e1, e2, e3) {
-  const base = msg + "|" + pwd + "|" + e1 + "|" + e2 + "|" + e3;
-  const clientHash = await sha256(base);
+async function encryptData() {
+    const pwd = document.getElementById("password").value;
+    const extras = [
+        document.getElementById("extra1").value,
+        document.getElementById("extra2").value,
+        document.getElementById("extra3").value
+    ];
+    const text = document.getElementById("plaintext").value;
+    const output = document.getElementById("output");
 
-  const res = await fetch(API, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-Token": TOKEN
-    },
-    body: JSON.stringify({ clientHash })
-  });
+    if (!pwd || !text) {
+        output.textContent = "⚠️ Passwort und Text sind Pflicht!";
+        return;
+    }
 
-  const data = await res.json();
-  if (!res.ok || !data.ok) throw new Error("Server verweigert");
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(IV_BYTE_SIZE));
+    const key = await deriveKey(pwd, extras, salt);
 
-  return await sha256(clientHash + data.approval);
+    const encrypted = await crypto.subtle.encrypt(
+        { name: KEY_ALGO, iv },
+        key,
+        new TextEncoder().encode(text)
+    );
+
+    const result = [
+        btoa(String.fromCharCode(...salt)),
+        btoa(String.fromCharCode(...iv)),
+        btoa(String.fromCharCode(...new Uint8Array(encrypted)))
+    ].join(".");
+
+    output.textContent = result;
 }
 
-async function encrypt() {
-  const out = document.getElementById("out");
-  const msg = document.getElementById("msg").value;
-  const pwd = document.getElementById("password").value;
-  const e1 = extra1.value || "", e2 = extra2.value || "", e3 = extra3.value || "";
+async function decryptData() {
+    const pwd = document.getElementById("password").value;
+    const extras = [
+        document.getElementById("extra1").value,
+        document.getElementById("extra2").value,
+        document.getElementById("extra3").value
+    ];
+    const cipherText = document.getElementById("plaintext").value;
+    const output = document.getElementById("output");
 
-  if (!msg || !pwd) {
-    out.textContent = "❌ Text & Passwort sind Pflicht";
-    return;
-  }
+    try {
+        const [saltB64, ivB64, dataB64] = cipherText.split(".");
+        const salt = Uint8Array.from(atob(saltB64), c=>c.charCodeAt(0));
+        const iv = Uint8Array.from(atob(ivB64), c=>c.charCodeAt(0));
+        const data = Uint8Array.from(atob(dataB64), c=>c.charCodeAt(0));
+        const key = await deriveKey(pwd, extras, salt);
 
-  out.textContent = "⏳ Verschlüsselung…";
-
-  try {
-    const keyHex = await deriveKey(msg, pwd, e1, e2, e3);
-    const key = await crypto.subtle.importKey(
-      "raw",
-      Uint8Array.from(keyHex.match(/../g).map(b => parseInt(b,16))),
-      "AES-GCM",
-      false,
-      ["encrypt"]
-    );
-
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const enc = await crypto.subtle.encrypt(
-      { name: "AES-GCM", iv },
-      key,
-      new TextEncoder().encode(msg)
-    );
-
-    const result = {
-      iv: btoa(String.fromCharCode(...iv)),
-      data: btoa(String.fromCharCode(...new Uint8Array(enc)))
-    };
-
-    out.textContent = "✅ Verschlüsselt:\n\n" + JSON.stringify(result, null, 2);
-  } catch {
-    out.textContent = "❌ Verschlüsselung fehlgeschlagen";
-  }
-}
-
-async function decrypt() {
-  const out = document.getElementById("out");
-  const pwd = password.value;
-  const e1 = extra1.value || "", e2 = extra2.value || "", e3 = extra3.value || "";
-
-  if (!pwd) {
-    out.textContent = "❌ Passwort fehlt";
-    return;
-  }
-
-  let payload;
-  try {
-    payload = JSON.parse(msg.value);
-  } catch {
-    out.textContent = "❌ Kein gültiger Ciphertext (JSON)";
-    return;
-  }
-
-  out.textContent = "⏳ Entschlüsselung…";
-
-  try {
-    const keyHex = await deriveKey("decrypt", pwd, e1, e2, e3);
-    const key = await crypto.subtle.importKey(
-      "raw",
-      Uint8Array.from(keyHex.match(/../g).map(b => parseInt(b,16))),
-      "AES-GCM",
-      false,
-      ["decrypt"]
-    );
-
-    const iv = Uint8Array.from(atob(payload.iv), c => c.charCodeAt(0));
-    const data = Uint8Array.from(atob(payload.data), c => c.charCodeAt(0));
-
-    const dec = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, data);
-    out.textContent = "🔓 Entschlüsselt:\n\n" + new TextDecoder().decode(dec);
-  } catch {
-    out.textContent = "❌ Entschlüsselung fehlgeschlagen (Server / Passwort / Extras falsch)";
-  }
+        const decrypted = await crypto.subtle.decrypt(
+            { name: KEY_ALGO, iv },
+            key,
+            data
+        );
+        output.textContent = new TextDecoder().decode(decrypted);
+    } catch (e) {
+        output.textContent = "❌ Entschlüsselung fehlgeschlagen. Passwort oder Zusätze stimmen nicht.";
+    }
 }
 </script>
-
 </body>
 </html>
