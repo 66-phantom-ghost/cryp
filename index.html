@@ -14,13 +14,13 @@
 
     <div class="max-w-xl mx-auto bg-gray-800 p-6 rounded-lg shadow-xl border border-lime-600/50">
         <h1 class="text-2xl font-bold border-b border-lime-600 pb-2 mb-4 text-white">Gateway Test-Client</h1>
-        <p class="mb-4 text-sm">Dieser Client sendet eine GET-Anfrage an Ihr Krypto-Gateway (über Ngrok) und prüft den API-Token.</p>
+        <p class="mb-4 text-sm">Dieser Client sendet eine **GET**-Anfrage an Ihr Krypto-Gateway (über Ngrok) und prüft den API-Token. Der Backend-Server (`server.js`) akzeptiert für diesen Endpunkt nur GET-Anfragen.</p>
         
         <label for="ngrok-url-input" class="block mb-2 text-sm font-medium">Ihre Ngrok Basis-URL (z.B. https://xxxx.ngrok-free.dev)</label>
         <input type="url" id="ngrok-url-input" class="terminal-font w-full p-2 mb-4 bg-gray-900 border border-lime-600 rounded" value="https://unwintry-strapping-winford.ngrok-free.dev/api/encryption-approval">
 
         <button id="test-button" class="px-4 py-2 bg-lime-600 text-gray-900 rounded-md font-semibold hover:bg-lime-500 transition duration-150">
-            API-Zugriff Testen
+            API-Zugriff Testen (GET)
         </button>
 
         <div class="mt-6">
@@ -44,15 +44,20 @@
             return;
         }
 
-        output.textContent = `Sende GET-Anfrage an ${fullUrl}...\n\n`;
+        // NEU: Verwende die im server.js definierte Methode 'GET'.
+        const requestMethod = 'GET';
+        
+        output.textContent = `Sende ${requestMethod}-Anfrage an ${fullUrl}...\n\n`;
 
         try {
+            // Führen Sie den GET-Aufruf mit dem erforderlichen Token-Header durch.
             const response = await fetch(fullUrl, {
-                method: 'GET',
+                method: requestMethod,
                 headers: {
                     'Content-Type': 'application/json',
                     'X-API-Token': API_TOKEN // Senden des erforderlichen Tokens
                 }
+                // Bei GET wird kein 'body' gesendet.
             });
 
             const data = await response.json();
@@ -79,7 +84,7 @@
     });
 
     window.onload = () => {
-        console.log("Ngrok URL wurde automatisch eingefügt. Klicken Sie auf 'API-Zugriff Testen'.");
+        console.log("Ngrok URL wurde automatisch eingefügt. Klicken Sie auf 'API-Zugriff Testen (GET)'.");
     };
 
 </script>
