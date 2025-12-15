@@ -3,130 +3,168 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cyber Encryptor</title>
+<title>Cyber Encryption Gateway</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
-body { background: #000; color: #ff3333; font-family: 'Fira Code', monospace; }
-.container { max-width: 800px; margin: 2rem auto; padding: 2rem; background:#111; border:2px solid #ff0000; border-radius:10px; box-shadow:0 0 20px #ff0000; }
-input, textarea { width:100%; padding:0.5rem; margin-bottom:0.5rem; background:#222; border:1px solid #ff0000; color:#ff3333; border-radius:4px; }
-button { background:#ff0000; color:#000; font-weight:bold; padding:0.5rem 1rem; border:none; border-radius:4px; cursor:pointer; transition:0.2s; }
-button:hover { background:#ff6666; }
-.result { background:#222; padding:1rem; border:1px dashed #ff0000; min-height:2rem; word-break:break-all; position:relative; }
-.copy-btn { position:absolute; top:5px; right:5px; background:#ff0000; color:#000; font-size:0.75rem; padding:0.2rem 0.5rem; border:none; cursor:pointer; border-radius:3px; }
-.copy-btn:hover { background:#ff6666; }
+    body {
+        font-family: 'Fira Code', monospace;
+        background-color: #0a0a0a;
+        color: #ff3c3c;
+        margin: 0;
+        padding: 0;
+    }
+    .container {
+        max-width: 700px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: #111;
+        border: 1px solid #ff3c3c;
+        border-radius: 10px;
+        box-shadow: 0 0 20px #ff3c3c33;
+    }
+    input, textarea, button {
+        font-family: inherit;
+    }
+    input, textarea {
+        width: 100%;
+        padding: 0.75rem;
+        margin: 0.5rem 0;
+        background: #1a1a1a;
+        border: 1px solid #ff3c3c;
+        border-radius: 5px;
+        color: #fff;
+    }
+    button {
+        background: #ff3c3c;
+        color: #0a0a0a;
+        padding: 0.75rem;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.2s;
+    }
+    button:hover {
+        background: #ff0000;
+        box-shadow: 0 0 10px #ff0000aa;
+    }
+    .output {
+        background: #1a1a1a;
+        border: 1px dashed #ff3c3c;
+        padding: 1rem;
+        margin-top: 1rem;
+        word-break: break-all;
+        position: relative;
+    }
+    .copy-btn {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: #ff3c3c;
+        color: #0a0a0a;
+        border: none;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+        cursor: pointer;
+        border-radius: 3px;
+    }
 </style>
 </head>
 <body>
 <div class="container">
-<h1 class="text-2xl font-bold mb-4">Cyber Encryptor & Decryptor</h1>
+    <h1 class="text-3xl font-bold text-center mb-4">Cyber Encryption Gateway</h1>
 
-<label>Hauptpasswort:</label>
-<input type="password" id="mainPass">
+    <label for="text-input">Text eingeben:</label>
+    <textarea id="text-input" rows="4" placeholder="Hier Text zum Verschlüsseln oder Entschlüsseln einfügen..."></textarea>
 
-<label>Zusatzfaktor 1 (optional):</label>
-<input type="password" id="extra1">
-<label>Zusatzfaktor 2 (optional):</label>
-<input type="password" id="extra2">
-<label>Zusatzfaktor 3 (optional):</label>
-<input type="password" id="extra3">
+    <label for="password-input">Passwort:</label>
+    <input type="password" id="password-input" placeholder="Haupt-Passwort">
 
-<label>Text eingeben / zum Verschlüsseln:</label>
-<textarea id="inputText" rows="4"></textarea>
+    <label for="secondary1">Zusatz 1 (optional):</label>
+    <input type="password" id="secondary1" placeholder="Zusatz-Passwort 1">
 
-<div class="flex space-x-2 mb-2">
-<button onclick="encryptText()">Verschlüsseln</button>
-<button onclick="decryptText()">Entschlüsseln</button>
-</div>
+    <label for="secondary2">Zusatz 2 (optional):</label>
+    <input type="password" id="secondary2" placeholder="Zusatz-Passwort 2">
 
-<h2>Ergebnis</h2>
-<div class="result" id="outputText">
-<button class="copy-btn" onclick="copyOutput()">Kopieren</button>
----</div>
+    <label for="secondary3">Zusatz 3 (optional):</label>
+    <input type="password" id="secondary3" placeholder="Zusatz-Passwort 3">
+
+    <div class="flex justify-between mt-4">
+        <button onclick="encrypt()">Verschlüsseln</button>
+        <button onclick="decrypt()">Entschlüsseln</button>
+    </div>
+
+    <div class="output" id="output">
+        <button class="copy-btn" onclick="copyOutput()">Copy</button>
+        <pre id="output-text">Ergebnis erscheint hier...</pre>
+    </div>
 </div>
 
 <script>
 const API = "https://unwintry-strapping-winford.ngrok-free.dev/api/approve";
-const SERVER_TOKEN = "SECRET_TOKEN_SERVER"; // muss mit server.js übereinstimmen
+const TOKEN = "9f3c8a1d4e2b7a6c8f1e9d0a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b";
 
-async function getApproval(clientHash) {
+async function sha256(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function getServerApproval(clientHash) {
     const res = await fetch(API, {
-        method:"POST",
-        headers:{"Content-Type":"application/json","X-API-Token":SERVER_TOKEN},
-        body:JSON.stringify({clientHash})
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-API-Token': TOKEN
+        },
+        body: JSON.stringify({ clientHash })
     });
-    const data = await res.json();
-    return data.approval;
+    return res.json();
 }
 
-async function deriveKey(main, extras) {
-    const full = main.trim() + '|' + extras.map(e=>e.trim()).join('|');
-    const keyMaterial = await crypto.subtle.importKey(
-        "raw",
-        new TextEncoder().encode(full),
-        "PBKDF2",
-        false,
-        ["deriveBits"]
-    );
-    const bits = await crypto.subtle.deriveBits(
-        {name:"PBKDF2", salt:new TextEncoder().encode("SERVER_BOUND_SALT"), iterations:1000000, hash:"SHA-256"},
-        keyMaterial,
-        256
-    );
-    return bits;
+async function encrypt() {
+    const text = document.getElementById('text-input').value;
+    const pass = document.getElementById('password-input').value;
+    const sec = [
+        document.getElementById('secondary1').value,
+        document.getElementById('secondary2').value,
+        document.getElementById('secondary3').value
+    ].filter(v=>v);
+    if(!text||!pass){ alert('Text und Passwort benötigt'); return; }
+
+    const combined = pass + sec.join('|') + text;
+    const clientHash = await sha256(combined);
+
+    const response = await getServerApproval(clientHash);
+    if(!response.ok){ document.getElementById('output-text').textContent='Server verweigert'; return; }
+
+    const finalKey = await sha256(clientHash + response.approval);
+    document.getElementById('output-text').textContent = finalKey;
 }
 
-function bufferToHex(buf){ return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join(''); }
-function hexToBuffer(hex){ return new Uint8Array(hex.match(/.{1,2}/g).map(b=>parseInt(b,16))); }
+async function decrypt() {
+    const text = document.getElementById('text-input').value;
+    const pass = document.getElementById('password-input').value;
+    const sec = [
+        document.getElementById('secondary1').value,
+        document.getElementById('secondary2').value,
+        document.getElementById('secondary3').value
+    ].filter(v=>v);
+    if(!text||!pass){ alert('Text und Passwort benötigt'); return; }
 
-async function encryptText(){
-    const main = document.getElementById('mainPass').value;
-    const extras = [document.getElementById('extra1').value,document.getElementById('extra2').value,document.getElementById('extra3').value];
-    const text = document.getElementById('inputText').value;
-    if(!main || !text){ alert("Hauptpasswort und Text sind Pflicht!"); return; }
-    
-    const keyBits = await deriveKey(main, extras);
-    const clientHash = bufferToHex(keyBits);
-    const approval = await getApproval(clientHash);
-    
-    if(!approval){ alert("Server-Freigabe fehlgeschlagen"); return; }
+    const combined = pass + sec.join('|') + text;
+    const clientHash = await sha256(combined);
 
-    const cryptoKey = await crypto.subtle.importKey("raw", keyBits, {name:"AES-GCM"}, false, ["encrypt"]);
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const enc = await crypto.subtle.encrypt({name:"AES-GCM", iv}, new TextEncoder().encode(text), cryptoKey);
+    const response = await getServerApproval(clientHash);
+    if(!response.ok){ document.getElementById('output-text').textContent='Entschlüsselung nur mit Server-Freigabe möglich'; return; }
 
-    const combined = new Uint8Array(iv.byteLength + enc.byteLength);
-    combined.set(iv,0);
-    combined.set(new Uint8Array(enc), iv.byteLength);
-
-    document.getElementById('outputText').innerText = btoa(String.fromCharCode(...combined));
+    const finalKey = await sha256(clientHash + response.approval);
+    document.getElementById('output-text').textContent = finalKey;
 }
 
-async function decryptText(){
-    const main = document.getElementById('mainPass').value;
-    const extras = [document.getElementById('extra1').value,document.getElementById('extra2').value,document.getElementById('extra3').value];
-    const cipherText = document.getElementById('inputText').value.trim();
-    if(!main || !cipherText){ alert("Hauptpasswort und Chiffre nötig"); return; }
-
-    const keyBits = await deriveKey(main, extras);
-    const clientHash = bufferToHex(keyBits);
-    const approval = await getApproval(clientHash);
-    if(!approval){ alert("Entschlüsselung nur mit Server-Freigabe möglich"); return; }
-
-    const data = Uint8Array.from(atob(cipherText),c=>c.charCodeAt(0));
-    const iv = data.slice(0,12);
-    const enc = data.slice(12);
-
-    try{
-        const cryptoKey = await crypto.subtle.importKey("raw", keyBits, {name:"AES-GCM"}, false, ["decrypt"]);
-        const dec = await crypto.subtle.decrypt({name:"AES-GCM", iv}, enc, cryptoKey);
-        document.getElementById('outputText').innerText = new TextDecoder().decode(dec);
-    }catch(e){ document.getElementById('outputText').innerText="Fehler beim Entschlüsseln"; }
-}
-
-function copyOutput(){
-    const out = document.getElementById('outputText').innerText;
-    navigator.clipboard.writeText(out);
-    alert("Inhalt kopiert!");
+function copyOutput() {
+    const text = document.getElementById('output-text').textContent;
+    navigator.clipboard.writeText(text);
+    alert('Ergebnis kopiert!');
 }
 </script>
 </body>
