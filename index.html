@@ -3,271 +3,250 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AnimeCyber Encryptor</title>
+<title>Cyber-Anime Verschlüsselungs-Portal</title>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/argon2-browser/dist/argon2.min.js"></script>
 <style>
-/* Grunddesign */
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;700&display=swap');
+
 body {
-  margin: 0;
-  font-family: 'Fira Code', monospace;
-  background: radial-gradient(circle at top, #0b0c1e, #11121f 70%);
-  color: #ffffff;
-  display: flex;
-  justify-content: center;
-  padding: 2rem;
-  min-height: 100vh;
-  overflow: hidden;
+    font-family: 'Fira Code', monospace;
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    color: #00ffcc;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-/* Animierter Hintergrund */
-@keyframes moveGrid {
-  0% {background-position: 0 0;}
-  100% {background-position: 1000px 1000px;}
-}
-body::before {
-  content: "";
-  position: fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background-image: repeating-linear-gradient(45deg, #ff4dff10 0, #ff4dff10 1px, transparent 1px, transparent 20px),
-                    repeating-linear-gradient(-45deg, #4dffff10 0, #4dffff10 1px, transparent 1px, transparent 20px);
-  background-size: 50px 50px;
-  z-index:0;
-  animation: moveGrid 30s linear infinite;
+.card {
+    background-color: rgba(0,0,0,0.85);
+    border: 2px solid #ff0055;
+    border-radius: 1rem;
+    padding: 2rem;
+    width: 100%;
+    max-width: 600px;
+    box-shadow: 0 0 20px #ff0055aa;
+    animation: fadeIn 1s ease;
 }
 
-/* Container */
-.container {
-  position: relative;
-  z-index:1;
-  max-width: 650px;
-  width: 100%;
-  background: rgba(15,15,30,0.9);
-  border-radius: 20px;
-  padding: 2rem;
-  box-shadow: 0 0 40px #ff4dff50, 0 0 40px #4dffff50 inset;
-}
-
-/* Überschrift */
-h1 {
-  text-align: center;
-  font-size: 2rem;
-  margin-bottom: 1.5rem;
-  color: #ff77ff;
-  text-shadow: 0 0 8px #ff77ff80;
-}
-
-/* Inputs & Textareas */
 input, textarea {
-  width: 100%;
-  background: rgba(20,20,40,0.8);
-  color: #ffccff;
-  border: 1px solid #ff77ff80;
-  border-radius: 12px;
-  padding: 0.8rem;
-  margin-bottom: 1rem;
-  transition: all 0.2s;
-}
-input:focus, textarea:focus {
-  border-color: #ffccff;
-  box-shadow: 0 0 12px #ff77ff50;
-  outline: none;
+    background-color: #111;
+    border: 1px solid #ff0055;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    color: #00ffcc;
+    width: 100%;
 }
 
-/* Buttons */
 button {
-  width: 48%;
-  padding: 0.8rem;
-  background: linear-gradient(135deg, #ff77ff, #77ffff);
-  color: #0b0c1e;
-  font-weight: bold;
-  border-radius: 12px;
-  margin-right: 2%;
-  transition: 0.2s;
-  cursor: pointer;
-  box-shadow: 0 0 10px #ff77ff50, 0 0 10px #77ffff50 inset;
+    background-color: #ff0055;
+    color: #fff;
+    font-weight: bold;
+    padding: 0.7rem 1rem;
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
 }
+
 button:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 20px #ff77ff80, 0 0 20px #77ffff80 inset;
+    background-color: #ff77aa;
+    box-shadow: 0 0 10px #ff77aa;
 }
 
-/* Output Box */
-.output {
-  background: rgba(20,20,40,0.85);
-  color: #ccffdd;
-  padding: 1rem;
-  border-radius: 12px;
-  border: 1px dashed #77ffff80;
-  white-space: pre-wrap;
-  word-break: break-word;
-  margin-top: 1rem;
-  position: relative;
-  transition: all 0.2s;
-}
-.output:hover {
-  box-shadow: 0 0 15px #77ffff50, 0 0 20px #ff77ff50 inset;
+.result-box {
+    background-color: #111;
+    border: 1px dashed #ff0055;
+    padding: 1rem;
+    margin-top: 1rem;
+    word-break: break-word;
+    position: relative;
 }
 
-/* Copy Button */
 .copy-btn {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  background: #77ffff;
-  color: #0b0c1e;
-  border: none;
-  padding: 0.2rem 0.5rem;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: 0.2s;
-}
-.copy-btn:hover {
-  background: #ff77ff;
-  color: #ffffff;
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background-color: #00ffaa;
+    color: #000;
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.3rem;
+    cursor: pointer;
 }
 
-/* Anime-Stil Akzent */
-label {
-  color: #ffccff;
-  font-weight: bold;
-  margin-bottom: 0.2rem;
-  display: block;
+@keyframes fadeIn {
+    0% {opacity:0; transform: translateY(-20px);}
+    100% {opacity:1; transform: translateY(0);}
 }
-
 </style>
 </head>
 <body>
+<div class="card">
+    <h1 class="text-2xl font-bold mb-4 text-center text-pink-400">🌸 Cyber-Anime Crypto Portal</h1>
 
-<div class="container">
-<h1>🌸 AnimeCyber Encryptor 🌸</h1>
+    <label>Hauptpasswort:</label>
+    <input type="password" id="primaryPassword" placeholder="Pflichtfeld">
 
-<label>Text eingeben:</label>
-<textarea id="plaintext" rows="4" placeholder="Hier Klartext oder Cipher eingeben..."></textarea>
+    <label class="mt-2">Optionale Zusatzpasswörter (max 3):</label>
+    <input type="password" id="extra1" placeholder="Extra 1">
+    <input type="password" id="extra2" placeholder="Extra 2">
+    <input type="password" id="extra3" placeholder="Extra 3">
 
-<label>Hauptpasswort:</label>
-<input type="password" id="mainpass" placeholder="Pflichtfeld">
+    <label class="mt-2">Text zum Verschlüsseln/Entschlüsseln:</label>
+    <textarea id="plainText" rows="4" placeholder="Hier Text eingeben..."></textarea>
 
-<label>Zusatzpasswörter (optional):</label>
-<input type="password" id="addon1" placeholder="Optional 1">
-<input type="password" id="addon2" placeholder="Optional 2">
-<input type="password" id="addon3" placeholder="Optional 3">
+    <div class="flex gap-2 mt-4">
+        <button onclick="encryptData()">🔒 Verschlüsseln</button>
+        <button onclick="decryptData()">🔓 Entschlüsseln</button>
+    </div>
 
-<div class="flex justify-between">
-<button onclick="encryptData()">🔒 Verschlüsseln</button>
-<button onclick="decryptData()">🔓 Entschlüsseln</button>
-</div>
-
-<div class="output" id="output">
-  <button class="copy-btn" onclick="copyOutput()">Kopieren</button>
-  <div id="outputText">---</div>
-</div>
+    <div class="result-box mt-4">
+        <div id="output"></div>
+        <div class="copy-btn" onclick="copyOutput()">Kopieren</div>
+    </div>
 </div>
 
 <script>
 const SERVER_URL = "https://unwintry-strapping-winford.ngrok-free.dev/api/approve";
-const SERVER_TOKEN = "ReplaceWithYourServerSecretToken";
+const SERVER_TOKEN = "Your_Secret_Token_Here";
 
-async function getServerApproval(clientHash) {
-  try {
+async function deriveKey(passwords) {
+    // kombiniere Passwort + Zusatzpasswörter
+    const combined = passwords.join("|");
+    // Argon2id mit moderate Stärke, 1 Millionen Iterationen für mindestens eine Komponente
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const key = await argon2.hash({
+        pass: combined,
+        salt: salt,
+        type: argon2.ArgonType.Argon2id,
+        time: 2,        // moderate Zeit, schnelle Demo, auf Wunsch auf 1 Million iterationen erhöhen
+        mem: 64*1024,   // 64 MB
+        hashLen: 32
+    });
+    return hexToArrayBuffer(key.hashHex);
+}
+
+async function requestServerApproval(clientHashHex) {
     const res = await fetch(SERVER_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-API-Token": SERVER_TOKEN
-      },
-      body: JSON.stringify({ clientHash })
+        method: "POST",
+        headers: {"Content-Type":"application/json","X-API-Token":SERVER_TOKEN},
+        body: JSON.stringify({clientHash: clientHashHex})
     });
     const data = await res.json();
-    if (!res.ok || !data.ok) throw new Error(data.message || 'Server verweigert');
+    if(!data.ok) throw new Error("Serverfreigabe fehlgeschlagen");
     return data.approval;
-  } catch (err) {
-    alert("Server Error: " + err.message);
-    throw err;
-  }
 }
 
-async function deriveKey(password, addons) {
-  const combined = password + addons.join("|");
-  const enc = new TextEncoder().encode(combined);
-  const keyMaterial = await crypto.subtle.importKey("raw", enc, {name:"PBKDF2"}, false, ["deriveKey"]);
-  return crypto.subtle.deriveKey(
-    {name:"PBKDF2", salt: enc, iterations: 1000000, hash:"SHA-256"},
-    keyMaterial,
-    {name:"AES-GCM", length:256},
-    true,
-    ["encrypt","decrypt"]
-  );
-}
-
-async function encryptData() {
-  const text = document.getElementById("plaintext").value;
-  const main = document.getElementById("mainpass").value;
-  const addons = [
-    document.getElementById("addon1").value,
-    document.getElementById("addon2").value,
-    document.getElementById("addon3").value
-  ].filter(a=>a!=="");
-
-  if(!text || !main) { alert("Text + Hauptpasswort nötig!"); return; }
-
-  const key = await deriveKey(main, addons);
-  const enc = new TextEncoder().encode(text);
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ciphertext = await crypto.subtle.encrypt({name:"AES-GCM", iv}, key, enc);
-  const combined = ivToBase64(iv) + ":" + arrayBufferToBase64(ciphertext);
-
-  const clientHash = await sha256(main + combined);
-  await getServerApproval(clientHash);
-  document.getElementById("outputText").textContent = combined;
-}
-
-async function decryptData() {
-  const combined = document.getElementById("plaintext").value;
-  const main = document.getElementById("mainpass").value;
-  const addons = [
-    document.getElementById("addon1").value,
-    document.getElementById("addon2").value,
-    document.getElementById("addon3").value
-  ].filter(a=>a!=="");
-
-  if(!combined || !main) { alert("Ciphertext + Hauptpasswort nötig!"); return; }
-
-  const [ivStr, dataStr] = combined.split(":");
-  if(!ivStr || !dataStr) { alert("Ungültiges Format"); return; }
-
-  const key = await deriveKey(main, addons);
-  const iv = base64ToArrayBuffer(ivStr);
-  const data = base64ToArrayBuffer(dataStr);
-  try {
-    const decrypted = await crypto.subtle.decrypt({name:"AES-GCM", iv}, key, data);
-    const decText = new TextDecoder().decode(decrypted);
-    document.getElementById("outputText").textContent = decText;
-  } catch(e) {
-    alert("Entschlüsselung fehlgeschlagen (Serverfreigabe benötigt oder falsches Passwort)");
-  }
+function hexToArrayBuffer(hex) {
+    const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(byte => parseInt(byte,16)));
+    return bytes.buffer;
 }
 
 function arrayBufferToBase64(buf) {
-  let binary = '';
-  const bytes = new Uint8Array(buf);
-  bytes.forEach(b=>binary += String.fromCharCode(b));
-  return btoa(binary);
+    return btoa(String.fromCharCode(...new Uint8Array(buf)));
 }
-function base64ToArrayBuffer(base64) {
-  const binary = atob(base64);
-  const buf = new Uint8Array(binary.length);
-  for(let i=0;i<binary.length;i++) buf[i] = binary.charCodeAt(i);
-  return buf.buffer;
+
+function base64ToArrayBuffer(b64) {
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for(let i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
+    return bytes.buffer;
 }
-function ivToBase64(iv) { return arrayBufferToBase64(iv); }
-async function sha256(str) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
-  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
+
+async function encryptData() {
+    const primary = document.getElementById('primaryPassword').value;
+    if(!primary){alert("Hauptpasswort ist Pflicht"); return;}
+    const extras = [
+        document.getElementById('extra1').value,
+        document.getElementById('extra2').value,
+        document.getElementById('extra3').value
+    ].filter(Boolean);
+    const text = document.getElementById('plainText').value;
+    if(!text){alert("Text ist leer"); return;}
+
+    // 1️⃣ Key ableiten
+    const keyBuffer = await deriveKey([primary,...extras]);
+
+    // 2️⃣ Server-Freigabe
+    const clientHashHex = Array.from(new Uint8Array(keyBuffer)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    let serverApproval;
+    try{
+        serverApproval = await requestServerApproval(clientHashHex);
+    }catch(e){
+        alert(e.message);
+        return;
+    }
+
+    // 3️⃣ Finaler AES-Key: XOR KeyBuffer + serverApproval
+    const approvalBuf = hexToArrayBuffer(serverApproval);
+    const finalKeyBytes = new Uint8Array(keyBuffer.byteLength);
+    const keyView = new Uint8Array(keyBuffer);
+    const approvalView = new Uint8Array(approvalBuf);
+    for(let i=0;i<finalKeyBytes.length;i++) finalKeyBytes[i]=keyView[i]^approvalView[i%approvalView.length];
+
+    const cryptoKey = await crypto.subtle.importKey('raw', finalKeyBytes,'AES-GCM',true,['encrypt','decrypt']);
+
+    // 4️⃣ IV
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const encBuffer = await crypto.subtle.encrypt({name:'AES-GCM',iv},cryptoKey,new TextEncoder().encode(text));
+
+    const outputStr = ivToStr(iv)+"|"+arrayBufferToBase64(encBuffer);
+    document.getElementById('output').textContent = outputStr;
 }
-function copyOutput() {
-  const el = document.getElementById("outputText");
-  navigator.clipboard.writeText(el.textContent).then(()=>alert("Kopiert!"));
+
+async function decryptData() {
+    const primary = document.getElementById('primaryPassword').value;
+    if(!primary){alert("Hauptpasswort ist Pflicht"); return;}
+    const extras = [
+        document.getElementById('extra1').value,
+        document.getElementById('extra2').value,
+        document.getElementById('extra3').value
+    ].filter(Boolean);
+    const inputText = document.getElementById('plainText').value;
+    if(!inputText){alert("Text ist leer"); return;}
+
+    const [ivStr,dataB64] = inputText.split('|');
+    const iv = strToIv(ivStr);
+
+    const keyBuffer = await deriveKey([primary,...extras]);
+    const clientHashHex = Array.from(new Uint8Array(keyBuffer)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    let serverApproval;
+    try{
+        serverApproval = await requestServerApproval(clientHashHex);
+    }catch(e){
+        alert(e.message);
+        return;
+    }
+
+    const approvalBuf = hexToArrayBuffer(serverApproval);
+    const finalKeyBytes = new Uint8Array(keyBuffer.byteLength);
+    const keyView = new Uint8Array(keyBuffer);
+    const approvalView = new Uint8Array(approvalBuf);
+    for(let i=0;i<finalKeyBytes.length;i++) finalKeyBytes[i]=keyView[i]^approvalView[i%approvalView.length];
+
+    const cryptoKey = await crypto.subtle.importKey('raw', finalKeyBytes,'AES-GCM',true,['encrypt','decrypt']);
+
+    let plain;
+    try{
+        const decrypted = await crypto.subtle.decrypt({name:'AES-GCM',iv},cryptoKey,base64ToArrayBuffer(dataB64));
+        plain = new TextDecoder().decode(decrypted);
+    }catch(e){
+        alert("Entschlüsselung fehlgeschlagen: falsches Passwort oder Serverfreigabe");
+        return;
+    }
+
+    document.getElementById('output').textContent = plain;
+}
+
+function ivToStr(iv){return Array.from(iv).map(b=>b.toString(16).padStart(2,'0')).join('')}
+function strToIv(str){
+    const arr = new Uint8Array(str.match(/.{1,2}/g).map(h=>parseInt(h,16)));
+    return arr;
+}
+
+function copyOutput(){
+    const el = document.getElementById('output');
+    navigator.clipboard.writeText(el.textContent).then(()=>alert("In die Zwischenablage kopiert"));
 }
 </script>
 </body>
