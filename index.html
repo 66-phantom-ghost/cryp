@@ -4,138 +4,140 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Server-gebundene Verschlüsselung</title>
-<!-- Lade Tailwind CSS -->
+
+<!-- Tailwind -->
 <script src="https://cdn.tailwindcss.com"></script>
+
 <style>
-  /* Inter Font für besseres Aussehen */
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-  body {
-    font-family: 'Inter', sans-serif;
-  }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+body { font-family: 'Inter', sans-serif; }
 </style>
 </head>
+
 <body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center p-4">
 
 <div class="w-full max-w-md bg-gray-800 p-6 rounded-xl shadow-2xl border border-gray-700">
-    <h1 class="text-2xl font-bold mb-4 text-green-400">Verschlüsselungs-Gatekeeper</h1>
-    <p class="text-sm text-gray-400 mb-6">Die Freigabe zur Key-Ableitung muss vom Backend (Port 3000) bestätigt werden.</p>
 
-    <!-- Eingabe -->
-    <input 
-        id="msg" 
-        placeholder="Text eingeben"
-        class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 rounded-lg focus:ring-green-500 focus:border-green-500 text-gray-200"
-        oninput="document.getElementById('out').textContent = '...' /* Clear output on change */"
-    >
-    
-    <!-- Button -->
-    <button 
-        onclick="encrypt()"
-        class="w-full p-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition duration-200 shadow-md shadow-green-900/50"
-    >
-        Verschlüsselung anfordern
-    </button>
+  <h1 class="text-2xl font-bold mb-4 text-green-400">
+    Verschlüsselungs-Gatekeeper
+  </h1>
 
-    <!-- Ausgabe -->
-    <div class="mt-6">
-        <h2 class="text-lg font-semibold mb-2 text-green-400">Ergebnis</h2>
-        <pre 
-            id="out" 
-            class="whitespace-pre-wrap break-words p-4 bg-gray-700 border border-gray-600 rounded-lg text-sm terminal-font overflow-auto h-32"
-        >
-            Warten auf Anfrage...
-        </pre>
-    </div>
-    
-    <p class="mt-4 text-xs text-red-400">Hinweis: Setze den API-Endpunkt und den Token korrekt, um Zugriff zu erhalten.</p>
+  <p class="text-sm text-gray-400 mb-6">
+    Verschlüsselung nur mit Server-Freigabe
+  </p>
+
+  <!-- Input -->
+  <input
+    id="msg"
+    placeholder="Text eingeben"
+    class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 rounded-lg
+           focus:ring-green-500 focus:border-green-500 text-gray-200"
+    oninput="out.textContent='…'"
+  >
+
+  <!-- Button -->
+  <button
+    onclick="encrypt()"
+    class="w-full p-3 bg-green-600 hover:bg-green-700 text-white
+           font-semibold rounded-lg transition shadow-md"
+  >
+    Verschlüsselung anfordern
+  </button>
+
+  <!-- Output -->
+  <div class="mt-6">
+    <h2 class="text-lg font-semibold mb-2 text-green-400">Ergebnis</h2>
+    <pre
+      id="out"
+      class="whitespace-pre-wrap break-words p-4 bg-gray-700
+             border border-gray-600 rounded-lg text-sm h-40 overflow-auto"
+    >Warten auf Anfrage…</pre>
+  </div>
+
+  <p class="mt-4 text-xs text-red-400">
+    Ohne Server-OK keine Key-Ableitung.
+  </p>
+
 </div>
 
 <script>
-// --- KONSTANTEN: WICHTIG ANPASSEN ---
-// Die URL muss den POST-Endpoint des Node.js Servers (server.js) verwenden.
-const API = "http://localhost:3000/api/encryption-approval"; 
-// Das Token muss mit dem SERVER_SECRET in server.js übereinstimmen.
-const TOKEN = "Your_Ultra_Secret_Token_Change_This_Immediately_1A2B3C"; 
-// -------------------------------------
+/* ==============================
+   KONFIGURATION
+================================ */
+const API =
+  "https://unwintry-strapping-winford.ngrok-free.dev/api/approve";
 
+const TOKEN =
+  "d9F3kL1bQ7rXp2VwZ8nM5tC4sJ6yH0uR";
 
-/**
- * Berechnet den SHA-256 Hash eines Strings.
- * @param {string} str - Der Eingabestring.
- * @returns {Promise<string>} Der Hex-Hash.
- */
+/* ==============================
+   HASH
+================================ */
 async function sha256(str) {
   const buf = await crypto.subtle.digest(
     "SHA-256",
     new TextEncoder().encode(str)
   );
   return [...new Uint8Array(buf)]
-    .map(b => b.toString(16).padStart(2,"0"))
+    .map(b => b.toString(16).padStart(2, "0"))
     .join("");
 }
 
-/**
- * Fragt den Server nach der Freigabe, um mit der Key-Ableitung zu beginnen.
- */
+/* ==============================
+   MAIN
+================================ */
 async function encrypt() {
-  const msgInput = document.getElementById("msg");
-  const msg = msgInput.value;
-  const output = document.getElementById("out");
-  output.textContent = "Sende Anfrage an Server...";
+  const msg = document.getElementById("msg").value;
+  const out = document.getElementById("out");
 
   if (!msg) {
-    output.textContent = "Bitte geben Sie Text ein.";
+    out.textContent = "Bitte Text eingeben.";
     return;
   }
-  
-  // 1️⃣ Client-Hash des Klartextes
+
+  out.textContent = "⏳ Server wird kontaktiert…";
+
+  // 1️⃣ Client-Hash
   const clientHash = await sha256(msg);
 
   try {
-    // 2️⃣ Server um Erlaubnis fragen und Hash als Nachweis senden
     const res = await fetch(API, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            // Sende den Authentifizierungstoken
-            "X-API-Token": TOKEN 
-        },
-        body: JSON.stringify({ clientHash })
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Token": TOKEN
+      },
+      body: JSON.stringify({ clientHash })
     });
 
-    const responseData = await res.json();
-    
-    if (!res.ok || !responseData.approved) {
-        output.textContent = `Server verweigert: Fehler ${res.status}\nNachricht: ${responseData.message || 'Unbekannter Fehler.'}`;
-        return;
-    }
-    
-    const { secretComponent } = responseData;
+    const data = await res.json();
 
-    if (!secretComponent) {
-        output.textContent = "Fehler: Server hat die Key-Komponente nicht gesendet, obwohl genehmigt.";
-        return;
+    if (!res.ok || !data.ok || !data.approval) {
+      out.textContent = "❌ Server verweigert die Freigabe.";
+      return;
     }
 
-    // 3️⃣ Finaler Key-Ableitung: Kombination aus Client-Geheimnis (Hash des Klartexts)
-    // und Server-Geheimnis (secretComponent).
-    const finalKey = await sha256(clientHash + secretComponent);
+    // 2️⃣ Server-Approval (kein Secret!)
+    const approval = data.approval;
 
-    output.textContent = 
-        "✅ Verschlüsselung erlaubt (Server OK)\n" +
-        "-------------------------------------\n" +
-        `Client-Geheimnis (Hash): ${clientHash.substring(0, 32)}...\n` +
-        `Server-Anteil:           ${secretComponent}\n` +
-        "-------------------------------------\n" +
-        `Finaler Ableitungs-Key:  ${finalKey.substring(0, 32)}... (Länge: ${finalKey.length} Zeichen)\n\n` +
-        "Dieser Key ist nun sicher zur Verschlüsselung nutzbar.";
+    // 3️⃣ Finaler Key (nur mit Server reproduzierbar)
+    const finalKey = await sha256(clientHash + approval);
 
-  } catch (error) {
-    console.error("Netzwerkfehler beim API-Aufruf:", error);
-    output.textContent = `Fehler beim Verbindungsaufbau zum Server: ${error.message}. Ist der Server auf Port 3000 gestartet?`;
+    out.textContent =
+      "✅ Server-Freigabe erhalten\n" +
+      "---------------------------------\n" +
+      "Client-Hash:  " + clientHash.slice(0, 32) + "…\n" +
+      "Server-OK:    " + approval.slice(0, 32) + "…\n" +
+      "---------------------------------\n" +
+      "Finaler Key:  " + finalKey.slice(0, 32) + "…\n\n" +
+      "🔒 Ohne Server ist dieser Key NICHT ableitbar.";
+
+  } catch (err) {
+    out.textContent =
+      "❌ Netzwerkfehler\nServer nicht erreichbar.";
   }
 }
 </script>
+
 </body>
 </html>
-
