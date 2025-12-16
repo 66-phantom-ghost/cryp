@@ -2,153 +2,111 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Cyber Crypto Gate</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cyber-Anime Crypto</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap');
-
   body {
-    margin: 0;
-    font-family: 'Orbitron', sans-serif;
-    background: #0a0a0a;
-    color: #f00;
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg,#1a1a2e,#162447);
+    color: #e0e0e0;
     display: flex;
-    flex-direction: column;
+    justify-content: center;
     align-items: center;
-    justify-content: flex-start;
-    min-height: 100vh;
+    height: 100vh;
+    margin: 0;
+  }
+  .container {
+    background: rgba(20,20,40,0.9);
     padding: 2rem;
-  }
-
-  h1 {
-    color: #ff0033;
-    text-shadow: 0 0 10px #ff0033, 0 0 20px #ff3366;
-  }
-
-  textarea, input {
+    border-radius: 16px;
+    box-shadow: 0 0 30px #0f0f3f;
     width: 100%;
-    max-width: 600px;
-    margin: 0.5rem 0;
-    padding: 0.5rem;
-    font-family: monospace;
-    font-size: 1rem;
-    border: 1px solid #ff0033;
-    background: #111;
-    color: #fff;
-    border-radius: 5px;
+    max-width: 500px;
   }
-
-  button {
-    padding: 0.5rem 1rem;
-    font-size: 1rem;
-    margin: 0.5rem;
+  h1 { text-align: center; color: #00ffe4; }
+  input, textarea, button {
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 0.7rem;
+    border-radius: 8px;
     border: none;
-    border-radius: 5px;
+    outline: none;
+    font-size: 1rem;
+  }
+  button {
     cursor: pointer;
-    color: #fff;
-    background: linear-gradient(45deg, #ff0033, #ff3366);
-    transition: 0.3s;
+    background: #00ffe4;
+    color: #162447;
+    font-weight: bold;
+    transition: 0.2s;
   }
   button:hover {
-    background: linear-gradient(45deg, #ff3366, #ff0033);
-    transform: scale(1.05);
+    background: #00c8b0;
   }
-
-  #output {
-    width: 100%;
-    max-width: 600px;
-    min-height: 100px;
-    background: #111;
-    border: 1px solid #ff0033;
-    padding: 0.5rem;
-    color: #0f0;
-    white-space: pre-wrap;
-    border-radius: 5px;
-    position: relative;
+  textarea {
+    resize: vertical;
   }
-
-  #copy-btn {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    background: #333;
-    color: #0f0;
-    padding: 0.2rem 0.5rem;
-    font-size: 0.8rem;
+  .result {
+    margin-top: 1rem;
+    word-break: break-all;
+    background: #0f0f3f;
+    padding: 0.7rem;
+    border-radius: 8px;
   }
 </style>
 </head>
 <body>
-<h1>Cyber Crypto Gate</h1>
-
-<textarea id="text" placeholder="Text hier eingeben..."></textarea>
-<input id="password" type="password" placeholder="Passwort">
-<div>
-  <button onclick="encrypt()">Verschlüsseln</button>
-  <button onclick="decrypt()">Entschlüsseln</button>
-</div>
-
-<div id="output">
-  <button id="copy-btn" onclick="copyOutput()">Kopieren</button>
-  <pre id="result"></pre>
+<div class="container">
+  <h1>Cyber-Anime Crypto</h1>
+  <input type="password" id="password" placeholder="Passwort">
+  <textarea id="plaintext" rows="5" placeholder="Text hier eingeben"></textarea>
+  <button id="encryptBtn">Verschlüsseln</button>
+  <button id="decryptBtn">Entschlüsseln</button>
+  <div class="result" id="result"></div>
 </div>
 
 <script>
 const SERVER_URL = 'https://unwintry-strapping-winford.ngrok-free.dev';
 
-function randomHex(len = 32) {
+async function getChallenge() {
+  const resp = await fetch(SERVER_URL + '/api/challenge', { method: 'POST' });
+  if (!resp.ok) throw new Error('Challenge fehlgeschlagen');
+  const data = await resp.json();
+  return data.challenge;
+}
+
+function randomHex(len=32) {
   const arr = new Uint8Array(len);
   crypto.getRandomValues(arr);
   return Array.from(arr).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
-async function getChallenge() {
-  const res = await fetch(SERVER_URL + '/api/challenge', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({})
-  });
-  const data = await res.json();
-  return data.challenge;
-}
-
 async function sendCrypto(mode) {
-  const text = document.getElementById('text').value;
-  const password = document.getElementById('password').value;
-  if(!text || !password) { alert('Text + Passwort benötigt'); return; }
-
   const challenge = await getChallenge();
   const nonce = randomHex(16);
+  const password = document.getElementById('password').value;
+  const data = document.getElementById('plaintext').value;
 
-  const payloadHash = await crypto.subtle.digest(
-    'SHA-256',
-    new TextEncoder().encode(JSON.stringify({challenge, nonce, mode}))
-  );
+  const payloadHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify({ challenge, nonce, mode })));
+  const sigHex = Array.from(new Uint8Array(payloadHash)).map(b => b.toString(16).padStart(2,'0')).join('');
 
-  const sig = Array.from(new Uint8Array(payloadHash)).map(b=>b.toString(16).padStart(2,'0')).join('');
-
-  const res = await fetch(SERVER_URL + '/api/' + mode, {
+  const resp = await fetch(SERVER_URL + '/api/' + mode, {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ challenge, nonce, password, data: text, signature: sig })
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ challenge, nonce, password, data, signature: sigHex })
   });
 
-  if(res.status !== 200) {
-    document.getElementById('result').textContent = 'Fehler: ' + res.status;
+  if (!resp.ok) {
+    document.getElementById('result').innerText = 'Fehler beim ' + mode;
     return;
   }
 
-  const result = await res.json();
-  document.getElementById('result').textContent = result.result;
+  const resultData = await resp.json();
+  document.getElementById('result').innerText = resultData.result;
 }
 
-function encrypt() { sendCrypto('encrypt'); }
-function decrypt() { sendCrypto('decrypt'); }
-
-function copyOutput() {
-  const content = document.getElementById('result').textContent;
-  navigator.clipboard.writeText(content);
-  alert('In die Zwischenablage kopiert!');
-}
+document.getElementById('encryptBtn').addEventListener('click', () => sendCrypto('encrypt'));
+document.getElementById('decryptBtn').addEventListener('click', () => sendCrypto('decrypt'));
 </script>
 </body>
 </html>
