@@ -1,81 +1,71 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <title>Crypto-Gate Demo</title>
-  <style>
-    body { 
-      font-family: 'Segoe UI', sans-serif; 
-      background: linear-gradient(135deg,#1e1e2f,#3a3a5e); 
-      color: #eee; 
-      display:flex; 
-      flex-direction:column; 
-      align-items:center; 
-      justify-content:center; 
-      min-height:100vh; 
-      margin:0; 
-    }
-    h1 { color:#00ffdd; text-shadow:0 0 8px #00ffdd; }
-    textarea { width: 80%; height: 100px; margin:10px 0; padding:10px; border-radius:8px; border:none; resize:none; font-size:16px; }
-    input, button { margin:5px; padding:10px; border-radius:8px; border:none; font-size:16px; }
-    button { background:#00ffdd; color:#1e1e2f; cursor:pointer; transition:0.2s; }
-    button:hover { background:#00ffaa; }
-    #result { word-break: break-all; margin-top:15px; }
-  </style>
+<meta charset="UTF-8">
+<title>Crypto-Gate Demo</title>
+<style>
+body { font-family:sans-serif; background:#1e1e2f; color:#eee; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; margin:0; }
+h1 { color:#00ffdd; text-shadow:0 0 8px #00ffdd; }
+textarea { width:80%; height:100px; margin:10px 0; padding:10px; border-radius:8px; border:none; resize:none; font-size:16px; background:#2a2a40; color:#fff; }
+input, button { margin:5px; padding:10px; border-radius:8px; border:none; font-size:16px; }
+button { background:#00ffdd; color:#1e1e2f; cursor:pointer; transition:0.2s; }
+button:hover { background:#00ffaa; }
+#result { width:80%; height:100px; margin-top:10px; padding:10px; border-radius:8px; background:#2a2a40; color:#fff; font-size:16px; overflow-wrap: break-word; }
+</style>
 </head>
 <body>
-  <h1>Crypto-Gate Demo</h1>
-  
-  <textarea id="plaintext" placeholder="Hier Text eingeben..."></textarea>
-  <input type="password" id="password" placeholder="Passwort">
-  <br>
-  <button onclick="encrypt()">🔒 Verschlüsseln</button>
-  <button onclick="decrypt()">🔓 Entschlüsseln</button>
-  
-  <div id="result"></div>
-  
+
+<h1>Crypto-Gate Demo</h1>
+
+<textarea id="plaintext" placeholder="Hier Text eingeben..."></textarea>
+<input type="password" id="password" placeholder="Passwort / gehashtes Passwort">
+<br>
+<button onclick="encrypt()">🔒 Verschlüsseln</button>
+<button onclick="decrypt()">🔓 Entschlüsseln</button>
+
+<textarea id="result" placeholder="Hier erscheint der verschlüsselte / entschlüsselte String" readonly></textarea>
+
 <script>
 const SERVER_URL = 'https://unwintry-strapping-winford.ngrok-free.dev'; // dein Server
 
 async function getChallenge() {
   const res = await fetch(`${SERVER_URL}/api/challenge`, { method:'POST' });
-  if(!res.ok) throw new Error('Challenge fehlgeschlagen');
-  const json = await res.json();
-  return json.challenge;
+  if (!res.ok) throw new Error('Challenge fehlgeschlagen');
+  return await res.json().then(j => j.challenge);
 }
 
 function randomNonce() {
   const arr = new Uint8Array(16);
   crypto.getRandomValues(arr);
-  return Array.from(arr).map(b => b.toString(16).padStart(2,'0')).join('');
-}
-
-function hmacHex(key, msg) {
-  return crypto.subtle.importKey('raw', key, {name:'HMAC', hash:'SHA-256'}, false, ['sign'])
-    .then(cryptoKey => crypto.subtle.sign('HMAC', cryptoKey, msg))
-    .then(sig => Array.from(new Uint8Array(sig)).map(b=>b.toString(16).padStart(2,'0')).join(''));
+  return Array.from(arr).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
 async function sendCrypto(mode) {
-  const challenge = await getChallenge();
-  const nonce = randomNonce();
-  const password = document.getElementById('password').value;
-  const data = document.getElementById('plaintext').value;
+  try {
+    const challenge = await getChallenge();
+    const nonce = randomNonce();
+    const password = document.getElementById('password').value;
+    const data = document.getElementById('plaintext').value;
 
-  const encoder = new TextEncoder();
-  const payload = encoder.encode(JSON.stringify({challenge, nonce, mode}));
-  const keyMaterial = encoder.encode('client-temp-secret'); // Dummy, da echte Signatur serverseitig
-  const signature = await hmacHex(keyMaterial, payload);
+    // Signatur nur Dummy, server prüft Challenge/Nonce/Password
+    const signature = '00'.repeat(32);
 
-  const res = await fetch(`${SERVER_URL}/api/${mode}`, {
-    method:'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({challenge, nonce, password, data, signature})
-  });
+    const res = await fetch(`${SERVER_URL}/api/${mode}`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({challenge, nonce, password, data, signature})
+    });
 
-  if(!res.ok) { document.getElementById('result').innerText='Fehler: '+res.status; return; }
-  const json = await res.json();
-  document.getElementById('result').innerText = json.result;
+    if (!res.ok) {
+      document.getElementById('result').value = 'Fehler: ' + res.status;
+      return;
+    }
+
+    const json = await res.json();
+    document.getElementById('result').value = json.result;
+  } catch(err) {
+    document.getElementById('result').value = 'Fehler: ' + err.message;
+  }
 }
 
 function encrypt() { sendCrypto('encrypt'); }
