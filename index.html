@@ -1,32 +1,31 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cyber-Crypto Tool</title>
+<title>Crypto-Gate Client</title>
 <style>
-  body { font-family: 'Segoe UI', sans-serif; background: #0d0d0d; color: #f0f0f0; display: flex; flex-direction: column; align-items: center; padding: 2rem; }
-  h1 { color: #00ffff; }
-  input, textarea, button { width: 100%; max-width: 400px; margin: 0.5rem 0; padding: 0.5rem; border-radius: 0.5rem; border: none; font-size: 1rem; }
-  textarea { resize: vertical; }
-  button { background: #00ffff; color: #000; font-weight: bold; cursor: pointer; }
-  .output { background: #111; padding: 1rem; border-radius: 0.5rem; word-break: break-all; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f0f1a; color: #e0e0ff; display:flex; flex-direction:column; align-items:center; padding:2rem; }
+  h1 { color:#66f; }
+  input, textarea, button { margin:0.5rem 0; padding:0.5rem; width:100%; max-width:400px; border-radius:5px; border:none; }
+  button { background:#3366ff; color:white; cursor:pointer; }
+  button:hover { background:#2244cc; }
+  .output { background:#111; color:#0f0; padding:0.5rem; border-radius:5px; width:100%; max-width:400px; word-wrap:break-word; }
 </style>
 </head>
 <body>
+<h1>Crypto-Gate Client</h1>
 
-<h1>Cyber-Crypto Tool</h1>
-
-<label for="password">Passwort:</label>
+<label>Passwort:</label>
 <input type="password" id="password" placeholder="Passwort eingeben">
 
-<label for="plaintext">Klartext:</label>
-<textarea id="plaintext" rows="4" placeholder="Text zum Verschlüsseln"></textarea>
+<label>Text zum Verschlüsseln:</label>
+<textarea id="plaintext" rows="4" placeholder="Hier Text eingeben"></textarea>
 
 <button id="encryptBtn">Verschlüsseln</button>
 <button id="decryptBtn">Entschlüsseln</button>
 
-<h3>Ergebnis:</h3>
+<label>Ergebnis:</label>
 <div class="output" id="result"></div>
 
 <script>
@@ -34,62 +33,72 @@ const SERVER_URL = 'https://unwintry-strapping-winford.ngrok-free.dev';
 
 async function getChallenge() {
   try {
-    const resp = await fetch(`${SERVER_URL}/api/challenge`, { method: 'POST' });
-    if (!resp.ok) throw new Error('Challenge konnte nicht abgerufen werden');
-    return await resp.json();
-  } catch (err) {
-    alert('Challenge Fehler: ' + err.message);
-    throw err;
+    const res = await fetch(`${SERVER_URL}/api/challenge`, { method:'POST' });
+    if (!res.ok) throw new Error('Challenge fehlgeschlagen');
+    return await res.json();
+  } catch(e) {
+    throw new Error('Challenge Fehler: ' + e.message);
   }
 }
 
-async function doCrypto(mode) {
+async function cryptoRequest(mode) {
   const password = document.getElementById('password').value;
   const data     = document.getElementById('plaintext').value;
+  const resultEl = document.getElementById('result');
+  resultEl.textContent = '';
 
-  if (!password || !data) {
-    alert('Bitte Passwort und Text ausfüllen');
+  if(!password || !data) {
+    resultEl.textContent = 'Passwort und Text erforderlich!';
     return;
   }
 
   try {
     const { challenge } = await getChallenge();
     const nonce = cryptoRandomHex(16);
+    const payloadHash = await sha256(JSON.stringify({ challenge, nonce, mode }));
+    
+    const signature = await hmacHex(payloadHash, 'dummy-signing'); // real signature serverseitig
 
-    const payload = { challenge, nonce, password, data, mode };
-    payload.signature = await generateSignature(challenge, nonce, mode);
-
-    const resp = await fetch(`${SERVER_URL}/api/${mode}`, {
+    const res = await fetch(`${SERVER_URL}/api/${mode}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ challenge, nonce, password, data, signature })
     });
 
-    if (!resp.ok) throw new Error('Serverantwort ungültig');
-    const resultData = await resp.json();
-    document.getElementById('result').textContent = resultData.result;
+    if(!res.ok) throw new Error('Serverantwort ungültig');
 
-  } catch (err) {
-    document.getElementById('result').textContent = 'Fehler: ' + err.message;
+    const json = await res.json();
+    resultEl.textContent = json.result || 'Keine Ausgabe';
+  } catch(e) {
+    resultEl.textContent = 'Fehler: ' + e.message;
   }
 }
 
-// --- Hilfsfunktionen ---
-function cryptoRandomHex(length) {
-  const array = new Uint8Array(length);
-  crypto.getRandomValues(array);
-  return Array.from(array, b => b.toString(16).padStart(2,'0')).join('');
+document.getElementById('encryptBtn').addEventListener('click', ()=> cryptoRequest('encrypt'));
+document.getElementById('decryptBtn').addEventListener('click', ()=> cryptoRequest('decrypt'));
+
+function cryptoRandomHex(len) {
+  const arr = new Uint8Array(len);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-async function generateSignature(challenge, nonce, mode) {
-  // Dummy: Signature wird serverseitig geprüft, hier nur placeholder
-  return cryptoRandomHex(32);
+async function sha256(msg) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-// Event-Handler
-document.getElementById('encryptBtn').addEventListener('click', () => doCrypto('encrypt'));
-document.getElementById('decryptBtn').addEventListener('click', () => doCrypto('decrypt'));
+async function hmacHex(msgHex, key) {
+  const keyBuf = new TextEncoder().encode(key);
+  const cryptoKey = await crypto.subtle.importKey('raw', keyBuf, {name:'HMAC', hash:'SHA-256'}, false, ['sign']);
+  const sigBuf = await crypto.subtle.sign('HMAC', cryptoKey, hexToBuf(msgHex));
+  return Array.from(new Uint8Array(sigBuf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function hexToBuf(hex) {
+  const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(b=>parseInt(b,16)));
+  return bytes.buffer;
+}
 </script>
-
 </body>
 </html>
