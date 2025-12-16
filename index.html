@@ -1,204 +1,152 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Crypto‑Gate</title>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crypto-Gate</title>
 <style>
-:root{
-  --bg:#000;
-  --card:#0b0b0b;
-  --red:#ff073a;
-  --green:#00ff41;
-  --text:#e5e7eb;
-  --muted:#777;
+:root {
+  --bg: #000000;
+  --panel: #0d0d0d;
+  --card: #0a0a0a;
+  --accent: #FF073A;
+  --accent-dark: #C0042D;
+  --accent2: #00FF41;
+  --accent2-dark: #00C834;
+  --text: #e5e7eb;
+  --muted: #888;
+  --border-color: rgba(255,255,255,0.08);
+  --glow-red: rgba(255,7,58,0.4);
+  --glow-green: rgba(0,255,65,0.4);
 }
 
-*{box-sizing:border-box}
-
-body{
+body {
   margin:0;
   min-height:100vh;
   display:flex;
-  align-items:center;
   justify-content:center;
-  background:radial-gradient(circle at center,#200000,#000);
-  font-family:system-ui,Segoe UI,Roboto,sans-serif;
-  color:var(--text);
-}
-
-.card{
-  width:100%;
-  max-width:460px;
-  background:var(--card);
-  border-radius:18px;
-  padding:28px;
-  box-shadow:0 0 40px rgba(255,7,58,.35);
-}
-
-h1{
-  margin:0 0 6px;
-  text-align:center;
-  color:var(--red);
-  letter-spacing:1px;
-}
-
-p{
-  text-align:center;
-  margin:0 0 24px;
-  font-size:.85rem;
-  color:var(--muted);
-}
-
-label{
-  font-size:.75rem;
-  color:var(--muted);
-}
-
-input,textarea{
-  width:100%;
-  margin-top:6px;
-  margin-bottom:16px;
-  padding:14px;
-  background:#050505;
-  color:var(--text);
-  border-radius:10px;
-  border:1px solid #111;
-  outline:none;
-  font-size:.9rem;
-}
-
-textarea{min-height:90px;resize:vertical}
-
-.actions{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:12px;
-}
-
-button{
-  padding:14px;
-  border:none;
-  border-radius:12px;
-  font-weight:700;
-  cursor:pointer;
-  transition:.15s;
-}
-
-.encrypt{
-  background:linear-gradient(135deg,var(--red),#b00024);
-  color:#fff;
-}
-
-.decrypt{
-  background:linear-gradient(135deg,var(--green),#00b933);
-  color:#001a07;
-}
-
-button:hover{transform:translateY(-2px)}
-
-.output{
-  margin-top:20px;
-  padding:14px;
-  border-radius:10px;
-  background:#050505;
-  border:1px solid #111;
-  font-family:monospace;
-  font-size:.85rem;
-  word-break:break-all;
-}
-
-.meta{
-  margin-top:10px;
-  display:flex;
-  justify-content:space-between;
   align-items:center;
-  font-size:.75rem;
-  color:var(--muted);
+  background: radial-gradient(circle at center, #1a0000 0%, #000000 80%);
+  font-family: 'Inter', sans-serif;
+  color: var(--text);
 }
 
-.small-btn{
-  background:transparent;
-  border:1px solid var(--green);
-  color:var(--green);
-  padding:6px 10px;
-  border-radius:8px;
-  font-size:.7rem;
+.wrapper { max-width: 500px; width: 90%; padding: 20px; }
+.card {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 0 50px var(--glow-red), 0 10px 20px rgba(0,0,0,.8), inset 0 0 0 1px var(--border-color);
 }
 
-.small-btn:hover{
-  background:rgba(0,255,65,.1);
+header { text-align:center; margin-bottom:20px; }
+header h1 { margin:0; font-size:1.8rem; color: var(--accent); }
+header p { margin:6px 0 0; font-size:.9rem; color: var(--muted); }
+
+label { display:block; font-size:.8rem; color: var(--muted); margin-bottom:6px; }
+input, textarea {
+  width:100%; background: var(--panel); border:none; border-radius:10px; padding:14px;
+  color: var(--text); font-size:.95rem; margin-bottom:16px; box-shadow: inset 0 0 0 1px var(--border-color); outline:none;
 }
+input:focus, textarea:focus { box-shadow: 0 0 0 2px var(--accent), inset 0 0 0 1px var(--accent); }
+textarea { resize: vertical; min-height:90px; }
+
+.actions { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; }
+button { border:none; border-radius:12px; padding:14px; font-weight:700; cursor:pointer; font-size:.9rem; transition: transform .15s ease, box-shadow .3s ease, opacity .15s; }
+button:hover { transform:translateY(-2px); opacity:0.95; }
+
+.encrypt { background: linear-gradient(135deg,var(--accent),var(--accent-dark)); color:white; box-shadow:0 10px 25px var(--glow-red);}
+.encrypt:hover { box-shadow:0 15px 35px var(--glow-red),0 0 10px var(--accent);}
+.decrypt { background: linear-gradient(135deg,var(--accent2),var(--accent2-dark)); color:var(--card); box-shadow:0 10px 25px var(--glow-green);}
+.decrypt:hover { box-shadow:0 15px 35px var(--glow-green),0 0 10px var(--accent2);}
+.reset { background:#444; color:white; box-shadow:0 5px 15px rgba(0,0,0,.5); }
+.reset:hover { background:#666; }
+
+.output { background: var(--panel); border-radius:12px; padding:14px; font-family: monospace; font-size:.85rem; word-break: break-all; box-shadow: inset 0 0 0 1px var(--border-color); color:#00FFFF; }
+.meta { display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:.75rem; color: var(--muted); }
+.copy { background:transparent; border:1px solid var(--accent2); color:var(--accent2); padding:6px 10px; border-radius:8px; font-size:.75rem; cursor:pointer; display:flex; align-items:center; transition:0.2s;}
+.copy:hover { background: rgba(0,255,65,0.1); box-shadow:0 0 8px rgba(0,255,65,0.4);}
 </style>
 </head>
-
 <body>
-<div class="card">
-  <h1>Crypto‑Gate</h1>
-  <p>Private · Server‑only · Long‑term</p>
+<div class="wrapper">
+  <div class="card">
+    <header>
+      <h1>Crypto-Gate</h1>
+      <p>Private · Minimal · Secure</p>
+    </header>
 
-  <label>Passwort</label>
-  <input id="pw" type="password" />
+    <label for="password">Passwort</label>
+    <input id="password" type="password" placeholder="••••••••">
 
-  <label>Text</label>
-  <textarea id="txt"></textarea>
+    <label for="text">Text</label>
+    <textarea id="text" placeholder="Klartext oder verschlüsselter Inhalt"></textarea>
 
-  <div class="actions">
-    <button class="encrypt" onclick="run('encrypt')">Verschlüsseln</button>
-    <button class="decrypt" onclick="run('decrypt')">Entschlüsseln</button>
-  </div>
+    <div class="actions">
+      <button class="encrypt" onclick="run('encrypt')">Verschlüsseln</button>
+      <button class="decrypt" onclick="run('decrypt')">Entschlüsseln</button>
+      <button class="reset" onclick="resetBadClients()">Reset BadClients</button>
+    </div>
 
-  <div class="output" id="out">Bereit.</div>
-
-  <div class="meta">
-    <span id="info"></span>
-    <button class="small-btn" onclick="resetClients()">Reset</button>
+    <div class="output" id="preview">Bereit.</div>
+    <div class="meta">
+      <span id="info"></span>
+      <button class="copy" onclick="copyText()" id="copyBtn" style="display:none">Kopieren</button>
+    </div>
   </div>
 </div>
 
 <script>
-const API = "https://unwintry-strapping-winford.ngrok-free.dev";
+const SERVER = "https://unwintry-strapping-winford.ngrok-free.dev";
+let full = "";
+
+function shorten(str){ return str.length>48?str.slice(0,22)+"…"+str.slice(-22):str; }
+
+async function fetchRetry(url, options={}, retries=3){
+  for(let i=0;i<retries;i++){
+    try{ const r=await fetch(url,options); if(!r.ok) throw new Error("HTTP "+r.status); return r;}
+    catch(e){ if(i<retries-1){ await new Promise(r=>setTimeout(r,Math.pow(2,i)*500)); } else { throw e; } }
+  }
+}
 
 async function run(mode){
-  out.textContent = "Verarbeite…";
-  info.textContent = "";
+  const pw=document.getElementById("password").value.trim();
+  const tx=document.getElementById("text").value.trim();
+  const preview=document.getElementById("preview");
+  const info=document.getElementById("info");
+  const copyBtn=document.getElementById("copyBtn");
+  if(!pw||!tx){ preview.textContent="Passwort und Text eingeben."; info.textContent=""; copyBtn.style.display="none"; return; }
+  preview.textContent="Verarbeite…"; info.textContent=""; copyBtn.style.display="none";
 
   try{
-    const r = await fetch(`${API}/api/${mode}`,{
+    const chal=await fetchRetry(SERVER+"/api/challenge",{method:"POST"}).then(r=>r.json());
+    const res=await fetchRetry(SERVER+"/api/"+mode,{
       method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({
-        password: pw.value.trim(),
-        data: txt.value.trim()
-      })
-    });
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ password:pw, data:tx, challenge:chal.challenge })
+    }).then(r=>r.json());
 
-    const j = await r.json();
-
-    if(!r.ok) throw new Error(j.error || r.status);
-
-    out.textContent = j.result;
-    info.textContent = "OK";
-  }
-  catch(e){
-    out.textContent = "Fehler: " + e.message;
+    full=res.result||"";
+    if(full){ preview.textContent=shorten(full); info.textContent=full.length+" Zeichen"; copyBtn.style.display="inline-block"; }
+    else{ preview.textContent=res.error||"Fehler: kein Ergebnis"; info.textContent=""; }
+  } catch(e){
+    preview.textContent="FEHLER: Server nicht erreichbar."; info.textContent=""; console.error(e);
   }
 }
 
-async function resetClients(){
+async function resetBadClients(){
   try{
-    await fetch(`${API}/internal/reset-badclients`,{method:"POST"});
-    info.textContent = "Reset OK";
-  }catch{
-    info.textContent = "Reset fehlgeschlagen";
+    await fetch(SERVER+"/internal/reset-badclients",{method:"POST"});
+    alert("BadClients zurückgesetzt!");
+  } catch(e){
+    alert("Reset fehlgeschlagen!");
   }
 }
 
-const pw = document.getElementById("pw");
-const txt = document.getElementById("txt");
-const out = document.getElementById("out");
-const info = document.getElementById("info");
+function copyText(){
+  if(full){ navigator.clipboard.writeText(full); document.getElementById("info").textContent="Kopiert"; }
+  else document.getElementById("info").textContent="Nichts zu kopieren.";
+}
 </script>
 </body>
 </html>
