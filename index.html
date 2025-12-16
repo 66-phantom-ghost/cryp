@@ -5,49 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Crypto-Gate</title>
 <style>
-  body {
-    font-family: 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg, #1a1a1a, #0d0d0d);
-    color: #f0f0f0;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding: 50px;
-    min-height: 100vh;
-  }
-  .container {
-    background: #111;
-    padding: 30px;
-    border-radius: 15px;
-    box-shadow: 0 0 20px rgba(255,0,0,0.3);
-    width: 100%;
-    max-width: 500px;
-  }
-  h1 { text-align: center; color: #ff4d4d; }
-  label { display: block; margin-top: 15px; font-weight: bold; }
-  input, textarea, button {
-    width: 100%;
-    padding: 10px;
-    margin-top: 5px;
-    border-radius: 8px;
-    border: none;
-    outline: none;
-    font-size: 1rem;
-  }
-  input, textarea { background: #222; color: #f0f0f0; }
-  button {
-    background: #ff4d4d;
-    color: #fff;
-    cursor: pointer;
-    margin-top: 15px;
-    transition: 0.2s;
-  }
-  button:hover { background: #ff1a1a; }
+  body { font-family: 'Segoe UI', sans-serif; background: #111; color: #eee; display: flex; justify-content: center; padding: 50px; }
+  .container { width: 100%; max-width: 500px; background: #222; padding: 30px; border-radius: 12px; }
+  h1 { text-align: center; color: #ff5555; }
+  label { display: block; margin-top: 15px; }
+  input, textarea, button { width: 100%; padding: 10px; margin-top: 5px; border-radius: 8px; border: none; background: #333; color: #eee; }
+  button { background: #ff5555; cursor: pointer; margin-top: 15px; }
+  button:hover { background: #ff2222; }
   #result { height: 100px; resize: none; }
-  .copy-btn {
-    background: #444;
-    margin-top: 5px;
-  }
 </style>
 </head>
 <body>
@@ -57,15 +22,15 @@
   <label for="password">Passwort</label>
   <input type="password" id="password" placeholder="Dein Passwort">
 
-  <label for="plaintext">Klartext</label>
-  <textarea id="plaintext" placeholder="Text zum Verschlüsseln"></textarea>
+  <label for="plaintext">Text</label>
+  <textarea id="plaintext" placeholder="Text zum Verschlüsseln / Entschlüsseln"></textarea>
 
   <button id="encryptBtn">Verschlüsseln</button>
   <button id="decryptBtn">Entschlüsseln</button>
 
   <label for="result">Ergebnis</label>
-  <textarea id="result" readonly placeholder="Hier erscheint der verschlüsselte oder entschlüsselte Text"></textarea>
-  <button class="copy-btn" id="copyBtn">Kopieren</button>
+  <textarea id="result" readonly placeholder="Hier erscheint das Ergebnis"></textarea>
+  <button id="copyBtn">Kopieren</button>
 </div>
 
 <script>
@@ -73,32 +38,34 @@ const SERVER_URL = 'https://unwintry-strapping-winford.ngrok-free.dev';
 
 function generateNonce() {
   return Array.from(crypto.getRandomValues(new Uint8Array(16)))
-              .map(b => b.toString(16).padStart(2, '0')).join('');
+              .map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
 async function getChallenge() {
   const res = await fetch(`${SERVER_URL}/api/challenge`, { method: 'POST' });
-  if (!res.ok) throw new Error('Challenge fehlgeschlagen');
-  const json = await res.json();
-  return json.challenge;
+  if (!res.ok) throw new Error(`Challenge fehlgeschlagen (${res.status})`);
+  try {
+    return (await res.json()).challenge;
+  } catch {
+    throw new Error('Serverantwort ungültig');
+  }
 }
 
 async function sendCrypto(mode) {
-  const password = document.getElementById('password').value;
-  const data     = document.getElementById('plaintext').value;
+  const password = document.getElementById('password').value.trim();
+  const data     = document.getElementById('plaintext').value.trim();
   if (!password || !data) return alert('Bitte Passwort und Text eingeben');
+
+  const resultField = document.getElementById('result');
+  resultField.value = 'Warte auf Server...';
 
   try {
     const challenge = await getChallenge();
     const nonce = generateNonce();
-    const payloadHash = new Uint8Array(
-      new TextEncoder().encode(JSON.stringify({ challenge, nonce, mode }))
-    );
 
-    // HMAC-Signatur clientseitig
-    const key = await crypto.subtle.importKey(
-      'raw', new TextEncoder().encode(challenge), {name:'HMAC','hash':'SHA-256'}, false, ['sign']
-    );
+    // HMAC clientseitig (nur zur Demo, Server prüft ohnehin)
+    const payloadHash = new TextEncoder().encode(JSON.stringify({ challenge, nonce, mode }));
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(challenge), {name:'HMAC','hash':'SHA-256'}, false, ['sign']);
     const sigBuffer = await crypto.subtle.sign('HMAC', key, payloadHash);
     const signature = Array.from(new Uint8Array(sigBuffer)).map(b => b.toString(16).padStart(2,'0')).join('');
 
@@ -109,14 +76,19 @@ async function sendCrypto(mode) {
     });
 
     if (!res.ok) {
-      document.getElementById('result').value = 'Fehler: ' + res.status;
+      resultField.value = `Server-Fehler: ${res.status}`;
       return;
     }
 
-    const json = await res.json();
-    document.getElementById('result').value = json.result;
+    const json = await res.json().catch(()=>null);
+    if (!json || !json.result) {
+      resultField.value = 'Keine Antwort vom Server / ungültiges Format';
+      return;
+    }
+
+    resultField.value = json.result;
   } catch(e) {
-    document.getElementById('result').value = 'Fehler: ' + e.message;
+    resultField.value = 'Fehler: ' + e.message;
   }
 }
 
