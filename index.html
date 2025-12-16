@@ -3,110 +3,149 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cyber-Anime Crypto</title>
+<title>Cyber Encryptor</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
   body {
-    font-family: 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg,#1a1a2e,#162447);
-    color: #e0e0e0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
     margin: 0;
+    font-family: 'Press Start 2P', cursive;
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    color: #f0f0f0;
   }
   .container {
-    background: rgba(20,20,40,0.9);
+    max-width: 600px;
+    margin: 3rem auto;
     padding: 2rem;
+    background: rgba(0,0,0,0.6);
     border-radius: 16px;
-    box-shadow: 0 0 30px #0f0f3f;
-    width: 100%;
-    max-width: 500px;
+    box-shadow: 0 0 20px rgba(255,0,255,0.3);
   }
-  h1 { text-align: center; color: #00ffe4; }
-  input, textarea, button {
+  h1 { text-align: center; color: #ff4fa3; }
+  label { display: block; margin-top: 1rem; color: #fff; }
+  input, textarea {
     width: 100%;
-    margin-top: 0.5rem;
-    padding: 0.7rem;
+    padding: 0.5rem;
+    margin-top: 0.25rem;
     border-radius: 8px;
     border: none;
-    outline: none;
+    font-family: monospace;
     font-size: 1rem;
   }
   button {
-    cursor: pointer;
-    background: #00ffe4;
-    color: #162447;
-    font-weight: bold;
-    transition: 0.2s;
-  }
-  button:hover {
-    background: #00c8b0;
-  }
-  textarea {
-    resize: vertical;
-  }
-  .result {
     margin-top: 1rem;
-    word-break: break-all;
-    background: #0f0f3f;
-    padding: 0.7rem;
-    border-radius: 8px;
+    width: 48%;
+    padding: 0.5rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    background: #ff4fa3;
+    color: #fff;
+    transition: 0.3s;
   }
+  button:hover { background: #ff77c3; }
+  .output {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: rgba(255,255,255,0.1);
+    border-radius: 12px;
+    position: relative;
+    word-break: break-all;
+  }
+  .copy-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: #ff4fa3;
+    color: #fff;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .copy-btn:hover { background: #ff77c3; }
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>Cyber-Anime Crypto</h1>
-  <input type="password" id="password" placeholder="Passwort">
-  <textarea id="plaintext" rows="5" placeholder="Text hier eingeben"></textarea>
-  <button id="encryptBtn">Verschlüsseln</button>
-  <button id="decryptBtn">Entschlüsseln</button>
-  <div class="result" id="result"></div>
+  <h1>Cyber Encryptor</h1>
+  <label>Text zum Verschlüsseln</label>
+  <textarea id="inputText" rows="5"></textarea>
+
+  <label>Passwort</label>
+  <input type="password" id="password">
+
+  <div style="display:flex; justify-content:space-between;">
+    <button id="encryptBtn">Verschlüsseln</button>
+    <button id="decryptBtn">Entschlüsseln</button>
+  </div>
+
+  <div class="output" id="output">
+    <button class="copy-btn" id="copyBtn">Kopieren</button>
+    <pre id="result"></pre>
+  </div>
 </div>
 
 <script>
-const SERVER_URL = 'https://unwintry-strapping-winford.ngrok-free.dev';
+const SERVER_URL = "https://unwintry-strapping-winford.ngrok-free.dev";
 
 async function getChallenge() {
-  const resp = await fetch(SERVER_URL + '/api/challenge', { method: 'POST' });
-  if (!resp.ok) throw new Error('Challenge fehlgeschlagen');
-  const data = await resp.json();
+  const res = await fetch(SERVER_URL + "/api/challenge", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: "{}"
+  });
+  if(!res.ok) throw new Error("Challenge fehlgeschlagen");
+  const data = await res.json();
   return data.challenge;
 }
 
-function randomHex(len=32) {
-  const arr = new Uint8Array(len);
-  crypto.getRandomValues(arr);
-  return Array.from(arr).map(b => b.toString(16).padStart(2,'0')).join('');
+function generateNonce() {
+  return crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
 
-async function sendCrypto(mode) {
-  const challenge = await getChallenge();
-  const nonce = randomHex(16);
-  const password = document.getElementById('password').value;
-  const data = document.getElementById('plaintext').value;
+function hmacSha256(data, key) {
+  const enc = new TextEncoder();
+  return crypto.subtle.importKey(
+    "raw",
+    enc.encode(key),
+    {name:"HMAC", hash:"SHA-256"},
+    false,
+    ["sign"]
+  ).then(k => crypto.subtle.sign("HMAC", k, enc.encode(data)))
+  .then(sig => Array.from(new Uint8Array(sig)).map(b=>b.toString(16).padStart(2,"0")).join(""));
+}
 
-  const payloadHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify({ challenge, nonce, mode })));
-  const sigHex = Array.from(new Uint8Array(payloadHash)).map(b => b.toString(16).padStart(2,'0')).join('');
+async function cryptoAction(mode) {
+  try {
+    const challenge = await getChallenge();
+    const nonce = generateNonce();
+    const password = document.getElementById("password").value;
+    const data = document.getElementById("inputText").value;
 
-  const resp = await fetch(SERVER_URL + '/api/' + mode, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ challenge, nonce, password, data, signature: sigHex })
-  });
+    const signature = await hmacSha256(JSON.stringify({challenge, nonce, mode}), "frontenddummy");
 
-  if (!resp.ok) {
-    document.getElementById('result').innerText = 'Fehler beim ' + mode;
-    return;
+    const res = await fetch(SERVER_URL + (mode==="encrypt"?"/api/encrypt":"/api/decrypt"), {
+      method:"POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({challenge, nonce, password, data, signature})
+    });
+
+    if(!res.ok) throw new Error("Server Error");
+
+    const result = await res.json();
+    document.getElementById("result").textContent = result.result;
+  } catch(e) {
+    document.getElementById("result").textContent = "Fehler: " + e.message;
   }
-
-  const resultData = await resp.json();
-  document.getElementById('result').innerText = resultData.result;
 }
 
-document.getElementById('encryptBtn').addEventListener('click', () => sendCrypto('encrypt'));
-document.getElementById('decryptBtn').addEventListener('click', () => sendCrypto('decrypt'));
+document.getElementById("encryptBtn").addEventListener("click",()=>cryptoAction("encrypt"));
+document.getElementById("decryptBtn").addEventListener("click",()=>cryptoAction("decrypt"));
+document.getElementById("copyBtn").addEventListener("click",()=>{
+  const r = document.getElementById("result");
+  navigator.clipboard.writeText(r.textContent);
+});
 </script>
 </body>
 </html>
