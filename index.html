@@ -1,104 +1,80 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Crypto-Gate Client</title>
+<title>Crypto-Gate</title>
 <style>
-  body { font-family: 'Segoe UI', sans-serif; background: #0f0f1a; color: #e0e0ff; display:flex; flex-direction:column; align-items:center; padding:2rem; }
-  h1 { color:#66f; }
-  input, textarea, button { margin:0.5rem 0; padding:0.5rem; width:100%; max-width:400px; border-radius:5px; border:none; }
-  button { background:#3366ff; color:white; cursor:pointer; }
-  button:hover { background:#2244cc; }
-  .output { background:#111; color:#0f0; padding:0.5rem; border-radius:5px; width:100%; max-width:400px; word-wrap:break-word; }
+  body { font-family: Arial, sans-serif; background: #0f0f1a; color: #e0e0ff; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
+  input, textarea, button { margin: 5px; padding: 10px; width: 300px; font-size: 1rem; border-radius: 5px; border: none; }
+  button { cursor: pointer; background: #4b6ef6; color: #fff; font-weight: bold; }
+  button:hover { background: #3a5acc; }
+  textarea { height: 100px; resize: none; }
+  h1 { color: #4b6ef6; }
 </style>
 </head>
 <body>
-<h1>Crypto-Gate Client</h1>
+<h1>Crypto-Gate</h1>
 
-<label>Passwort:</label>
-<input type="password" id="password" placeholder="Passwort eingeben">
-
-<label>Text zum Verschlüsseln:</label>
-<textarea id="plaintext" rows="4" placeholder="Hier Text eingeben"></textarea>
+<input id="password" type="password" placeholder="Passwort">
+<textarea id="data" placeholder="Zu verschlüsselnder Text"></textarea>
+<textarea id="result" placeholder="Ergebnis" readonly></textarea>
 
 <button id="encryptBtn">Verschlüsseln</button>
 <button id="decryptBtn">Entschlüsseln</button>
 
-<label>Ergebnis:</label>
-<div class="output" id="result"></div>
-
 <script>
-const SERVER_URL = 'https://unwintry-strapping-winford.ngrok-free.dev';
+const SERVER = "https://unwintry-strapping-winford.ngrok-free.dev";
 
 async function getChallenge() {
   try {
-    const res = await fetch(`${SERVER_URL}/api/challenge`, { method:'POST' });
-    if (!res.ok) throw new Error('Challenge fehlgeschlagen');
-    return await res.json();
-  } catch(e) {
-    throw new Error('Challenge Fehler: ' + e.message);
+    const res = await fetch(`${SERVER}/api/challenge`, { method: 'POST' });
+    if (!res.ok) throw new Error('Challenge konnte nicht abgerufen werden');
+    const data = await res.json();
+    return data.challenge;
+  } catch (err) {
+    alert("Challenge Fehler: " + err.message);
+    throw err;
   }
 }
 
-async function cryptoRequest(mode) {
-  const password = document.getElementById('password').value;
-  const data     = document.getElementById('plaintext').value;
-  const resultEl = document.getElementById('result');
-  resultEl.textContent = '';
+function generateNonce() {
+  return Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2,'0')).join('');
+}
 
-  if(!password || !data) {
-    resultEl.textContent = 'Passwort und Text erforderlich!';
-    return;
-  }
+function hmacSha256(msg, key) {
+  return crypto.subtle.importKey(
+    "raw", key, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+  ).then(cryptoKey =>
+    crypto.subtle.sign("HMAC", cryptoKey, new TextEncoder().encode(msg))
+  ).then(sig => Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2,'0')).join(''))
+}
 
+async function doCrypto(mode) {
   try {
-    const { challenge } = await getChallenge();
-    const nonce = cryptoRandomHex(16);
-    const payloadHash = await sha256(JSON.stringify({ challenge, nonce, mode }));
-    
-    const signature = await hmacHex(payloadHash, 'dummy-signing'); // real signature serverseitig
+    const challenge = await getChallenge();
+    const password = document.getElementById("password").value;
+    const data = document.getElementById("data").value;
+    if (!password || !data) { alert("Bitte Passwort und Text eingeben!"); return; }
 
-    const res = await fetch(`${SERVER_URL}/api/${mode}`, {
+    const nonce = generateNonce();
+    const payloadHash = await hmacSha256(JSON.stringify({challenge, nonce, mode}), new TextEncoder().encode("clientplaceholder"));
+    
+    const res = await fetch(`${SERVER}/api/${mode}`, {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ challenge, nonce, password, data, signature })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ challenge, nonce, password, data, signature: payloadHash })
     });
 
-    if(!res.ok) throw new Error('Serverantwort ungültig');
-
+    if (!res.ok) throw new Error("Serverantwort ungültig");
     const json = await res.json();
-    resultEl.textContent = json.result || 'Keine Ausgabe';
-  } catch(e) {
-    resultEl.textContent = 'Fehler: ' + e.message;
+    document.getElementById("result").value = json.result;
+  } catch (err) {
+    alert(`${mode.charAt(0).toUpperCase()+mode.slice(1)} Fehler: ${err.message}`);
   }
 }
 
-document.getElementById('encryptBtn').addEventListener('click', ()=> cryptoRequest('encrypt'));
-document.getElementById('decryptBtn').addEventListener('click', ()=> cryptoRequest('decrypt'));
-
-function cryptoRandomHex(len) {
-  const arr = new Uint8Array(len);
-  crypto.getRandomValues(arr);
-  return Array.from(arr).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-
-async function sha256(msg) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-
-async function hmacHex(msgHex, key) {
-  const keyBuf = new TextEncoder().encode(key);
-  const cryptoKey = await crypto.subtle.importKey('raw', keyBuf, {name:'HMAC', hash:'SHA-256'}, false, ['sign']);
-  const sigBuf = await crypto.subtle.sign('HMAC', cryptoKey, hexToBuf(msgHex));
-  return Array.from(new Uint8Array(sigBuf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-
-function hexToBuf(hex) {
-  const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(b=>parseInt(b,16)));
-  return bytes.buffer;
-}
+document.getElementById("encryptBtn").onclick = () => doCrypto('encrypt');
+document.getElementById("decryptBtn").onclick = () => doCrypto('decrypt');
 </script>
 </body>
 </html>
