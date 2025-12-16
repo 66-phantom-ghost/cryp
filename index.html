@@ -2,109 +2,93 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Crypto-Gate</title>
 <style>
 :root {
-  --bg: #000;
-  --panel: #0d0d00;
+  --bg: #000000;
   --card: #0a0a0a;
-  --accent: #FF073A;
-  --accent-dark: #C0042D;
-  --accent2: #00FF41;
-  --accent2-dark: #00C834;
+  --panel: #1a0a0a;
+  --accent-red: #FF073A;
+  --accent-red-dark: #C0042D;
+  --accent-green: #00FF41;
+  --accent-green-dark: #00C834;
   --text: #e5e7eb;
   --muted: #888;
-  --border-color: rgba(255,255,255,0.08);
-  --glow-red: rgba(255,7,58,0.4);
-  --glow-green: rgba(0,255,65,0.4);
+  --border: rgba(255,255,255,0.08);
 }
-*{box-sizing:border-box;}
-body{
-  margin:0;
-  min-height:100vh;
-  background: radial-gradient(circle at center, #1a0000 0%, #000 80%);
+
+* { box-sizing: border-box; }
+
+body {
+  margin:0; min-height:100vh;
   font-family: 'Inter', sans-serif;
+  background: radial-gradient(circle at center, #1a0000 0%, #000 80%);
+  display:flex; justify-content:center; align-items:center;
   color: var(--text);
-  display:flex;
-  justify-content:center;
-  align-items:center;
 }
-.wrapper{
-  width:100%;
-  max-width:480px;
-  padding:24px;
+
+.wrapper {
+  width: 100%; max-width: 460px; padding: 24px;
 }
-.card{
+
+.card {
   background: var(--card);
-  border-radius:16px;
-  padding:28px;
-  box-shadow:0 0 50px var(--glow-red),0 10px 20px rgba(0,0,0,.8), inset 0 0 0 1px var(--border-color);
+  border-radius: 16px; padding: 28px;
+  box-shadow: 0 0 50px rgba(255,7,58,0.4), 0 10px 20px rgba(0,0,0,.8), inset 0 0 0 1px var(--border);
 }
-header{text-align:center;margin-bottom:26px;}
-header h1{margin:0;font-size:1.8rem;font-weight:700;letter-spacing:1px;color:var(--accent);}
-header p{margin:6px 0 0;font-size:.9rem;color:var(--muted);}
-label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:6px;}
-input,textarea{
-  width:100%;
-  background:var(--panel);
-  border:none;
-  border-radius:10px;
-  padding:14px;
-  color:var(--text);
-  font-size:.95rem;
-  outline:none;
-  margin-bottom:16px;
-  box-shadow: inset 0 0 0 1px var(--border-color);
-  transition:box-shadow 0.3s ease;
+
+header { text-align:center; margin-bottom: 26px; }
+header h1 { margin:0; font-size:1.8rem; font-weight:700; color: var(--accent-red); }
+header p { margin:6px 0 0; font-size:.9rem; color: var(--muted); }
+
+label { display:block; font-size:.8rem; color: var(--muted); margin-bottom:6px; }
+input, textarea {
+  width:100%; background: var(--panel); border:none; border-radius:10px;
+  padding:14px; font-size:.95rem; color:var(--text); margin-bottom:16px;
+  box-shadow: inset 0 0 0 1px var(--border); outline:none;
 }
-input:focus,textarea:focus{
-  box-shadow:0 0 0 2px var(--accent), inset 0 0 0 1px var(--accent);
+input:focus, textarea:focus { box-shadow: 0 0 0 2px var(--accent-red), inset 0 0 0 1px var(--accent-red); }
+textarea { resize:vertical; min-height:90px; }
+
+.actions { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; }
+button {
+  border:none; border-radius:12px; padding:14px; font-weight:700; cursor:pointer;
+  font-size:.9rem; transition: transform .15s ease, box-shadow .3s ease, opacity .15s;
 }
-textarea{resize:vertical; min-height:90px;}
-.actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
-button{
-  border:none;
-  border-radius:12px;
-  padding:14px;
-  font-weight:700;
-  cursor:pointer;
-  font-size:.9rem;
-  transition: transform .15s ease, box-shadow .3s ease, opacity .15s;
+button:hover { transform:translateY(-2px); opacity:0.95; }
+
+.encrypt {
+  background: linear-gradient(135deg,var(--accent-red),var(--accent-red-dark));
+  color:white; box-shadow: 0 10px 25px rgba(255,7,58,0.4);
 }
-button:hover{transform:translateY(-2px);opacity:.95;}
-.encrypt{
-  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-  color:white;
-  box-shadow:0 10px 25px var(--glow-red);
+.encrypt:hover { box-shadow:0 15px 35px rgba(255,7,58,0.4),0 0 10px var(--accent-red); }
+
+.decrypt {
+  background: linear-gradient(135deg,var(--accent-green),var(--accent-green-dark));
+  color: var(--card); box-shadow:0 10px 25px rgba(0,255,65,0.4);
 }
-.encrypt:hover{box-shadow:0 15px 35px var(--glow-red), 0 0 10px var(--accent);}
-.decrypt{
-  background: linear-gradient(135deg, var(--accent2), var(--accent2-dark));
-  color:var(--card);
-  box-shadow:0 10px 25px var(--glow-green);
+.decrypt:hover { box-shadow:0 15px 35px rgba(0,255,65,0.4),0 0 10px var(--accent-green); }
+
+.output {
+  background: var(--panel); border-radius:12px; padding:14px; font-family: monospace;
+  font-size:.85rem; word-break: break-all; box-shadow: inset 0 0 0 1px var(--border);
+  color: #00FFFF;
 }
-.decrypt:hover{box-shadow:0 15px 35px var(--glow-green),0 0 10px var(--accent2);}
-.reset{
-  background: #555;
-  color:white;
-  grid-column:1/-1;
+
+.meta { display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:.75rem; color:var(--muted); }
+
+.copy {
+  background:transparent; border:1px solid var(--accent-green); color: var(--accent-green);
+  padding:6px 10px; border-radius:8px; cursor:pointer; transition: background-color 0.2s, box-shadow 0.2s;
 }
-.reset:hover{background:#777;}
-.output{
-  background:var(--panel);
-  border-radius:12px;
-  padding:14px;
-  font-family: monospace;
-  font-size:.85rem;
-  word-break: break-all;
-  box-shadow: inset 0 0 0 1px var(--border-color);
-  border:1px solid var(--border-color);
-  color:#00FFFF;
+.copy:hover { background: rgba(0,255,65,0.1); box-shadow:0 0 8px rgba(0,255,65,0.4); }
+
+.reset {
+  margin-top:10px; background: #ff3b3b; color:white; border:none; border-radius:8px;
+  padding:8px 12px; cursor:pointer; width:100%; font-weight:700;
 }
-.meta{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:.75rem;color:var(--muted);}
-.copy{background:transparent;border:1px solid var(--accent2);color:var(--accent2);padding:6px 10px;border-radius:8px;font-size:.75rem;cursor:pointer;display:flex;align-items:center;transition:0.2s;}
-.copy:hover{background:rgba(0,255,65,0.1);box-shadow:0 0 8px rgba(0,255,65,0.4);}
+.reset:hover { background:#c70000; }
 </style>
 </head>
 <body>
@@ -114,68 +98,89 @@ button:hover{transform:translateY(-2px);opacity:.95;}
       <h1>Crypto-Gate</h1>
       <p>Private · Minimal · Secure</p>
     </header>
+
     <label for="password">Passwort</label>
     <input id="password" type="password" placeholder="••••••••">
+
     <label for="text">Text</label>
     <textarea id="text" placeholder="Klartext oder verschlüsselter Inhalt"></textarea>
+
     <div class="actions">
       <button class="encrypt" onclick="run('encrypt')">Verschlüsseln</button>
       <button class="decrypt" onclick="run('decrypt')">Entschlüsseln</button>
-      <button class="reset" onclick="resetBadClients()">BadClient Reset</button>
     </div>
+
     <div class="output" id="preview">Bereit.</div>
     <div class="meta">
       <span id="info"></span>
-      <button class="copy" onclick="copyText()" id="copyBtn" style="display:none">Kopieren</button>
+      <button class="copy" id="copyBtn" onclick="copy()" style="display:none">Kopieren</button>
     </div>
+
+    <button class="reset" onclick="resetBadClient()">Reset BadClient</button>
   </div>
 </div>
 
 <script>
-const SERVER = "https://unwintry-strapping-winford.ngrok-free.dev";
-let fullText = "";
+const SERVER_URL = "https://unwintry-strapping-winford.ngrok-free.dev";
 
-function shorten(s){return s.length<48?s:s.slice(0,22)+"…"+s.slice(-22);}
-async function fetchRetry(url, opts={}, retries=3){
+let full = "";
+
+async function fetchWithRetry(url, options, retries = 3) {
   for(let i=0;i<retries;i++){
     try{
-      const res=await fetch(url,opts);
+      const res = await fetch(url, options);
       if(!res.ok) throw new Error(`HTTP ${res.status}`);
       return res;
-    }catch(e){if(i<retries-1){await new Promise(r=>setTimeout(r,Math.pow(2,i)*500));} else {throw e;}}
+    }catch(e){
+      if(i<retries-1) await new Promise(r=>setTimeout(r,Math.pow(2,i)*500));
+      else throw e;
+    }
   }
 }
 
-async function run(mode){
-  const pw=document.getElementById('password').value.trim();
-  const tx=document.getElementById('text').value.trim();
-  const preview=document.getElementById('preview');
-  const info=document.getElementById('info');
-  const copyBtn=document.getElementById('copyBtn');
-  if(!pw||!tx){preview.textContent="Passwort und Text eingeben.";info.textContent="";copyBtn.style.display="none";return;}
-  preview.textContent="Verarbeite…";info.textContent="";copyBtn.style.display="none";
-  try{
-    const chalRes=await fetchRetry(SERVER+"/api/challenge",{method:'POST'});
-    const chalJson=await chalRes.json();
-    const mainRes=await fetchRetry(SERVER+"/api/"+mode,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({password:pw,data:tx,challenge:chalJson.challenge})
-    });
-    const resultJson=await mainRes.json();
-    fullText=resultJson.result||"";
-    if(fullText){preview.textContent=shorten(fullText);info.textContent=fullText.length+" Zeichen";copyBtn.style.display="inline-block";}
-    else{preview.textContent=resultJson.error||"Fehler: Kein Ergebnis";info.textContent="";}
-  }catch(e){console.error(e);preview.textContent="Fehler: Server nicht erreichbar";info.textContent="";copyBtn.style.display="none";}
+function shorten(str){
+  if(str.length<48) return str;
+  return str.slice(0,22)+"…"+str.slice(-22);
 }
 
-function copyText(){if(fullText){navigator.clipboard.writeText(fullText);document.getElementById('info').textContent="Kopiert";} else{document.getElementById('info').textContent="Nichts zum Kopieren";}}
+async function run(mode){
+  const pw = document.getElementById('password').value.trim();
+  const tx = document.getElementById('text').value.trim();
+  const preview = document.getElementById('preview');
+  const info = document.getElementById('info');
+  const copyBtn = document.getElementById('copyBtn');
 
-async function resetBadClients(){
+  if(!pw||!tx){ preview.textContent="Bitte Passwort und Text eingeben."; info.textContent=""; copyBtn.style.display="none"; return; }
+  preview.textContent="Verarbeite…"; info.textContent=""; copyBtn.style.display="none";
+
   try{
-    await fetch(SERVER+"/internal/reset-badclients",{method:'POST'});
-    alert("BadClients zurückgesetzt!");
-  }catch(e){alert("Fehler beim Reset");console.error(e);}
+    const chalResp = await fetchWithRetry(SERVER_URL+"/api/challenge",{method:"POST"});
+    const chData = await chalResp.json();
+    const payload = { password:pw, data:tx, challenge:chData.challenge, nonce:crypto.randomUUID() };
+    const mainResp = await fetchWithRetry(`${SERVER_URL}/api/${mode}`,{method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)});
+    const resData = await mainResp.json();
+    full = resData.result || "";
+    if(full){ preview.textContent = shorten(full); info.textContent = full.length+" Zeichen"; copyBtn.style.display="inline-block"; }
+    else { preview.textContent=resData.error||"Fehler: Kein Ergebnis."; info.textContent=""; }
+  }catch(e){
+    console.error(e);
+    preview.textContent="Fehler: Server nicht erreichbar."; info.textContent=""; copyBtn.style.display="none";
+  }
+}
+
+function copy(){
+  if(full){ navigator.clipboard.writeText(full); document.getElementById('info').textContent="Kopiert"; }
+  else document.getElementById('info').textContent="Nichts zum Kopieren.";
+}
+
+async function resetBadClient(){
+  try{
+    const resp = await fetch(SERVER_URL+"/internal/reset-badclients",{method:"POST"});
+    const data = await resp.json();
+    alert("BadClient Reset: "+(data.status||"fertig"));
+  }catch(e){
+    console.error(e); alert("Reset fehlgeschlagen!");
+  }
 }
 </script>
 </body>
