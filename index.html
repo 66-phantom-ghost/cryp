@@ -3,111 +3,93 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Crypto-Gate Client</title>
+<title>Cyber-Crypto Tool</title>
 <style>
-  body { font-family: Arial, sans-serif; background: #0e0e2c; color: #e0e0ff; padding: 2rem; }
-  h1 { color: #88f; }
-  input, textarea, button { display: block; width: 100%; margin: 0.5rem 0; padding: 0.5rem; font-size: 1rem; border-radius: 6px; border: none; }
-  textarea { height: 100px; resize: vertical; }
-  button { background: #4488ff; color: white; cursor: pointer; }
-  button:hover { background: #3366cc; }
-  .output { background: #111144; padding: 1rem; border-radius: 6px; word-break: break-all; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0d0d0d; color: #f0f0f0; display: flex; flex-direction: column; align-items: center; padding: 2rem; }
+  h1 { color: #00ffff; }
+  input, textarea, button { width: 100%; max-width: 400px; margin: 0.5rem 0; padding: 0.5rem; border-radius: 0.5rem; border: none; font-size: 1rem; }
+  textarea { resize: vertical; }
+  button { background: #00ffff; color: #000; font-weight: bold; cursor: pointer; }
+  .output { background: #111; padding: 1rem; border-radius: 0.5rem; word-break: break-all; }
 </style>
 </head>
 <body>
-<h1>Crypto-Gate Client</h1>
 
-<label>Passwort:</label>
+<h1>Cyber-Crypto Tool</h1>
+
+<label for="password">Passwort:</label>
 <input type="password" id="password" placeholder="Passwort eingeben">
 
-<label>Klartext / Nachricht:</label>
-<textarea id="plaintext"></textarea>
+<label for="plaintext">Klartext:</label>
+<textarea id="plaintext" rows="4" placeholder="Text zum Verschlüsseln"></textarea>
 
-<label>Verschlüsselter String:</label>
-<textarea id="ciphertext" readonly></textarea>
+<button id="encryptBtn">Verschlüsseln</button>
+<button id="decryptBtn">Entschlüsseln</button>
 
-<button id="encryptBtn">Encrypt</button>
-<button id="decryptBtn">Decrypt</button>
+<h3>Ergebnis:</h3>
+<div class="output" id="result"></div>
 
 <script>
-const SERVER = 'https://unwintry-strapping-winford.ngrok-free.dev'; // Server-Adresse
-
-let currentChallenge = '';
+const SERVER_URL = 'https://unwintry-strapping-winford.ngrok-free.dev';
 
 async function getChallenge() {
   try {
-    const res = await fetch(`${SERVER}/api/challenge`, { method: 'POST' });
-    // Prüfen, ob JSON zurückkommt
-    const text = await res.text();
-    if (!text) {
-      throw new Error('Leere Antwort vom Server');
-    }
-    const data = JSON.parse(text);
-    if (data.challenge) {
-      currentChallenge = data.challenge;
-      console.log('Challenge erhalten:', currentChallenge);
-    } else {
-      throw new Error('Ungültige Challenge: ' + JSON.stringify(data));
-    }
-  } catch(err) {
-    alert('Challenge Fehler: ' + err);
+    const resp = await fetch(`${SERVER_URL}/api/challenge`, { method: 'POST' });
+    if (!resp.ok) throw new Error('Challenge konnte nicht abgerufen werden');
+    return await resp.json();
+  } catch (err) {
+    alert('Challenge Fehler: ' + err.message);
+    throw err;
   }
 }
 
-// Zufalls-Nonce
-function randomNonce(length=16){
-  const arr = new Uint8Array(length);
-  crypto.getRandomValues(arr);
-  return Array.from(arr).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-
-// Dummy-HMAC (Front für Demo, Signatur wird serverseitig geprüft)
-function fakeHMAC() {
-  return '0000000000000000000000000000000000000000000000000000000000000000';
-}
-
-async function sendCrypto(mode){
-  if(!currentChallenge) await getChallenge();
+async function doCrypto(mode) {
   const password = document.getElementById('password').value;
-  const data = mode==='encrypt' ? document.getElementById('plaintext').value : document.getElementById('ciphertext').value;
-  const nonce = randomNonce();
+  const data     = document.getElementById('plaintext').value;
+
+  if (!password || !data) {
+    alert('Bitte Passwort und Text ausfüllen');
+    return;
+  }
 
   try {
-    const res = await fetch(`${SERVER}/api/${mode}`, {
+    const { challenge } = await getChallenge();
+    const nonce = cryptoRandomHex(16);
+
+    const payload = { challenge, nonce, password, data, mode };
+    payload.signature = await generateSignature(challenge, nonce, mode);
+
+    const resp = await fetch(`${SERVER_URL}/api/${mode}`, {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        challenge: currentChallenge,
-        nonce,
-        password,
-        data,
-        signature: fakeHMAC()
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     });
 
-    const text = await res.text();
-    if (!text) throw new Error('Leere Antwort vom Server');
-    const json = JSON.parse(text);
+    if (!resp.ok) throw new Error('Serverantwort ungültig');
+    const resultData = await resp.json();
+    document.getElementById('result').textContent = resultData.result;
 
-    if(json.result){
-      if(mode==='encrypt') document.getElementById('ciphertext').value = json.result;
-      if(mode==='decrypt') document.getElementById('plaintext').value = json.result;
-    } else if(json.error){
-      alert('Server Fehler: ' + json.error);
-    }
-  } catch(err){
-    alert('Request Fehler: ' + err);
+  } catch (err) {
+    document.getElementById('result').textContent = 'Fehler: ' + err.message;
   }
-
-  // Neue Challenge holen
-  await getChallenge();
 }
 
-document.getElementById('encryptBtn').addEventListener('click', ()=>sendCrypto('encrypt'));
-document.getElementById('decryptBtn').addEventListener('click', ()=>sendCrypto('decrypt'));
+// --- Hilfsfunktionen ---
+function cryptoRandomHex(length) {
+  const array = new Uint8Array(length);
+  crypto.getRandomValues(array);
+  return Array.from(array, b => b.toString(16).padStart(2,'0')).join('');
+}
 
-// Direkt beim Laden
-getChallenge();
+async function generateSignature(challenge, nonce, mode) {
+  // Dummy: Signature wird serverseitig geprüft, hier nur placeholder
+  return cryptoRandomHex(32);
+}
+
+// Event-Handler
+document.getElementById('encryptBtn').addEventListener('click', () => doCrypto('encrypt'));
+document.getElementById('decryptBtn').addEventListener('click', () => doCrypto('decrypt'));
 </script>
+
 </body>
 </html>
