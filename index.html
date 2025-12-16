@@ -1,141 +1,134 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <title>Secure Crypto Gate</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    body {
-      background: #0b0f14;
-      color: #e6edf3;
-      font-family: system-ui, sans-serif;
-      display: flex;
-      justify-content: center;
-      padding: 40px;
-    }
-    .box {
-      width: 100%;
-      max-width: 420px;
-      background: #111823;
-      border-radius: 10px;
-      padding: 20px;
-    }
-    h1 {
-      margin-top: 0;
-      font-size: 1.2rem;
-      text-align: center;
-    }
-    textarea, input, button {
-      width: 100%;
-      margin-top: 10px;
-      background: #0b0f14;
-      color: #e6edf3;
-      border: 1px solid #1f2a3a;
-      border-radius: 6px;
-      padding: 10px;
-    }
-    button {
-      cursor: pointer;
-      background: #1a2636;
-    }
-    button:hover {
-      background: #223147;
-    }
-    .out {
-      margin-top: 15px;
-      font-size: 0.9rem;
-      word-break: break-all;
-      opacity: 0.85;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Cyber Vault</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  background: radial-gradient(circle at top, #1b1b1f, #09090c);
+  color: #e6e6eb;
+  font-family: system-ui, monospace;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.panel {
+  background: rgba(20,20,28,.9);
+  border: 1px solid #ff3355;
+  box-shadow: 0 0 40px rgba(255,50,80,.2);
+  padding: 20px;
+  width: 420px;
+  border-radius: 12px;
+}
+
+h1 {
+  color: #ff4466;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+textarea, input {
+  width: 100%;
+  background: #0f0f14;
+  color: #fff;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 8px;
+  margin-bottom: 10px;
+}
+
+button {
+  width: 48%;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg,#ff3355,#ff6688);
+  color: #000;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 4%;
+}
+
+.output {
+  font-size: 12px;
+  opacity: .8;
+  white-space: pre-wrap;
+}
+</style>
 </head>
+
 <body>
+<div class="panel">
+  <h1>CYBER VAULT</h1>
 
-<div class="box">
-  <h1>🔐 Server Crypto Gate</h1>
+  <input id="password" type="password" placeholder="Passwort">
+  <textarea id="data" rows="4" placeholder="Text"></textarea>
 
-  <input id="password" type="password" placeholder="Passphrase" />
-  <textarea id="input" rows="4" placeholder="Text / Cipher"></textarea>
+  <div class="row">
+    <button onclick="send('encrypt')">Verschlüsseln</button>
+    <button onclick="send('decrypt')">Entschlüsseln</button>
+  </div>
 
-  <button onclick="encrypt()">Encrypt</button>
-  <button onclick="decrypt()">Decrypt</button>
-
-  <div class="out" id="output"></div>
+  <pre id="out" class="output"></pre>
 </div>
 
 <script>
-async function getChallenge() {
-  const r = await fetch('/api/challenge', { method: 'POST' });
-  if (!r.ok) throw new Error('Challenge failed');
-  return r.json();
+const API = 'https://unwintry-strapping-winford.ngrok-free.dev';
+
+function xhrPost(url, data, cb) {
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', url, true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.onreadystatechange = () => {
+    if (xhr.readyState === 4) {
+      cb(xhr.status, xhr.responseText);
+    }
+  };
+  xhr.send(JSON.stringify(data));
 }
 
-function nonce() {
-  return crypto.randomUUID().replace(/-/g, '');
-}
-
-async function signPayload(payload) {
-  // KEIN echtes Secret im Frontend
-  // Server prüft mathematisch – nicht geheimnisbasiert
-  const enc = new TextEncoder().encode(JSON.stringify(payload));
-  const hash = await crypto.subtle.digest('SHA-256', enc);
-  return Array.from(new Uint8Array(hash))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-async function callCrypto(mode) {
+function send(mode) {
   const password = document.getElementById('password').value;
-  const data = document.getElementById('input').value;
-  const out = document.getElementById('output');
+  const data = document.getElementById('data').value;
+  const out = document.getElementById('out');
 
-  out.textContent = '';
+  out.textContent = '⏳ Anfrage läuft…';
 
-  if (!password || !data) {
-    out.textContent = 'Fehlende Eingabe';
-    return;
-  }
-
-  try {
-    const { challenge } = await getChallenge();
-    const n = nonce();
-
-    const payloadMeta = { challenge, nonce: n, mode };
-    const signature = await signPayload(payloadMeta);
-
-    const r = await fetch('/api/' + mode, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        challenge,
-        nonce: n,
-        password,
-        data,
-        signature
-      })
-    });
-
-    if (!r.ok) {
-      out.textContent = 'Abgelehnt';
+  // 1️⃣ Challenge holen
+  xhrPost(API + '/api/challenge', {}, (s1, r1) => {
+    if (s1 !== 200) {
+      out.textContent = '❌ Challenge fehlgeschlagen';
       return;
     }
 
-    const j = await r.json();
-    out.textContent = j.result;
+    const { challenge, nonce } = JSON.parse(r1);
 
-  } catch {
-    out.textContent = 'Fehler / blockiert';
-  }
-}
+    // 2️⃣ Crypto-Request
+    xhrPost(API + '/api/crypto', {
+      mode,
+      challenge,
+      nonce,
+      password,
+      data
+    }, (s2, r2) => {
+      if (s2 !== 200) {
+        out.textContent = '❌ Server verweigert';
+        return;
+      }
 
-function encrypt() {
-  callCrypto('encrypt');
-}
-
-function decrypt() {
-  callCrypto('decrypt');
+      out.textContent = r2;
+    });
+  });
 }
 </script>
-
 </body>
 </html>
