@@ -70,14 +70,11 @@
 <div class="box">
   <h1>Crypto‑Gate</h1>
 
-  <label>Server URL</label>
-  <input id="server" value="http://localhost:3000">
-
   <label>Passwort</label>
-  <input id="password" type="password">
+  <input id="password" type="password" placeholder="Passwort">
 
   <label>Text</label>
-  <textarea id="text" rows="5"></textarea>
+  <textarea id="text" rows="5" placeholder="Klartext oder verschlüsselter Text"></textarea>
 
   <button class="enc" onclick="run('encrypt')">Verschlüsseln</button>
   <button class="dec" onclick="run('decrypt')">Entschlüsseln</button>
@@ -86,39 +83,51 @@
 </div>
 
 <script>
-async function run(mode) {
-  const server = document.getElementById('server').value.trim();
-  const password = passwordEl.value.trim();
-  const text = textEl.value.trim();
-  result.textContent = 'Arbeite…';
-
-  try {
-    const c = await fetch(server + '/api/challenge', { method:'POST' })
-      .then(r => r.json());
-
-    const res = await fetch(server + '/api/' + mode, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        password,
-        data:text,
-        challenge:c.challenge
-      })
-    }).then(r => r.json());
-
-    if (res.result) {
-      result.textContent = res.result;
-    } else {
-      result.textContent = JSON.stringify(res);
-    }
-  } catch(e) {
-    result.textContent = 'Fehler: ' + e.message;
-  }
-}
+const SERVER = "https://unwintry-strapping-winford.ngrok-free.dev";
 
 const passwordEl = document.getElementById('password');
 const textEl = document.getElementById('text');
-const result = document.getElementById('result');
+const resultEl = document.getElementById('result');
+
+async function run(mode) {
+  const password = passwordEl.value.trim();
+  const text = textEl.value.trim();
+
+  if (!password || !text) {
+    resultEl.textContent = "Passwort und Text erforderlich.";
+    return;
+  }
+
+  resultEl.textContent = "Arbeite…";
+
+  try {
+    const challengeResp = await fetch(SERVER + "/api/challenge", {
+      method: "POST"
+    });
+
+    if (!challengeResp.ok) throw new Error("Challenge fehlgeschlagen");
+
+    const { challenge } = await challengeResp.json();
+
+    const cryptoResp = await fetch(SERVER + "/api/" + mode, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        password,
+        data: text,
+        challenge
+      })
+    });
+
+    if (!cryptoResp.ok) throw new Error("Crypto‑Request fehlgeschlagen");
+
+    const result = await cryptoResp.json();
+    resultEl.textContent = result.result || "Kein Ergebnis erhalten";
+
+  } catch (err) {
+    resultEl.textContent = "FEHLER: " + err.message;
+  }
+}
 </script>
 
 </body>
