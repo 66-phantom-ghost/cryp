@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Crypto-Gate</title>
+<title>Crypto‑Gate</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
@@ -21,11 +21,11 @@
 body{
   margin:0;
   min-height:100vh;
-  background:radial-gradient(circle,#1a0000 0%,#000 80%);
+  background:radial-gradient(circle,#1a0000,#000 70%);
   display:flex;
-  justify-content:center;
   align-items:center;
-  font-family:Inter,system-ui,sans-serif;
+  justify-content:center;
+  font-family:Inter,system-ui,Arial,sans-serif;
   color:var(--text);
 }
 
@@ -34,24 +34,22 @@ body{
   max-width:460px;
   background:var(--card);
   padding:28px;
-  border-radius:16px;
-  box-shadow:
-    0 0 40px rgba(255,7,58,.35),
-    inset 0 0 0 1px rgba(255,255,255,.06);
+  border-radius:18px;
+  box-shadow:0 0 40px rgba(255,0,0,.35);
 }
 
 h1{
-  margin:0;
   text-align:center;
   color:var(--red);
   letter-spacing:1px;
+  margin-bottom:6px;
 }
 
-.subtitle{
+p{
   text-align:center;
-  font-size:.8rem;
+  font-size:.85rem;
   color:var(--muted);
-  margin-bottom:22px;
+  margin-bottom:20px;
 }
 
 label{
@@ -66,25 +64,16 @@ input,textarea{
   border-radius:10px;
   padding:14px;
   color:var(--text);
-  margin:6px 0 14px;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
-}
-
-input:focus,textarea:focus{
+  margin:6px 0 16px;
   outline:none;
-  box-shadow:0 0 0 2px var(--red);
 }
 
-textarea{
-  min-height:90px;
-  resize:vertical;
-}
+textarea{min-height:90px}
 
 .actions{
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:12px;
-  margin-bottom:16px;
 }
 
 button{
@@ -93,145 +82,137 @@ button{
   padding:14px;
   font-weight:700;
   cursor:pointer;
-  transition:transform .15s, box-shadow .2s;
 }
 
-button:hover{transform:translateY(-1px)}
-
 .encrypt{
-  background:linear-gradient(135deg,var(--red),#c0042d);
-  color:#fff;
-  box-shadow:0 0 18px rgba(255,7,58,.4);
+  background:linear-gradient(135deg,#ff073a,#b8002a);
+  color:white;
 }
 
 .decrypt{
-  background:linear-gradient(135deg,var(--green),#00c834);
-  color:#000;
-  box-shadow:0 0 18px rgba(0,255,65,.4);
+  background:linear-gradient(135deg,#00ff41,#00b82f);
+  color:black;
 }
 
 .output{
-  background:var(--panel);
-  border-radius:10px;
+  margin-top:18px;
+  background:#020202;
+  border-radius:12px;
   padding:14px;
-  font-family:ui-monospace,monospace;
-  font-size:.8rem;
+  font-family:monospace;
   word-break:break-all;
-  min-height:48px;
+  min-height:50px;
 }
 
 .meta{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  margin-top:10px;
   font-size:.75rem;
-  color:var(--muted);
+  margin-top:8px;
 }
 
 .copy{
-  display:none;
-  border:1px solid var(--green);
   background:none;
+  border:1px solid var(--green);
   color:var(--green);
   padding:6px 10px;
   border-radius:8px;
   cursor:pointer;
+  display:none;
 }
 </style>
 </head>
-
 <body>
+
 <div class="card">
-  <h1>CRYPTO-GATE</h1>
-  <div class="subtitle">private · minimal · secure</div>
+  <h1>Crypto‑Gate</h1>
+  <p>Private · Secure · Minimal</p>
 
   <label>Passwort</label>
   <input id="pw" type="password">
 
   <label>Text</label>
-  <textarea id="tx"></textarea>
+  <textarea id="txt"></textarea>
 
   <div class="actions">
-    <button class="encrypt" onclick="run('encrypt')">Verschlüsseln</button>
-    <button class="decrypt" onclick="run('decrypt')">Entschlüsseln</button>
+    <button class="encrypt" id="encBtn">Verschlüsseln</button>
+    <button class="decrypt" id="decBtn">Entschlüsseln</button>
   </div>
 
   <div class="output" id="out">Bereit.</div>
 
   <div class="meta">
     <span id="info"></span>
-    <button class="copy" id="copy" onclick="copy()">Kopieren</button>
+    <button class="copy" id="copyBtn">Kopieren</button>
   </div>
 </div>
 
 <script>
-const SERVER = "https://unwintry-strapping-winford.ngrok-free.dev";
-let FULL = "";
+const API = "https://unwintry-strapping-winford.ngrok-free.dev";
 
-function nonce(){
-  return crypto.getRandomValues(new Uint8Array(16))
-    .reduce((s,b)=>s+b.toString(16).padStart(2,'0'),'');
+const pw  = document.getElementById("pw");
+const txt = document.getElementById("txt");
+const out = document.getElementById("out");
+const info = document.getElementById("info");
+const copyBtn = document.getElementById("copyBtn");
+
+let fullResult = "";
+
+function short(s){
+  return s.length > 60 ? s.slice(0,30)+"…"+s.slice(-20) : s;
 }
 
-function shorten(s){
-  return s.length < 64 ? s : s.slice(0,26)+"…"+s.slice(-26);
-}
-
-async function run(mode){
-  const password = pw.value.trim();
-  const data = tx.value.trim();
-
-  if(!password || !data){
-    out.textContent = "Passwort und Text eingeben.";
+async function cryptoRun(mode){
+  if(!pw.value || !txt.value){
+    out.textContent = "Passwort und Text fehlen.";
     return;
   }
 
-  out.textContent = "Verarbeite…";
-  info.textContent = "";
-  copy.style.display="none";
+  out.textContent = "Arbeite…";
+  copyBtn.style.display="none";
 
   try{
-    const chRes = await fetch(SERVER+"/api/challenge",{method:"POST"});
+    const chRes = await fetch(API+"/api/challenge",{method:"POST"});
     const ch = await chRes.json();
 
-    const res = await fetch(SERVER+"/api/"+mode,{
+    const res = await fetch(API+"/api/"+mode,{
       method:"POST",
-      headers:{'Content-Type':'application/json'},
+      headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
+        password: pw.value,
+        data: txt.value,
         challenge: ch.challenge,
-        signature: ch.signature,
-        ts: ch.ts,
-        nonce: nonce(),
-        password,
-        data
+        nonce: ch.nonce,
+        signature: ch.signature
       })
     });
 
-    const j = await res.json();
-    FULL = j.result || "";
+    const data = await res.json();
 
-    if(!FULL) throw "no result";
+    if(!data.result){
+      out.textContent = data.error || "Fehler";
+      return;
+    }
 
-    out.textContent = shorten(FULL);
-    info.textContent = FULL.length + " Zeichen";
-    copy.style.display="inline-block";
+    fullResult = data.result;
+    out.textContent = short(fullResult);
+    info.textContent = fullResult.length + " Zeichen";
+    copyBtn.style.display="inline-block";
 
   }catch{
-    out.textContent = "Fehler: Server nicht erreichbar.";
+    out.textContent = "Server nicht erreichbar.";
   }
 }
 
-async function copy(){
-  await navigator.clipboard.writeText(FULL);
-  info.textContent = "Kopiert";
-}
+document.getElementById("encBtn").onclick = ()=>cryptoRun("encrypt");
+document.getElementById("decBtn").onclick = ()=>cryptoRun("decrypt");
 
-const pw = document.getElementById("pw");
-const tx = document.getElementById("tx");
-const out = document.getElementById("out");
-const info = document.getElementById("info");
-const copy = document.getElementById("copy");
+copyBtn.onclick = ()=>{
+  navigator.clipboard.writeText(fullResult);
+  info.textContent = "Kopiert";
+};
 </script>
+
 </body>
 </html>
