@@ -3,124 +3,156 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Crypto-Gate</title>
+<title>Crypto-Gate Client</title>
 <style>
+/* Farbschema: Schwarz / Rot / Grün */
 :root {
   --bg: #000000;
-  --panel: #0d0d00;
   --card: #0a0a0a;
+  --panel: #111111;
   --accent: #FF073A;
   --accent-dark: #C0042D;
   --accent2: #00FF41;
   --accent2-dark: #00C834;
   --text: #e5e7eb;
   --muted: #888;
-  --border: rgba(255,255,255,0.08);
-  --glow-red: rgba(255,7,58,0.4);
-  --glow-green: rgba(0,255,65,0.4);
+  --glow-red: rgba(255, 7, 58, 0.4);
+  --glow-green: rgba(0, 255, 65, 0.4);
 }
-*{box-sizing:border-box;}
-body{
+
+body {
   margin:0;
   min-height:100vh;
-  font-family:'Inter',sans-serif;
   display:flex;
   justify-content:center;
   align-items:center;
-  background: radial-gradient(circle at center,#1a0000 0%,#000 80%);
-  color:var(--text);
+  font-family:'Inter', sans-serif;
+  background: radial-gradient(circle at center, #1a0000 0%, var(--bg) 80%);
+  color: var(--text);
 }
-.wrapper{
-  width:100%;
+
+.container {
   max-width:500px;
+  width:90%;
   padding:20px;
 }
-.card{
-  background:var(--card);
+
+.card {
+  background: var(--card);
   border-radius:16px;
-  padding:28px;
-  box-shadow:0 0 50px var(--glow-red),0 10px 20px rgba(0,0,0,.8),inset 0 0 0 1px var(--border);
+  padding:30px;
+  box-shadow:0 0 50px var(--glow-red),0 10px 20px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(255,255,255,0.08);
 }
-header{text-align:center;margin-bottom:20px;}
-header h1{margin:0;font-size:1.8rem;font-weight:700;color:var(--accent);}
-header p{margin:4px 0 0;color:var(--muted);font-size:.85rem;}
-label{display:block;margin-bottom:6px;color:var(--muted);font-size:.8rem;}
-input,textarea{
+
+header {
+  text-align:center;
+  margin-bottom:20px;
+}
+
+header h1 {
+  margin:0;
+  color: var(--accent);
+  font-size:1.8rem;
+}
+
+header p {
+  color: var(--muted);
+  font-size:0.85rem;
+}
+
+label {
+  display:block;
+  margin-bottom:6px;
+  font-size:0.8rem;
+  color: var(--muted);
+}
+
+input, textarea {
   width:100%;
-  background:var(--panel);
-  border:none;
-  border-radius:10px;
   padding:12px;
   margin-bottom:16px;
-  color:var(--text);
-  font-size:.95rem;
-  outline:none;
-  box-shadow: inset 0 0 0 1px var(--border);
-  transition: box-shadow .3s;
-}
-input:focus,textarea:focus{box-shadow:0 0 0 2px var(--accent),inset 0 0 0 1px var(--accent);}
-textarea{resize:vertical;min-height:90px;}
-.actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
-button{
   border:none;
-  border-radius:12px;
-  padding:14px;
-  font-weight:700;
-  cursor:pointer;
-  font-size:.9rem;
-  transition:transform .15s, box-shadow .3s;
+  border-radius:10px;
+  background: var(--panel);
+  color: var(--text);
+  font-size:0.95rem;
+  outline:none;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+  transition:box-shadow 0.3s ease;
 }
-button:hover{transform:translateY(-2px);}
-.encrypt{
-  background:linear-gradient(135deg,var(--accent),var(--accent-dark));
+
+input:focus, textarea:focus {
+  box-shadow: 0 0 0 2px var(--accent), inset 0 0 0 1px var(--accent);
+}
+
+textarea { resize: vertical; min-height:90px; }
+
+.actions {
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:10px;
+  margin-bottom:20px;
+}
+
+button {
+  padding:12px;
+  font-weight:700;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  transition:transform 0.15s ease, box-shadow 0.3s ease;
+}
+
+button:hover { transform:translateY(-2px); }
+
+.encrypt {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color:white;
   box-shadow:0 10px 25px var(--glow-red);
 }
-.encrypt:hover{box-shadow:0 15px 35px var(--glow-red),0 0 10px var(--accent);}
-.decrypt{
-  background:linear-gradient(135deg,var(--accent2),var(--accent2-dark));
-  color:var(--card);
+
+.decrypt {
+  background: linear-gradient(135deg, var(--accent2), var(--accent2-dark));
+  color: var(--card);
   box-shadow:0 10px 25px var(--glow-green);
 }
-.decrypt:hover{box-shadow:0 15px 35px var(--glow-green),0 0 10px var(--accent2);}
-.output{
-  background:var(--panel);
+
+.reset {
+  background: #333;
+  color: var(--text);
+  font-size:0.8rem;
+}
+
+.output {
+  background: var(--panel);
   border-radius:12px;
-  padding:14px;
-  font-family:monospace;
-  font-size:.85rem;
-  word-break:break-all;
-  box-shadow:inset 0 0 0 1px var(--border);
-  color:#00FFFF;
+  padding:12px;
+  font-family: monospace;
+  font-size:0.85rem;
+  word-break: break-all;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+  margin-bottom:10px;
+  min-height:50px;
+  color: #00FFFF;
 }
-.meta{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-top:10px;
-  font-size:.75rem;
-  color:var(--muted);
-}
-.copy{
-  background:transparent;
-  border:1px solid var(--accent2);
-  color:var(--accent2);
+
+.copy {
+  background: transparent;
+  border: 1px solid var(--accent2);
+  color: var(--accent2);
   padding:6px 10px;
   border-radius:8px;
-  font-size:.75rem;
+  font-size:0.75rem;
   cursor:pointer;
-  display:flex;
-  align-items:center;
-  transition:background-color .2s,box-shadow .2s;
 }
-.copy:hover{
-  background:rgba(0,255,65,0.1);
-  box-shadow:0 0 8px rgba(0,255,65,0.4);
+.copy:hover {
+  background: rgba(0,255,65,0.1);
+  box-shadow: 0 0 8px rgba(0,255,65,0.4);
 }
 </style>
 </head>
 <body>
-<div class="wrapper">
+<div class="container">
   <div class="card">
     <header>
       <h1>Crypto-Gate</h1>
@@ -136,80 +168,86 @@ button:hover{transform:translateY(-2px);}
     <div class="actions">
       <button class="encrypt" onclick="run('encrypt')">Verschlüsseln</button>
       <button class="decrypt" onclick="run('decrypt')">Entschlüsseln</button>
+      <button class="reset" onclick="resetServer()">Reset BadClients</button>
     </div>
 
     <div class="output" id="preview">Bereit.</div>
-
-    <div class="meta">
-      <span id="info"></span>
-      <button class="copy" onclick="copyText()" id="copyBtn" style="display:none">Kopieren</button>
-    </div>
+    <button class="copy" onclick="copy()" id="copyBtn" style="display:none">Kopieren</button>
   </div>
 </div>
 
 <script>
-const API_BASE = "https://unwintry-strapping-winford.ngrok-free.dev";
+const SERVER = "https://unwintry-strapping-winford.ngrok-free.dev";
 
 let full = "";
 
-async function run(mode){
-  const pw = document.getElementById("password").value.trim();
-  const tx = document.getElementById("text").value.trim();
-  const preview = document.getElementById("preview");
-  const info = document.getElementById("info");
-  const copyBtn = document.getElementById("copyBtn");
-
-  if(!pw||!tx){
-    preview.textContent="Bitte Passwort und Text eingeben.";
-    info.textContent="";
-    copyBtn.style.display="none";
-    return;
+async function fetchWithRetry(url, options, retries=3){
+  for(let i=0;i<retries;i++){
+    try{
+      const res = await fetch(url, options);
+      if(!res.ok) throw new Error(`HTTP error ${res.status}`);
+      return res;
+    }catch(e){
+      if(i<retries-1) await new Promise(r=>setTimeout(r,500*(i+1)));
+      else throw e;
+    }
   }
+}
 
-  preview.textContent="Verarbeite…";
-  info.textContent="";
-  copyBtn.style.display="none";
+function shorten(s){
+  if(s.length<48) return s;
+  return s.slice(0,22)+"…"+s.slice(-22);
+}
+
+async function run(mode){
+  const pw = password.value.trim();
+  const tx = text.value.trim();
+  if(!pw||!tx){ preview.textContent="Passwort und Text eingeben."; copyBtn.style.display="none"; return; }
+
+  preview.textContent="Verarbeite…"; copyBtn.style.display="none";
 
   try{
-    // Challenge + Nonce vom Server
-    const chalResp = await fetch(API_BASE+"/api/challenge",{method:"POST"});
-    const chalData = await chalResp.json();
-    const challenge = chalData.challenge;
-    const nonce = chalData.nonce;
+    const chalResp = await fetchWithRetry(SERVER+"/api/challenge",{method:"POST"});
+    const chalJson = await chalResp.json();
+    const challenge = chalJson.challenge;
 
-    // Encrypt/Decrypt Request
-    const resp = await fetch(API_BASE+"/api/"+mode,{
+    const mainResp = await fetchWithRetry(SERVER+"/api/"+mode,{
       method:"POST",
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({password:pw,data:tx,challenge,nonce})
+      body:JSON.stringify({ password:pw, data:tx, challenge:challenge, nonce:crypto.randomUUID(), signature:"" })
     });
 
-    const data = await resp.json();
-    full = data.result||"";
-
-    if(full){
-      preview.textContent = shorten(full);
-      info.textContent = full.length + " Zeichen";
-      copyBtn.style.display="inline-block";
-    }else{
-      preview.textContent = data.error || "Fehler: Ergebnis fehlt.";
-      info.textContent="";
-    }
+    const resJson = await mainResp.json();
+    full = resJson.result || "";
+    if(full){ preview.textContent=shorten(full); copyBtn.style.display="inline-block"; }
+    else preview.textContent=resJson.error || "Fehler: Ergebnis fehlt";
 
   }catch(e){
     console.error(e);
-    preview.textContent="Fehler: Server nicht erreichbar.";
-    info.textContent="";
+    preview.textContent="Fehler: Server nicht erreichbar";
   }
 }
 
-function shorten(s){return s.length<48?s:s.slice(0,22)+"…"+s.slice(-22);}
-function copyText(){
+function copy(){
   if(full){
     navigator.clipboard.writeText(full);
-    document.getElementById("info").textContent="Kopiert!";
   }
 }
+
+async function resetServer(){
+  try{
+    const resp = await fetch(SERVER+"/internal/reset",{method:"POST"});
+    const json = await resp.json();
+    alert("Server Reset: "+json.message);
+  }catch(e){
+    alert("Fehler beim Reset");
+  }
+}
+
+const password = document.getElementById("password");
+const text = document.getElementById("text");
+const preview = document.getElementById("preview");
+const copyBtn = document.getElementById("copyBtn");
 </script>
 </body>
 </html>
