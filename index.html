@@ -3,149 +3,97 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cyber Encryptor</title>
+<title>Crypto-Gate Frontend</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-  body {
-    margin: 0;
-    font-family: 'Press Start 2P', cursive;
-    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-    color: #f0f0f0;
-  }
-  .container {
-    max-width: 600px;
-    margin: 3rem auto;
-    padding: 2rem;
-    background: rgba(0,0,0,0.6);
-    border-radius: 16px;
-    box-shadow: 0 0 20px rgba(255,0,255,0.3);
-  }
-  h1 { text-align: center; color: #ff4fa3; }
-  label { display: block; margin-top: 1rem; color: #fff; }
-  input, textarea {
-    width: 100%;
-    padding: 0.5rem;
-    margin-top: 0.25rem;
-    border-radius: 8px;
-    border: none;
-    font-family: monospace;
-    font-size: 1rem;
-  }
-  button {
-    margin-top: 1rem;
-    width: 48%;
-    padding: 0.5rem;
-    font-weight: bold;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    background: #ff4fa3;
-    color: #fff;
-    transition: 0.3s;
-  }
-  button:hover { background: #ff77c3; }
-  .output {
-    margin-top: 1rem;
-    padding: 1rem;
-    background: rgba(255,255,255,0.1);
-    border-radius: 12px;
-    position: relative;
-    word-break: break-all;
-  }
-  .copy-btn {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    background: #ff4fa3;
-    color: #fff;
-    border: none;
-    padding: 0.25rem 0.5rem;
-    border-radius: 8px;
-    cursor: pointer;
-  }
-  .copy-btn:hover { background: #ff77c3; }
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, #1e1e2f, #2d2d44);
+  color: #f0f0f0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 100vh;
+  padding: 20px;
+}
+h1 { color: #00ffff; }
+input, textarea, button {
+  width: 100%;
+  max-width: 500px;
+  margin: 5px 0;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+}
+button {
+  background: #00ffff;
+  color: #1e1e2f;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s;
+}
+button:hover { background: #00d6d6; }
+textarea { height: 150px; resize: none; background: #2d2d44; color: #f0f0f0; }
+.result { word-break: break-all; margin-top: 10px; }
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>Cyber Encryptor</h1>
-  <label>Text zum Verschlüsseln</label>
-  <textarea id="inputText" rows="5"></textarea>
 
-  <label>Passwort</label>
-  <input type="password" id="password">
+<h1>Crypto-Gate Frontend</h1>
 
-  <div style="display:flex; justify-content:space-between;">
-    <button id="encryptBtn">Verschlüsseln</button>
-    <button id="decryptBtn">Entschlüsseln</button>
-  </div>
+<input type="password" id="password" placeholder="Passwort">
+<textarea id="data" placeholder="Hier den Text eingeben"></textarea>
+<button id="encryptBtn">Verschlüsseln</button>
+<button id="decryptBtn">Entschlüsseln</button>
 
-  <div class="output" id="output">
-    <button class="copy-btn" id="copyBtn">Kopieren</button>
-    <pre id="result"></pre>
-  </div>
-</div>
+<div class="result" id="result"></div>
 
 <script>
-const SERVER_URL = "https://unwintry-strapping-winford.ngrok-free.dev";
+const SERVER = "https://unwintry-strapping-winford.ngrok-free.dev";
 
 async function getChallenge() {
-  const res = await fetch(SERVER_URL + "/api/challenge", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: "{}"
-  });
-  if(!res.ok) throw new Error("Challenge fehlgeschlagen");
-  const data = await res.json();
+  const resp = await fetch(`${SERVER}/api/challenge`, { method: 'POST' });
+  if (!resp.ok) throw new Error('Challenge fehlgeschlagen');
+  const data = await resp.json();
   return data.challenge;
 }
 
 function generateNonce() {
-  return crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
+  return crypto.getRandomValues(new Uint8Array(16)).reduce((s,b)=>s+b.toString(16).padStart(2,'0'),'');
 }
 
-function hmacSha256(data, key) {
-  const enc = new TextEncoder();
-  return crypto.subtle.importKey(
-    "raw",
-    enc.encode(key),
-    {name:"HMAC", hash:"SHA-256"},
-    false,
-    ["sign"]
-  ).then(k => crypto.subtle.sign("HMAC", k, enc.encode(data)))
-  .then(sig => Array.from(new Uint8Array(sig)).map(b=>b.toString(16).padStart(2,"0")).join(""));
-}
-
-async function cryptoAction(mode) {
+async function sendCrypto(mode) {
   try {
+    const password = document.getElementById('password').value;
+    const data = document.getElementById('data').value;
     const challenge = await getChallenge();
     const nonce = generateNonce();
-    const password = document.getElementById("password").value;
-    const data = document.getElementById("inputText").value;
 
-    const signature = await hmacSha256(JSON.stringify({challenge, nonce, mode}), "frontenddummy");
+    // Sign payload: {challenge, nonce, mode}
+    const payloadStr = JSON.stringify({challenge, nonce, mode});
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey('raw', enc.encode(challenge), {name:'HMAC', hash:'SHA-256'}, false, ['sign']);
+    const sigBuf = await crypto.subtle.sign('HMAC', key, enc.encode(payloadStr));
+    const signature = Array.from(new Uint8Array(sigBuf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 
-    const res = await fetch(SERVER_URL + (mode==="encrypt"?"/api/encrypt":"/api/decrypt"), {
-      method:"POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({challenge, nonce, password, data, signature})
+    const resp = await fetch(`${SERVER}/api/${mode}`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ challenge, nonce, password, data, signature })
     });
 
-    if(!res.ok) throw new Error("Server Error");
-
-    const result = await res.json();
-    document.getElementById("result").textContent = result.result;
+    if (!resp.ok) throw new Error('Fehler bei der Serveranfrage');
+    const json = await resp.json();
+    document.getElementById('result').innerText = json.result;
   } catch(e) {
-    document.getElementById("result").textContent = "Fehler: " + e.message;
+    document.getElementById('result').innerText = "Fehler: " + e.message;
   }
 }
 
-document.getElementById("encryptBtn").addEventListener("click",()=>cryptoAction("encrypt"));
-document.getElementById("decryptBtn").addEventListener("click",()=>cryptoAction("decrypt"));
-document.getElementById("copyBtn").addEventListener("click",()=>{
-  const r = document.getElementById("result");
-  navigator.clipboard.writeText(r.textContent);
-});
+document.getElementById('encryptBtn').addEventListener('click', ()=>sendCrypto('encrypt'));
+document.getElementById('decryptBtn').addEventListener('click', ()=>sendCrypto('decrypt'));
 </script>
+
 </body>
 </html>
