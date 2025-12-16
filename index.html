@@ -1,134 +1,237 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <title>Crypto‑Gate</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body {
-      background:#0f172a;
-      color:#e5e7eb;
-      font-family:system-ui, sans-serif;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      min-height:100vh;
-      margin:0;
-    }
-    .box {
-      background:#020617;
-      padding:24px;
-      border-radius:10px;
-      width:100%;
-      max-width:420px;
-      box-shadow:0 0 30px rgba(0,0,0,.6);
-    }
-    h1 {
-      text-align:center;
-      margin-bottom:20px;
-    }
-    label {
-      font-size:.9rem;
-      opacity:.8;
-    }
-    input, textarea {
-      width:100%;
-      background:#020617;
-      border:1px solid #334155;
-      color:#e5e7eb;
-      border-radius:6px;
-      padding:10px;
-      margin-top:6px;
-      margin-bottom:14px;
-      resize:vertical;
-    }
-    button {
-      width:100%;
-      padding:12px;
-      border:none;
-      border-radius:6px;
-      font-weight:700;
-      cursor:pointer;
-      margin-top:8px;
-    }
-    .enc { background:#2563eb; color:white; }
-    .dec { background:#16a34a; color:white; }
-    .out {
-      margin-top:16px;
-      padding:10px;
-      background:#020617;
-      border:1px solid #334155;
-      border-radius:6px;
-      word-break:break-all;
-      font-family:monospace;
-      min-height:40px;
-    }
-  </style>
-</head>
-<body>
+<meta charset="UTF-8">
+<title>Crypto-Gate</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-<div class="box">
-  <h1>Crypto‑Gate</h1>
+<style>
+:root{
+  --bg:#000;
+  --card:#0a0a0a;
+  --panel:#0f0f0f;
+  --red:#ff073a;
+  --green:#00ff41;
+  --text:#e5e7eb;
+  --muted:#777;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  min-height:100vh;
+  background:radial-gradient(circle,#1a0000 0%,#000 80%);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-family:Inter,system-ui,sans-serif;
+  color:var(--text);
+}
+
+.card{
+  width:100%;
+  max-width:460px;
+  background:var(--card);
+  padding:28px;
+  border-radius:16px;
+  box-shadow:
+    0 0 40px rgba(255,7,58,.35),
+    inset 0 0 0 1px rgba(255,255,255,.06);
+}
+
+h1{
+  margin:0;
+  text-align:center;
+  color:var(--red);
+  letter-spacing:1px;
+}
+
+.subtitle{
+  text-align:center;
+  font-size:.8rem;
+  color:var(--muted);
+  margin-bottom:22px;
+}
+
+label{
+  font-size:.75rem;
+  color:var(--muted);
+}
+
+input,textarea{
+  width:100%;
+  background:var(--panel);
+  border:none;
+  border-radius:10px;
+  padding:14px;
+  color:var(--text);
+  margin:6px 0 14px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+}
+
+input:focus,textarea:focus{
+  outline:none;
+  box-shadow:0 0 0 2px var(--red);
+}
+
+textarea{
+  min-height:90px;
+  resize:vertical;
+}
+
+.actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-bottom:16px;
+}
+
+button{
+  border:none;
+  border-radius:12px;
+  padding:14px;
+  font-weight:700;
+  cursor:pointer;
+  transition:transform .15s, box-shadow .2s;
+}
+
+button:hover{transform:translateY(-1px)}
+
+.encrypt{
+  background:linear-gradient(135deg,var(--red),#c0042d);
+  color:#fff;
+  box-shadow:0 0 18px rgba(255,7,58,.4);
+}
+
+.decrypt{
+  background:linear-gradient(135deg,var(--green),#00c834);
+  color:#000;
+  box-shadow:0 0 18px rgba(0,255,65,.4);
+}
+
+.output{
+  background:var(--panel);
+  border-radius:10px;
+  padding:14px;
+  font-family:ui-monospace,monospace;
+  font-size:.8rem;
+  word-break:break-all;
+  min-height:48px;
+}
+
+.meta{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-top:10px;
+  font-size:.75rem;
+  color:var(--muted);
+}
+
+.copy{
+  display:none;
+  border:1px solid var(--green);
+  background:none;
+  color:var(--green);
+  padding:6px 10px;
+  border-radius:8px;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+<div class="card">
+  <h1>CRYPTO-GATE</h1>
+  <div class="subtitle">private · minimal · secure</div>
 
   <label>Passwort</label>
-  <input id="password" type="password" placeholder="Passwort">
+  <input id="pw" type="password">
 
   <label>Text</label>
-  <textarea id="text" rows="5" placeholder="Klartext oder verschlüsselter Text"></textarea>
+  <textarea id="tx"></textarea>
 
-  <button class="enc" onclick="run('encrypt')">Verschlüsseln</button>
-  <button class="dec" onclick="run('decrypt')">Entschlüsseln</button>
+  <div class="actions">
+    <button class="encrypt" onclick="run('encrypt')">Verschlüsseln</button>
+    <button class="decrypt" onclick="run('decrypt')">Entschlüsseln</button>
+  </div>
 
-  <div class="out" id="result">Bereit.</div>
+  <div class="output" id="out">Bereit.</div>
+
+  <div class="meta">
+    <span id="info"></span>
+    <button class="copy" id="copy" onclick="copy()">Kopieren</button>
+  </div>
 </div>
 
 <script>
 const SERVER = "https://unwintry-strapping-winford.ngrok-free.dev";
+let FULL = "";
 
-const passwordEl = document.getElementById('password');
-const textEl = document.getElementById('text');
-const resultEl = document.getElementById('result');
+function nonce(){
+  return crypto.getRandomValues(new Uint8Array(16))
+    .reduce((s,b)=>s+b.toString(16).padStart(2,'0'),'');
+}
 
-async function run(mode) {
-  const password = passwordEl.value.trim();
-  const text = textEl.value.trim();
+function shorten(s){
+  return s.length < 64 ? s : s.slice(0,26)+"…"+s.slice(-26);
+}
 
-  if (!password || !text) {
-    resultEl.textContent = "Passwort und Text erforderlich.";
+async function run(mode){
+  const password = pw.value.trim();
+  const data = tx.value.trim();
+
+  if(!password || !data){
+    out.textContent = "Passwort und Text eingeben.";
     return;
   }
 
-  resultEl.textContent = "Arbeite…";
+  out.textContent = "Verarbeite…";
+  info.textContent = "";
+  copy.style.display="none";
 
-  try {
-    const challengeResp = await fetch(SERVER + "/api/challenge", {
-      method: "POST"
-    });
+  try{
+    const chRes = await fetch(SERVER+"/api/challenge",{method:"POST"});
+    const ch = await chRes.json();
 
-    if (!challengeResp.ok) throw new Error("Challenge fehlgeschlagen");
-
-    const { challenge } = await challengeResp.json();
-
-    const cryptoResp = await fetch(SERVER + "/api/" + mode, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const res = await fetch(SERVER+"/api/"+mode,{
+      method:"POST",
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        challenge: ch.challenge,
+        signature: ch.signature,
+        ts: ch.ts,
+        nonce: nonce(),
         password,
-        data: text,
-        challenge
+        data
       })
     });
 
-    if (!cryptoResp.ok) throw new Error("Crypto‑Request fehlgeschlagen");
+    const j = await res.json();
+    FULL = j.result || "";
 
-    const result = await cryptoResp.json();
-    resultEl.textContent = result.result || "Kein Ergebnis erhalten";
+    if(!FULL) throw "no result";
 
-  } catch (err) {
-    resultEl.textContent = "FEHLER: " + err.message;
+    out.textContent = shorten(FULL);
+    info.textContent = FULL.length + " Zeichen";
+    copy.style.display="inline-block";
+
+  }catch{
+    out.textContent = "Fehler: Server nicht erreichbar.";
   }
 }
-</script>
 
+async function copy(){
+  await navigator.clipboard.writeText(FULL);
+  info.textContent = "Kopiert";
+}
+
+const pw = document.getElementById("pw");
+const tx = document.getElementById("tx");
+const out = document.getElementById("out");
+const info = document.getElementById("info");
+const copy = document.getElementById("copy");
+</script>
 </body>
 </html>
