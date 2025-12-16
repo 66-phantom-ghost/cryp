@@ -20,7 +20,7 @@
 <label>Passwort:</label>
 <input type="password" id="password" placeholder="Passwort eingeben">
 
-<label>Klartext / zu verschlüsselnde Nachricht:</label>
+<label>Klartext / Nachricht:</label>
 <textarea id="plaintext"></textarea>
 
 <label>Verschlüsselter String:</label>
@@ -37,26 +37,21 @@ let currentChallenge = '';
 async function getChallenge() {
   try {
     const res = await fetch(`${SERVER}/api/challenge`, { method: 'POST' });
-    const data = await res.json();
+    // Prüfen, ob JSON zurückkommt
+    const text = await res.text();
+    if (!text) {
+      throw new Error('Leere Antwort vom Server');
+    }
+    const data = JSON.parse(text);
     if (data.challenge) {
       currentChallenge = data.challenge;
       console.log('Challenge erhalten:', currentChallenge);
     } else {
-      alert('Fehler beim Abrufen der Challenge: ' + JSON.stringify(data));
+      throw new Error('Ungültige Challenge: ' + JSON.stringify(data));
     }
   } catch(err) {
     alert('Challenge Fehler: ' + err);
   }
-}
-
-// HMAC für Signatur
-async function hmacSHA256(data, key) {
-  const enc = new TextEncoder();
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw', enc.encode(key), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-  );
-  const sig = await crypto.subtle.sign('HMAC', cryptoKey, enc.encode(data));
-  return Array.from(new Uint8Array(sig)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
 // Zufalls-Nonce
@@ -66,14 +61,17 @@ function randomNonce(length=16){
   return Array.from(arr).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
+// Dummy-HMAC (Front für Demo, Signatur wird serverseitig geprüft)
+function fakeHMAC() {
+  return '0000000000000000000000000000000000000000000000000000000000000000';
+}
+
 async function sendCrypto(mode){
   if(!currentChallenge) await getChallenge();
   const password = document.getElementById('password').value;
   const data = mode==='encrypt' ? document.getElementById('plaintext').value : document.getElementById('ciphertext').value;
   const nonce = randomNonce();
 
-  const payloadHash = await hmacSHA256(JSON.stringify({ challenge: currentChallenge, nonce, mode }), 'SIGNING_PLACEHOLDER');
-  
   try {
     const res = await fetch(`${SERVER}/api/${mode}`, {
       method: 'POST',
@@ -83,10 +81,14 @@ async function sendCrypto(mode){
         nonce,
         password,
         data,
-        signature: payloadHash
+        signature: fakeHMAC()
       })
     });
-    const json = await res.json();
+
+    const text = await res.text();
+    if (!text) throw new Error('Leere Antwort vom Server');
+    const json = JSON.parse(text);
+
     if(json.result){
       if(mode==='encrypt') document.getElementById('ciphertext').value = json.result;
       if(mode==='decrypt') document.getElementById('plaintext').value = json.result;
@@ -97,14 +99,14 @@ async function sendCrypto(mode){
     alert('Request Fehler: ' + err);
   }
 
-  // Neue Challenge nach jeder Aktion
+  // Neue Challenge holen
   await getChallenge();
 }
 
 document.getElementById('encryptBtn').addEventListener('click', ()=>sendCrypto('encrypt'));
 document.getElementById('decryptBtn').addEventListener('click', ()=>sendCrypto('decrypt'));
 
-// Challenge direkt beim Laden holen
+// Direkt beim Laden
 getChallenge();
 </script>
 </body>
