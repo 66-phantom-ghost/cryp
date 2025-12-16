@@ -1,109 +1,125 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<title>Crypto-Gate</title>
-<style>
-  body { 
-    font-family: Arial, sans-serif; 
-    background: #0f0f1a; 
-    color: #e0e0ff; 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    justify-content: center; 
-    min-height: 100vh; 
-  }
-  input, textarea, button { 
-    margin: 5px; 
-    padding: 10px; 
-    width: 300px; 
-    font-size: 1rem; 
-    border-radius: 5px; 
-    border: none; 
-  }
-  button { 
-    cursor: pointer; 
-    background: #4b6ef6; 
-    color: #fff; 
-    font-weight: bold; 
-  }
-  button:hover { 
-    background: #3a5acc; 
-  }
-  textarea { 
-    height: 100px; 
-    resize: none; 
-  }
-  h1 { 
-    color: #4b6ef6; 
-  }
-</style>
+  <meta charset="UTF-8">
+  <title>Crypto‑Gate</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      background:#0f172a;
+      color:#e5e7eb;
+      font-family:system-ui, sans-serif;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height:100vh;
+      margin:0;
+    }
+    .box {
+      background:#020617;
+      padding:24px;
+      border-radius:10px;
+      width:100%;
+      max-width:420px;
+      box-shadow:0 0 30px rgba(0,0,0,.6);
+    }
+    h1 {
+      text-align:center;
+      margin-bottom:20px;
+    }
+    label {
+      font-size:.9rem;
+      opacity:.8;
+    }
+    input, textarea {
+      width:100%;
+      background:#020617;
+      border:1px solid #334155;
+      color:#e5e7eb;
+      border-radius:6px;
+      padding:10px;
+      margin-top:6px;
+      margin-bottom:14px;
+      resize:vertical;
+    }
+    button {
+      width:100%;
+      padding:12px;
+      border:none;
+      border-radius:6px;
+      font-weight:700;
+      cursor:pointer;
+      margin-top:8px;
+    }
+    .enc { background:#2563eb; color:white; }
+    .dec { background:#16a34a; color:white; }
+    .out {
+      margin-top:16px;
+      padding:10px;
+      background:#020617;
+      border:1px solid #334155;
+      border-radius:6px;
+      word-break:break-all;
+      font-family:monospace;
+      min-height:40px;
+    }
+  </style>
 </head>
 <body>
-<h1>Crypto-Gate</h1>
 
-<input id="password" type="password" placeholder="Passwort">
-<textarea id="data" placeholder="Zu verschlüsselnder Text"></textarea>
-<textarea id="result" placeholder="Ergebnis" readonly></textarea>
+<div class="box">
+  <h1>Crypto‑Gate</h1>
 
-<button id="encryptBtn">Verschlüsseln</button>
-<button id="decryptBtn">Entschlüsseln</button>
+  <label>Server URL</label>
+  <input id="server" value="http://localhost:3000">
+
+  <label>Passwort</label>
+  <input id="password" type="password">
+
+  <label>Text</label>
+  <textarea id="text" rows="5"></textarea>
+
+  <button class="enc" onclick="run('encrypt')">Verschlüsseln</button>
+  <button class="dec" onclick="run('decrypt')">Entschlüsseln</button>
+
+  <div class="out" id="result">Bereit.</div>
+</div>
 
 <script>
-const SERVER = "https://unwintry-strapping-winford.ngrok-free.dev";
+async function run(mode) {
+  const server = document.getElementById('server').value.trim();
+  const password = passwordEl.value.trim();
+  const text = textEl.value.trim();
+  result.textContent = 'Arbeite…';
 
-async function getChallenge() {
   try {
-    const res = await fetch(`${SERVER}/api/challenge`, { method: 'POST' });
-    if (!res.ok) throw new Error('Challenge konnte nicht abgerufen werden');
-    const data = await res.json();
-    return data.challenge;
-  } catch (err) {
-    alert("Challenge Fehler: " + err.message);
-    throw err;
+    const c = await fetch(server + '/api/challenge', { method:'POST' })
+      .then(r => r.json());
+
+    const res = await fetch(server + '/api/' + mode, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        password,
+        data:text,
+        challenge:c.challenge
+      })
+    }).then(r => r.json());
+
+    if (res.result) {
+      result.textContent = res.result;
+    } else {
+      result.textContent = JSON.stringify(res);
+    }
+  } catch(e) {
+    result.textContent = 'Fehler: ' + e.message;
   }
 }
 
-function generateNonce() {
-  return Array.from(crypto.getRandomValues(new Uint8Array(16)))
-              .map(b => b.toString(16).padStart(2,'0')).join('');
-}
-
-async function hmacSha256(msg, key) {
-  const cryptoKey = await crypto.subtle.importKey(
-    "raw", key, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
-  );
-  const sig = await crypto.subtle.sign("HMAC", cryptoKey, new TextEncoder().encode(msg));
-  return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2,'0')).join('');
-}
-
-async function doCrypto(mode) {
-  try {
-    const challenge = await getChallenge();
-    const password = document.getElementById("password").value;
-    const data = document.getElementById("data").value;
-    if (!password || !data) { alert("Bitte Passwort und Text eingeben!"); return; }
-
-    const nonce = generateNonce();
-    const payloadHash = await hmacSha256(JSON.stringify({challenge, nonce, mode}), new TextEncoder().encode("clientplaceholder"));
-
-    const res = await fetch(`${SERVER}/api/${mode}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ challenge, nonce, password, data, signature: payloadHash })
-    });
-
-    if (!res.ok) throw new Error("Serverantwort ungültig");
-    const json = await res.json();
-    document.getElementById("result").value = json.result;
-  } catch (err) {
-    alert(`${mode.charAt(0).toUpperCase()+mode.slice(1)} Fehler: ${err.message}`);
-  }
-}
-
-document.getElementById("encryptBtn").onclick = () => doCrypto('encrypt');
-document.getElementById("decryptBtn").onclick = () => doCrypto('decrypt');
+const passwordEl = document.getElementById('password');
+const textEl = document.getElementById('text');
+const result = document.getElementById('result');
 </script>
+
 </body>
 </html>
