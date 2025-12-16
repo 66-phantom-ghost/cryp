@@ -2,58 +2,110 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Crypto-Gate Demo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crypto-Gate</title>
 <style>
-body { font-family:sans-serif; background:#1e1e2f; color:#eee; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; margin:0; }
-h1 { color:#00ffdd; text-shadow:0 0 8px #00ffdd; }
-textarea { width:80%; height:100px; margin:10px 0; padding:10px; border-radius:8px; border:none; resize:none; font-size:16px; background:#2a2a40; color:#fff; }
-input, button { margin:5px; padding:10px; border-radius:8px; border:none; font-size:16px; }
-button { background:#00ffdd; color:#1e1e2f; cursor:pointer; transition:0.2s; }
-button:hover { background:#00ffaa; }
-#result { width:80%; height:100px; margin-top:10px; padding:10px; border-radius:8px; background:#2a2a40; color:#fff; font-size:16px; overflow-wrap: break-word; }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #1a1a1a, #0d0d0d);
+    color: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 50px;
+    min-height: 100vh;
+  }
+  .container {
+    background: #111;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 0 20px rgba(255,0,0,0.3);
+    width: 100%;
+    max-width: 500px;
+  }
+  h1 { text-align: center; color: #ff4d4d; }
+  label { display: block; margin-top: 15px; font-weight: bold; }
+  input, textarea, button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border-radius: 8px;
+    border: none;
+    outline: none;
+    font-size: 1rem;
+  }
+  input, textarea { background: #222; color: #f0f0f0; }
+  button {
+    background: #ff4d4d;
+    color: #fff;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: 0.2s;
+  }
+  button:hover { background: #ff1a1a; }
+  #result { height: 100px; resize: none; }
+  .copy-btn {
+    background: #444;
+    margin-top: 5px;
+  }
 </style>
 </head>
 <body>
+<div class="container">
+  <h1>Crypto-Gate</h1>
 
-<h1>Crypto-Gate Demo</h1>
+  <label for="password">Passwort</label>
+  <input type="password" id="password" placeholder="Dein Passwort">
 
-<textarea id="plaintext" placeholder="Hier Text eingeben..."></textarea>
-<input type="password" id="password" placeholder="Passwort / gehashtes Passwort">
-<br>
-<button onclick="encrypt()">🔒 Verschlüsseln</button>
-<button onclick="decrypt()">🔓 Entschlüsseln</button>
+  <label for="plaintext">Klartext</label>
+  <textarea id="plaintext" placeholder="Text zum Verschlüsseln"></textarea>
 
-<textarea id="result" placeholder="Hier erscheint der verschlüsselte / entschlüsselte String" readonly></textarea>
+  <button id="encryptBtn">Verschlüsseln</button>
+  <button id="decryptBtn">Entschlüsseln</button>
+
+  <label for="result">Ergebnis</label>
+  <textarea id="result" readonly placeholder="Hier erscheint der verschlüsselte oder entschlüsselte Text"></textarea>
+  <button class="copy-btn" id="copyBtn">Kopieren</button>
+</div>
 
 <script>
-const SERVER_URL = 'https://unwintry-strapping-winford.ngrok-free.dev'; // dein Server
+const SERVER_URL = 'https://unwintry-strapping-winford.ngrok-free.dev';
 
-async function getChallenge() {
-  const res = await fetch(`${SERVER_URL}/api/challenge`, { method:'POST' });
-  if (!res.ok) throw new Error('Challenge fehlgeschlagen');
-  return await res.json().then(j => j.challenge);
+function generateNonce() {
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)))
+              .map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-function randomNonce() {
-  const arr = new Uint8Array(16);
-  crypto.getRandomValues(arr);
-  return Array.from(arr).map(b=>b.toString(16).padStart(2,'0')).join('');
+async function getChallenge() {
+  const res = await fetch(`${SERVER_URL}/api/challenge`, { method: 'POST' });
+  if (!res.ok) throw new Error('Challenge fehlgeschlagen');
+  const json = await res.json();
+  return json.challenge;
 }
 
 async function sendCrypto(mode) {
+  const password = document.getElementById('password').value;
+  const data     = document.getElementById('plaintext').value;
+  if (!password || !data) return alert('Bitte Passwort und Text eingeben');
+
   try {
     const challenge = await getChallenge();
-    const nonce = randomNonce();
-    const password = document.getElementById('password').value;
-    const data = document.getElementById('plaintext').value;
+    const nonce = generateNonce();
+    const payloadHash = new Uint8Array(
+      new TextEncoder().encode(JSON.stringify({ challenge, nonce, mode }))
+    );
 
-    // Signatur nur Dummy, server prüft Challenge/Nonce/Password
-    const signature = '00'.repeat(32);
+    // HMAC-Signatur clientseitig
+    const key = await crypto.subtle.importKey(
+      'raw', new TextEncoder().encode(challenge), {name:'HMAC','hash':'SHA-256'}, false, ['sign']
+    );
+    const sigBuffer = await crypto.subtle.sign('HMAC', key, payloadHash);
+    const signature = Array.from(new Uint8Array(sigBuffer)).map(b => b.toString(16).padStart(2,'0')).join('');
 
     const res = await fetch(`${SERVER_URL}/api/${mode}`, {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({challenge, nonce, password, data, signature})
+      body: JSON.stringify({ challenge, nonce, password, data, signature })
     });
 
     if (!res.ok) {
@@ -63,13 +115,19 @@ async function sendCrypto(mode) {
 
     const json = await res.json();
     document.getElementById('result').value = json.result;
-  } catch(err) {
-    document.getElementById('result').value = 'Fehler: ' + err.message;
+  } catch(e) {
+    document.getElementById('result').value = 'Fehler: ' + e.message;
   }
 }
 
-function encrypt() { sendCrypto('encrypt'); }
-function decrypt() { sendCrypto('decrypt'); }
+document.getElementById('encryptBtn').addEventListener('click', ()=>sendCrypto('encrypt'));
+document.getElementById('decryptBtn').addEventListener('click', ()=>sendCrypto('decrypt'));
+document.getElementById('copyBtn').addEventListener('click', ()=>{
+  const r = document.getElementById('result');
+  r.select();
+  document.execCommand('copy');
+  alert('Ergebnis kopiert');
+});
 </script>
 </body>
 </html>
