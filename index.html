@@ -2,138 +2,71 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Mini Messenger Pro</title>
+<title>Mini Messenger Secure</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 <style>
   body {
     margin: 0;
     font-family: Arial, sans-serif;
     background-color: #121212;
     color: #f0f0f0;
-    height: 100vh;
     display: flex;
-    overflow: hidden;
+    flex-direction: column;
+    height: 100vh;
   }
 
-  /* Kontakte-Liste */
+  #header { background-color: #1e1e1e; padding: 10px; text-align: center; border-bottom: 2px solid #ff3b3b;}
+  #container { flex:1; display:flex; overflow:hidden; }
+
   #contacts {
-    width: 200px;
+    width: 150px;
     background-color: #1e1e1e;
     border-right: 2px solid #ff3b3b;
     padding: 10px;
     box-sizing: border-box;
-    overflow-y: auto;
+    overflow-y:auto;
   }
 
-  #contacts h3 {
-    color: #ff3b3b;
-    margin-top: 0;
-  }
+  #contacts h3 { color: #ff3b3b; margin-top:0;}
+  .contact { padding:5px; margin:5px 0; background-color:#2a2a2a; border-radius:4px; cursor:pointer;}
+  .contact:hover { background-color:#ff3b3b; color:#121212; }
 
-  .contact {
-    padding: 8px;
-    margin: 5px 0;
-    background-color: #2a2a2a;
-    cursor: pointer;
-    border-radius: 4px;
-  }
+  #chat-area { flex:1; display:flex; flex-direction:column; }
+  #chat-header { background-color:#1e1e1e; padding:10px; border-bottom:2px solid #ff3b3b; font-weight:bold; }
+  #chat-messages { flex:1; padding:10px; overflow-y:auto; }
+  .message { padding:6px 10px; margin:5px 0; border-radius:10px; max-width:70%; word-wrap: break-word;}
+  .sent { background-color:#ff3b3b; color:#fff; align-self:flex-end; }
+  .received { background-color:#2a2a2a; color:#f0f0f0; align-self:flex-start; }
+  #chat-input { display:flex; padding:10px; border-top:2px solid #ff3b3b; background-color:#1e1e1e; }
+  #chat-input input { flex:1; padding:8px; border-radius:4px; border:none; background-color:#2a2a2a; color:#f0f0f0; }
+  #chat-input button { margin-left:5px; padding:8px 12px; border-radius:4px; border:none; background-color:#ff3b3b; color:#fff; cursor:pointer; }
+  #chat-input button:hover { background-color:#ff1a1a; }
 
-  .contact:hover {
-    background-color: #ff3b3b;
-    color: #121212;
-  }
-
-  /* Chat-Bereich */
-  #chat-area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-  }
-
-  #chat-header {
-    background-color: #1e1e1e;
-    border-bottom: 2px solid #ff3b3b;
-    padding: 10px;
-    font-weight: bold;
-  }
-
-  #chat-messages {
-    flex: 1;
-    padding: 10px;
-    overflow-y: auto;
-    background-color: #121212;
-  }
-
-  .message {
-    padding: 6px 10px;
-    margin: 5px 0;
-    border-radius: 10px;
-    max-width: 70%;
-    word-wrap: break-word;
-  }
-
-  .sent {
-    background-color: #ff3b3b;
-    color: #fff;
-    align-self: flex-end;
-  }
-
-  .received {
-    background-color: #2a2a2a;
-    color: #f0f0f0;
-    align-self: flex-start;
-  }
-
-  #chat-input {
-    display: flex;
-    padding: 10px;
-    background-color: #1e1e1e;
-    border-top: 2px solid #ff3b3b;
-  }
-
-  #chat-input input {
-    flex: 1;
-    padding: 8px;
-    border-radius: 4px;
-    border: none;
-    background-color: #2a2a2a;
-    color: #f0f0f0;
-  }
-
-  #chat-input button {
-    margin-left: 5px;
-    padding: 8px 12px;
-    border-radius: 4px;
-    border: none;
-    background-color: #ff3b3b;
-    color: #fff;
-    cursor: pointer;
-  }
-
-  #chat-input button:hover {
-    background-color: #ff1a1a;
-  }
-
-  /* System Nachrichten */
-  .system {
-    font-style: italic;
-    color: #ff3b3b;
-    text-align: center;
+  @media(max-width:600px){
+    #container { flex-direction:column; }
+    #contacts { width:100%; height:100px; display:flex; overflow-x:auto; overflow-y:hidden; }
+    .contact { flex:0 0 auto; margin-right:5px; }
   }
 </style>
 </head>
 <body>
 
-<div id="contacts">
-  <h3>Kontakte</h3>
-  <!-- Dynamisch gefüllte Kontakte -->
-</div>
+<div id="header"><strong>Mini Messenger Secure</strong></div>
 
-<div id="chat-area">
-  <div id="chat-header">Kein Kontakt ausgewählt</div>
-  <div id="chat-messages"></div>
-  <div id="chat-input">
-    <input type="text" id="message" placeholder="Nachricht eingeben...">
-    <button id="sendBtn">Senden</button>
+<div id="container">
+  <div id="contacts">
+    <h3>Kontakte</h3>
+    <input type="text" id="newContact" placeholder="Kontakt hinzufügen">
+    <button id="addContactBtn">+</button>
+  </div>
+
+  <div id="chat-area">
+    <div id="chat-header">Kein Kontakt ausgewählt</div>
+    <div id="chat-messages"></div>
+    <div id="chat-input">
+      <input type="text" id="message" placeholder="Nachricht eingeben...">
+      <button id="sendBtn">Senden</button>
+    </div>
   </div>
 </div>
 
@@ -142,64 +75,78 @@ const SERVER_URL = 'wss://unwintry-strapping-winford.ngrok-free.dev';
 let ws;
 let userId = prompt("Gib deine User-ID ein:", "user" + Math.floor(Math.random()*1000));
 let currentContact = null;
-const contacts = {}; // contactId -> Nachrichten-Array
+let contacts = {}; // contactId -> Array von Nachrichten
+const SECRET_KEY = "supergeheimeschluessel"; // für Demo AES; später Public/Private Key
 
-function logMessage(contact, text, type='received') {
-  if(!contacts[contact]) contacts[contact] = [];
-  contacts[contact].push({text, type});
-  if(contact === currentContact) renderChat(contact);
-}
+// Verbindung zum Server
+ws = new WebSocket(SERVER_URL);
 
-function renderChat(contact) {
-  currentContact = contact;
-  document.getElementById('chat-header').textContent = contact;
-  const chatDiv = document.getElementById('chat-messages');
-  chatDiv.innerHTML = '';
-  contacts[contact].forEach(msg => {
-    const div = document.createElement('div');
-    div.textContent = msg.text;
-    div.className = 'message ' + msg.type;
-    chatDiv.appendChild(div);
-  });
-  chatDiv.scrollTop = chatDiv.scrollHeight;
-}
+ws.onopen = () => { ws.send(JSON.stringify({type:'register', userId})); console.log("Verbunden als", userId);}
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  if(data.from && data.text){
+    addContact(data.from);
+    // entschlüsseln
+    const decrypted = CryptoJS.AES.decrypt(data.text, SECRET_KEY).toString(CryptoJS.enc.Utf8);
+    logMessage(data.from, decrypted, 'received');
+  }
+};
 
-function addContact(contact) {
+// Kontakt hinzufügen
+function addContact(contact){
   if(document.getElementById(contact)) return;
   const contactsDiv = document.getElementById('contacts');
   const div = document.createElement('div');
   div.textContent = contact;
-  div.className = 'contact';
+  div.className='contact';
   div.id = contact;
-  div.onclick = () => renderChat(contact);
+  div.onclick = ()=>renderChat(contact);
   contactsDiv.appendChild(div);
+  contacts[contact] = contacts[contact]||[];
 }
 
-function sendMessage() {
-  const text = document.getElementById('message').value.trim();
-  if(!currentContact) return alert("Bitte wähle einen Kontakt aus!");
+// Chat rendern
+function renderChat(contact){
+  currentContact=contact;
+  document.getElementById('chat-header').textContent = contact;
+  const chatDiv = document.getElementById('chat-messages');
+  chatDiv.innerHTML='';
+  contacts[contact].forEach(msg=>{
+    const div=document.createElement('div');
+    div.textContent=msg.text;
+    div.className='message '+msg.type;
+    chatDiv.appendChild(div);
+  });
+  chatDiv.scrollTop=chatDiv.scrollHeight;
+}
+
+// Nachricht senden
+document.getElementById('sendBtn').onclick=()=>{
+  const text=document.getElementById('message').value.trim();
+  if(!currentContact){ alert("Bitte wähle einen Kontakt aus!"); return; }
   if(!text) return;
-  ws.send(JSON.stringify({type:'message', to: currentContact, text}));
+
+  // verschlüsseln
+  const encrypted = CryptoJS.AES.encrypt(text, SECRET_KEY).toString();
+  ws.send(JSON.stringify({type:'message', to: currentContact, text: encrypted}));
   logMessage(currentContact, text, 'sent');
-  document.getElementById('message').value = '';
+  document.getElementById('message').value='';
 }
 
-document.getElementById('sendBtn').onclick = sendMessage;
+// lokal speichern und rendern
+function logMessage(contact, text, type){
+  if(!contacts[contact]) contacts[contact]=[];
+  contacts[contact].push({text,type});
+  if(contact===currentContact) renderChat(contact);
+}
 
-ws = new WebSocket(SERVER_URL);
-
-ws.onopen = () => {
-  ws.send(JSON.stringify({type:'register', userId}));
-  console.log("Verbunden als", userId);
-};
-
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  if(data.from) {
-    addContact(data.from);
-    logMessage(data.from, data.text, 'received');
-  }
-};
+// Kontakt hinzufügen Button
+document.getElementById('addContactBtn').onclick = ()=>{
+  const name = document.getElementById('newContact').value.trim();
+  if(!name) return alert("Kontaktname eingeben!");
+  addContact(name);
+  document.getElementById('newContact').value='';
+}
 </script>
 
 </body>
