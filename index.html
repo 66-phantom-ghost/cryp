@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ShadowFX v1.5</title>
+<title>ShadowFX v1.6</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#202c33">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
@@ -42,7 +42,7 @@ body, html{margin:0;padding:0;height:100%;font-family:'Segoe UI',sans-serif;back
 </head>
 <body>
 
-<div id="appVersion">ShadowFX v1.5</div>
+<div id="appVersion">ShadowFX v1.6</div>
 
 <div id="loginContainer">
 <div class="login-card">
@@ -211,9 +211,9 @@ msgInput.onkeypress=(e)=>e.key==='Enter'&&sendBtn.click();
 
 // Service Worker für PWA
 if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('/sw.js')
-    .then(()=>console.log('Service Worker registriert'))
-    .catch(err=>console.log('Service Worker Fehler:',err));
+    navigator.serviceWorker.register("/cryp/sw.js")
+    .then(()=>console.log("Service Worker registriert"))
+    .catch(err=>console.log("Service Worker Fehler:",err));
 }
 </script>
 </body>
