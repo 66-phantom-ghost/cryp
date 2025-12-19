@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WhatsApp Clone v1.3</title>
+<title>WhatsApp Clone v1.4</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <style>
@@ -47,7 +47,7 @@ body, html{margin:0;padding:0;height:100%;font-family:'Segoe UI',sans-serif;back
 </head>
 <body>
 
-<div id="appVersion">v1.3</div>
+<div id="appVersion">v1.4</div>
 
 <div id="loginContainer">
 <div class="login-card">
@@ -110,16 +110,17 @@ function addMessage(data,type='system',isFile=false){
         let contentHtml='';
         if(isFile){
             if(data.type.startsWith('image/')) contentHtml=`<img src="${data.data}" class="chat-image" onclick="window.open('${data.data}')">`;
-            else contentHtml=`<a href="${data.data}" download="${data.name}" class="file-box"><i data-lucide="file"></i><span style="font-size:12px;overflow:hidden;text-overflow:ellipsis;">${data.name}</span></a>`;
+            else contentHtml=`<a href="${data.data}" download="${data.name}" class="file-box"><i data-lucide="file"></i><span>${data.name}</span></a>`;
         } else contentHtml=`<div class="text-content">${data}</div>`;
-        const check=type==='sent'?'<i data-lucide="check-check" size="14" style="color: var(--wa-accent)"></i>':'';
+        const check = type==='sent'?'<i data-lucide="check-check" size="14" style="color: var(--wa-accent)"></i>':'';
         div.innerHTML=`${contentHtml}<div class="msg-meta">${time} ${check}</div>`;
     }
     msgList.appendChild(div);
     lucide.createIcons();
-    document.getElementById('chat').scrollTo({top:document.getElementById('chat').scrollHeight,behavior:'smooth'});
+    document.getElementById('chat').scrollTo({ top: document.getElementById('chat').scrollHeight, behavior: 'smooth' });
 }
 
+// Login
 document.getElementById('loginBtn').onclick=()=>{
     userId=document.getElementById('userIdInput').value.trim();
     targetId=document.getElementById('targetIdInput').value.trim();
@@ -139,14 +140,20 @@ document.getElementById('loginBtn').onclick=()=>{
             const decrypted=CryptoJS.AES.decrypt(msg.text,SECRET_KEY).toString(CryptoJS.enc.Utf8);
             try{
                 const parsed=JSON.parse(decrypted);
-                if(parsed.isFile) addMessage(parsed.fileData,'received',true);
-                else addMessage(parsed.text,'received');
-            }catch(e){addMessage(decrypted,'received');}
+                if(parsed.isFile && parsed.fileData){
+                    addMessage(parsed.fileData,'received',true);
+                } else if(parsed.text){
+                    addMessage(parsed.text,'received');
+                }
+            }catch(e){
+                addMessage(decrypted,'received');
+            }
             console.log("Ciphertext empfangen:",msg.text);
         }
     };
 };
 
+// Senden
 function sendData(payload){
     if(!ws||ws.readyState!==1)return;
     const encrypted=CryptoJS.AES.encrypt(JSON.stringify(payload),SECRET_KEY).toString();
@@ -162,6 +169,7 @@ sendBtn.onclick=()=>{
     msgInput.value='';
 };
 
+// Datei Upload
 fileInput.onchange=(e)=>{
     const file=e.target.files[0];
     if(!file)return;
