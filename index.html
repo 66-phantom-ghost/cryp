@@ -2,119 +2,203 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Mini Messenger</title>
+<title>Mini Messenger Pro</title>
 <style>
   body {
+    margin: 0;
+    font-family: Arial, sans-serif;
     background-color: #121212;
     color: #f0f0f0;
-    font-family: Arial, sans-serif;
-    padding: 20px;
-    max-width: 600px;
-    margin: auto;
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
   }
 
-  h2 { color: #ff3b3b; }
-
-  #chat {
-    border: 1px solid #ff3b3b;
-    padding: 10px;
-    height: 300px;
-    overflow-y: auto;
-    margin-bottom: 10px;
+  /* Kontakte-Liste */
+  #contacts {
+    width: 200px;
     background-color: #1e1e1e;
+    border-right: 2px solid #ff3b3b;
+    padding: 10px;
+    box-sizing: border-box;
+    overflow-y: auto;
   }
 
-  input, button {
+  #contacts h3 {
+    color: #ff3b3b;
+    margin-top: 0;
+  }
+
+  .contact {
     padding: 8px;
-    margin: 2px;
+    margin: 5px 0;
+    background-color: #2a2a2a;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+
+  .contact:hover {
+    background-color: #ff3b3b;
+    color: #121212;
+  }
+
+  /* Chat-Bereich */
+  #chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #chat-header {
+    background-color: #1e1e1e;
+    border-bottom: 2px solid #ff3b3b;
+    padding: 10px;
+    font-weight: bold;
+  }
+
+  #chat-messages {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+    background-color: #121212;
+  }
+
+  .message {
+    padding: 6px 10px;
+    margin: 5px 0;
+    border-radius: 10px;
+    max-width: 70%;
+    word-wrap: break-word;
+  }
+
+  .sent {
+    background-color: #ff3b3b;
+    color: #fff;
+    align-self: flex-end;
+  }
+
+  .received {
+    background-color: #2a2a2a;
+    color: #f0f0f0;
+    align-self: flex-start;
+  }
+
+  #chat-input {
+    display: flex;
+    padding: 10px;
+    background-color: #1e1e1e;
+    border-top: 2px solid #ff3b3b;
+  }
+
+  #chat-input input {
+    flex: 1;
+    padding: 8px;
     border-radius: 4px;
     border: none;
-  }
-
-  input {
-    background-color: #1e1e1e;
+    background-color: #2a2a2a;
     color: #f0f0f0;
   }
 
-  button {
+  #chat-input button {
+    margin-left: 5px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: none;
     background-color: #ff3b3b;
     color: #fff;
     cursor: pointer;
   }
 
-  button:hover {
+  #chat-input button:hover {
     background-color: #ff1a1a;
   }
 
+  /* System Nachrichten */
   .system {
-    color: #ff3b3b;
     font-style: italic;
+    color: #ff3b3b;
+    text-align: center;
   }
 </style>
 </head>
 <body>
 
-<h2>Mini Messenger</h2>
-
-<div>
-  <label>Deine User-ID: <input type="text" id="userId" placeholder="z.B. user1"></label>
-  <button id="connectBtn">Verbinden</button>
+<div id="contacts">
+  <h3>Kontakte</h3>
+  <!-- Dynamisch gefüllte Kontakte -->
 </div>
 
-<div id="chat"></div>
-
-<div>
-  <input type="text" id="toId" placeholder="Empfänger-ID">
-  <input type="text" id="message" placeholder="Nachricht">
-  <button id="sendBtn">Senden</button>
+<div id="chat-area">
+  <div id="chat-header">Kein Kontakt ausgewählt</div>
+  <div id="chat-messages"></div>
+  <div id="chat-input">
+    <input type="text" id="message" placeholder="Nachricht eingeben...">
+    <button id="sendBtn">Senden</button>
+  </div>
 </div>
 
 <script>
 const SERVER_URL = 'wss://unwintry-strapping-winford.ngrok-free.dev';
 let ws;
+let userId = prompt("Gib deine User-ID ein:", "user" + Math.floor(Math.random()*1000));
+let currentContact = null;
+const contacts = {}; // contactId -> Nachrichten-Array
 
-function logMessage(sender, text, isSystem=false) {
-  const chat = document.getElementById('chat');
-  const msgDiv = document.createElement('div');
-  msgDiv.textContent = `${sender}: ${text}`;
-  if(isSystem) msgDiv.classList.add('system');
-  chat.appendChild(msgDiv);
-  chat.scrollTop = chat.scrollHeight;
+function logMessage(contact, text, type='received') {
+  if(!contacts[contact]) contacts[contact] = [];
+  contacts[contact].push({text, type});
+  if(contact === currentContact) renderChat(contact);
 }
 
-document.getElementById('connectBtn').onclick = () => {
-  const userId = document.getElementById('userId').value.trim();
-  if(!userId) return logMessage('System', 'Bitte gib deine User-ID ein!', true);
+function renderChat(contact) {
+  currentContact = contact;
+  document.getElementById('chat-header').textContent = contact;
+  const chatDiv = document.getElementById('chat-messages');
+  chatDiv.innerHTML = '';
+  contacts[contact].forEach(msg => {
+    const div = document.createElement('div');
+    div.textContent = msg.text;
+    div.className = 'message ' + msg.type;
+    chatDiv.appendChild(div);
+  });
+  chatDiv.scrollTop = chatDiv.scrollHeight;
+}
 
-  ws = new WebSocket(SERVER_URL);
+function addContact(contact) {
+  if(document.getElementById(contact)) return;
+  const contactsDiv = document.getElementById('contacts');
+  const div = document.createElement('div');
+  div.textContent = contact;
+  div.className = 'contact';
+  div.id = contact;
+  div.onclick = () => renderChat(contact);
+  contactsDiv.appendChild(div);
+}
 
-  ws.onopen = () => {
-    logMessage('System', 'Verbunden!', true);
-    ws.send(JSON.stringify({ type: 'register', userId }));
-  };
+function sendMessage() {
+  const text = document.getElementById('message').value.trim();
+  if(!currentContact) return alert("Bitte wähle einen Kontakt aus!");
+  if(!text) return;
+  ws.send(JSON.stringify({type:'message', to: currentContact, text}));
+  logMessage(currentContact, text, 'sent');
+  document.getElementById('message').value = '';
+}
 
-  ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    logMessage(data.from || 'Server', data.text);
-  };
+document.getElementById('sendBtn').onclick = sendMessage;
 
-  ws.onclose = () => logMessage('System', 'Verbindung geschlossen', true);
+ws = new WebSocket(SERVER_URL);
+
+ws.onopen = () => {
+  ws.send(JSON.stringify({type:'register', userId}));
+  console.log("Verbunden als", userId);
 };
 
-document.getElementById('sendBtn').onclick = () => {
-  const to = document.getElementById('toId').value.trim();
-  const text = document.getElementById('message').value.trim();
-
-  if(!ws || ws.readyState !== WebSocket.OPEN) {
-    return logMessage('System', 'Bitte zuerst verbinden!', true);
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  if(data.from) {
+    addContact(data.from);
+    logMessage(data.from, data.text, 'received');
   }
-
-  if(!to) return logMessage('System', 'Empfänger-ID fehlt!', true);
-  if(!text) return logMessage('System', 'Nachricht darf nicht leer sein!', true);
-
-  ws.send(JSON.stringify({ type: 'message', to, text }));
-  logMessage('Du → ' + to, text);
-  document.getElementById('message').value = '';
 };
 </script>
 
