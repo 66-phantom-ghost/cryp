@@ -70,6 +70,7 @@
 </div>
 
 <script>
+const SERVER_URL = 'wss://unwintry-strapping-winford.ngrok-free.dev';
 let ws;
 
 function logMessage(sender, text, isSystem=false) {
@@ -85,7 +86,7 @@ document.getElementById('connectBtn').onclick = () => {
   const userId = document.getElementById('userId').value.trim();
   if(!userId) return logMessage('System', 'Bitte gib deine User-ID ein!', true);
 
-  ws = new WebSocket('wss://unwintry-strapping-winford.ngrok-free.dev');
+  ws = new WebSocket(SERVER_URL);
 
   ws.onopen = () => {
     logMessage('System', 'Verbunden!', true);
