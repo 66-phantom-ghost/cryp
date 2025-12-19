@@ -1,4 +1,4 @@
-l{
+{
   "name": "ShadowFX",
   "short_name": "ShadowFX",
   "start_url": "https://66-phantom-ghost.github.io/cryp/index.html",
@@ -7,5 +7,17 @@ l{
   "theme_color": "#202c33",
   "description": "End-to-End verschlüsselter Messenger",
   "orientation": "portrait",
-  "categories": ["social", "communication"]
+  "categories": ["social", "communication"],
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/66-phantom-ghost/cryp/3a019b6512b8eecd72f1d7a338d3d75f954d6155/IMG_20251220_004903.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://raw.githubusercontent.com/66-phantom-ghost/cryp/3a019b6512b8eecd72f1d7a338d3d75f954d6155/IMG_20251220_004903.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
 }
