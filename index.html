@@ -3,129 +3,191 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mini Messenger v1.1</title>
+<title>WhatsApp Web Clone v1.2</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
 <style>
-body, html {margin:0; padding:0; height:100%; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color:#121c21; display:flex; flex-direction:column;}
+:root {
+    --wa-bg: #0b141a;
+    --wa-header: #202c33;
+    --wa-panel: #111b21;
+    --wa-input: #2a3942;
+    --wa-text: #e9edef;
+    --wa-text-muted: #8696a0;
+    --wa-green: #00a884;
+    --wa-bubble-out: #005c4b;
+    --wa-bubble-in: #202c33;
+    --wa-accent: #53bdeb;
+}
+
+body, html {margin:0; padding:0; height:100%; font-family: 'Segoe UI', Helvetica, sans-serif; background-color: var(--wa-bg); color: var(--wa-text); overflow: hidden;}
 
 /* Versionsanzeige */
-#appVersion {width:100%; text-align:center; padding:5px; background-color:#075e54; color:white; font-size:14px; font-weight:bold;}
+#appVersion {width:100%; text-align:center; padding:5px; background-color: var(--wa-header); color:white; font-size:14px; font-weight:bold;}
 
 /* Login */
-#loginContainer {flex:1; display:flex; justify-content:center; align-items:center; flex-direction:column; padding:20px;}
-#loginContainer input {width:100%; max-width:350px; padding:12px; margin:8px 0; border-radius:25px; border:none; background-color:#2a3b3a; color:#e5ddd5; font-size:16px;}
-#loginContainer button {width:100%; max-width:350px; padding:12px; margin-top:10px; border-radius:25px; border:none; background-color:#25d366; color:white; font-size:16px; cursor:pointer;}
-#loginContainer button:hover {background-color:#128c7e;}
+#loginContainer {display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background-color: var(--wa-panel); padding:20px;}
+.login-card {background: var(--wa-header); padding:40px; border-radius:8px; box-shadow: 0 17px 50px rgba(0,0,0,.19); width:100%; max-width:400px; text-align:center;}
+#loginContainer input {width:100%; padding:12px; margin:10px 0; border-radius:8px; border:none; background-color: var(--wa-input); color: var(--wa-text); font-size:16px; outline:none;}
+#loginContainer button {width:100%; padding:12px; margin-top:20px; border-radius:8px; border:none; background-color: var(--wa-green); color:#000; font-weight:600; cursor:pointer;}
 
 /* Chat */
-#chatContainer {display:none; flex:1; flex-direction:column; background-color:#121c21;}
-#chatHeader {background-color:#075e54; color:#fff; padding:15px; font-weight:bold; font-size:18px;}
-#chat {flex:1; padding:10px; overflow-y:auto; display:flex; flex-direction:column;}
-.message {max-width:70%; padding:10px 14px; margin:4px 0; border-radius:20px; word-wrap:break-word; font-size:15px;}
-.sent {background-color:#25d366; color:#fff; align-self:flex-end; border-bottom-right-radius:0;}
-.received {background-color:#2a3b3a; color:#e5ddd5; align-self:flex-start; border-bottom-left-radius:0;}
-.system {text-align:center; font-style:italic; color:#b0baba;}
-#inputArea {display:flex; padding:10px; background-color:#2a3b3a;}
-#message {flex:1; padding:10px; border-radius:25px; border:none; font-size:16px; background-color:#121c21; color:#e5ddd5;}
-#sendBtn {margin-left:10px; padding:10px 18px; border-radius:25px; border:none; background-color:#25d366; color:white; font-size:16px; cursor:pointer;}
-#sendBtn:hover {background-color:#128c7e;}
-#disconnectBtn {margin-top:5px; padding:10px 18px; border-radius:25px; border:none; background-color:#ff3b3b; color:white; font-size:14px; cursor:pointer;}
-#disconnectBtn:hover {background-color:#cc0000;}
+#chatContainer {display:none; flex-direction:column; height:100vh;}
+#chatHeader {background-color: var(--wa-header); padding:10px 16px; display:flex; align-items:center; justify-content:space-between;}
+.user-info {display:flex; align-items:center; gap:12px;}
+.avatar {width:40px; height:40px; background:#6a7175; border-radius:50%; display:flex; align-items:center; justify-content:center;}
+#chat {flex:1; overflow-y:auto; display:flex; flex-direction:column; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-repeat: repeat; position:relative;}
+#messageList {z-index:2; display:flex; flex-direction:column; padding:20px; gap:4px;}
+.message {max-width:65%; padding:8px; border-radius:8px; font-size:14px; display:flex; flex-direction:column;}
+.sent {background-color: var(--wa-bubble-out); align-self:flex-end; border-top-right-radius:0;}
+.received {background-color: var(--wa-bubble-in); align-self:flex-start; border-top-left-radius:0;}
+.msg-meta {align-self:flex-end; font-size:10px; color: var(--wa-text-muted); margin-top:4px; display:flex; align-items:center; gap:3px;}
+.system-msg {align-self:center; background:#182229; color:#8696a0; font-size:12px; padding:4px 12px; border-radius:6px; margin:10px 0;}
+
+/* Input */
+#inputArea {background-color: var(--wa-header); padding:10px 16px; display:flex; align-items:center; gap:15px;}
+#message {flex:1; background: var(--wa-input); border:none; padding:10px; border-radius:8px; color: var(--wa-text); outline:none;}
+.icon-btn {color: var(--wa-text-muted); cursor:pointer;}
+#sendBtn {background:none; border:none; color: var(--wa-text-muted); cursor:pointer;}
+#sendBtn.active {color: var(--wa-green);}
+#fileInput {display:none;}
 </style>
 </head>
 <body>
 
-<div id="appVersion">v1.1</div>
+<div id="appVersion">v1.2</div>
 
 <div id="loginContainer">
-  <input type="text" id="userIdInput" placeholder="Deine User-ID">
-  <input type="text" id="targetIdInput" placeholder="Empfänger User-ID">
-  <button id="loginBtn">Login & Chat starten</button>
-  <div class="system" id="loginFeedback"></div>
+<div class="login-card">
+    <div style="color: var(--wa-green); margin-bottom:15px;"><i data-lucide="message-square" size="48"></i></div>
+    <h2>WhatsApp Messenger</h2>
+    <input type="text" id="userIdInput" placeholder="Dein Name">
+    <input type="text" id="targetIdInput" placeholder="Empfänger Name">
+    <button id="loginBtn">Chat Beitreten</button>
+    <p id="loginFeedback"></p>
+</div>
 </div>
 
 <div id="chatContainer">
-  <div id="chatHeader"></div>
-  <div id="chat"></div>
-  <div id="inputArea">
-    <input type="text" id="message" placeholder="Nachricht eingeben...">
-    <button id="sendBtn">Senden</button>
-  </div>
-  <button id="disconnectBtn">Verbindung trennen</button>
+<div id="chatHeader">
+    <div class="user-info">
+        <div class="avatar"><i data-lucide="user"></i></div>
+        <div>
+            <div id="targetNameDisplay" style="font-weight:500;">Chat</div>
+            <div style="font-size:12px; color: var(--wa-text-muted);">online</div>
+        </div>
+    </div>
+    <div style="display:flex; gap:20px;">
+        <i data-lucide="video" class="icon-btn"></i>
+        <i data-lucide="phone" class="icon-btn"></i>
+        <i data-lucide="more-vertical" class="icon-btn" onclick="location.reload()"></i>
+    </div>
+</div>
+
+<div id="chat">
+    <div id="messageList"></div>
+</div>
+
+<div id="inputArea">
+    <i data-lucide="smile" class="icon-btn"></i>
+    <label for="fileInput" class="icon-btn"><i data-lucide="paperclip"></i></label>
+    <input type="file" id="fileInput">
+    <input type="text" id="message" placeholder="Nachricht schreiben" autocomplete="off">
+    <button id="sendBtn"><i data-lucide="send"></i></button>
+</div>
 </div>
 
 <script>
 const SERVER_URL = 'wss://unwintry-strapping-winford.ngrok-free.dev';
-let ws;
-let userId = '';
-let targetId = '';
 const SECRET_KEY = "supergeheimeschluessel";
+let ws, userId='', targetId='';
 
-const loginContainer = document.getElementById('loginContainer');
-const chatContainer = document.getElementById('chatContainer');
-const chatDiv = document.getElementById('chat');
-const chatHeader = document.getElementById('chatHeader');
-const loginFeedback = document.getElementById('loginFeedback');
+lucide.createIcons();
 
-function logMessage(text, type='system'){
-  const div = document.createElement('div');
-  div.textContent = text;
-  div.className = 'message ' + type;
-  chatDiv.appendChild(div);
-  chatDiv.scrollTop = chatDiv.scrollHeight;
+const msgList = document.getElementById('messageList');
+const msgInput = document.getElementById('message');
+const fileInput = document.getElementById('fileInput');
+const sendBtn = document.getElementById('sendBtn');
+
+function addMessage(data, type='system', isFile=false){
+    const div = document.createElement('div');
+    const time = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    if(type==='system'){div.className='system-msg'; div.textContent=data;}
+    else{
+        div.className=`message ${type}`;
+        let contentHtml='';
+        if(isFile){
+            if(data.type.startsWith('image/')) contentHtml=`<img src="${data.data}" class="chat-image" onclick="window.open('${data.data}')">`;
+            else contentHtml=`<a href="${data.data}" download="${data.name}" class="file-box"><i data-lucide="file"></i><span style="font-size:12px;overflow:hidden;text-overflow:ellipsis;">${data.name}</span></a>`;
+        } else contentHtml=`<div class="text-content">${data}</div>`;
+        const check = type==='sent'?'<i data-lucide="check-check" size="14" style="color: var(--wa-accent)"></i>':'';
+        div.innerHTML = `${contentHtml}<div class="msg-meta">${time} ${check}</div>`;
+    }
+    msgList.appendChild(div);
+    lucide.createIcons();
+    document.getElementById('chat').scrollTo({top:document.getElementById('chat').scrollHeight, behavior:'smooth'});
 }
 
-document.getElementById('loginBtn').onclick = () => {
-  const uId = document.getElementById('userIdInput').value.trim();
-  const tId = document.getElementById('targetIdInput').value.trim();
-  if(!uId || !tId){
-    loginFeedback.textContent = "Bitte beide User-IDs eingeben!";
-    return;
-  }
-  userId = uId;
-  targetId = tId;
+// Login
+document.getElementById('loginBtn').onclick = ()=>{
+    userId = document.getElementById('userIdInput').value.trim();
+    targetId = document.getElementById('targetIdInput').value.trim();
+    if(!userId||!targetId){document.getElementById('loginFeedback').textContent='Bitte beide User-IDs eingeben!'; return;}
 
-  ws = new WebSocket(SERVER_URL);
-
-  ws.onopen = () => {
-    ws.send(JSON.stringify({type:'register', userId}));
-    loginContainer.style.display='none';
-    chatContainer.style.display='flex';
-    chatHeader.textContent = "Chat mit: " + targetId;
-    logMessage("Verbunden mit Server", 'system');
-  };
-
-  ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    if(data.from && data.text && data.from === targetId){
-      const decrypted = CryptoJS.AES.decrypt(data.text, SECRET_KEY).toString(CryptoJS.enc.Utf8);
-      logMessage(data.from + ": " + decrypted, 'received');
-      // Ciphertext im Debug
-      console.log("Ciphertext empfangen:", data.text);
-    }
-  };
-
-  ws.onclose = () => logMessage("Verbindung geschlossen", 'system');
+    ws = new WebSocket(SERVER_URL);
+    ws.onopen = ()=>{
+        ws.send(JSON.stringify({type:'register', userId}));
+        document.getElementById('loginContainer').style.display='none';
+        document.getElementById('chatContainer').style.display='flex';
+        document.getElementById('targetNameDisplay').textContent=targetId;
+        addMessage("Nachrichten sind Ende-zu-Ende verschlüsselt.");
+    };
+    ws.onmessage = (event)=>{
+        const msg = JSON.parse(event.data);
+        if(msg.from===targetId){
+            const decrypted = CryptoJS.AES.decrypt(msg.text, SECRET_KEY).toString(CryptoJS.enc.Utf8);
+            try{
+                const parsed = JSON.parse(decrypted);
+                if(parsed.isFile) addMessage(parsed.fileData,'received',true);
+                else addMessage(parsed.text,'received');
+            }catch(e){addMessage(decrypted,'received');}
+            console.log("Ciphertext empfangen:", msg.text);
+        }
+    };
 };
 
-document.getElementById('sendBtn').onclick = () => {
-  const text = document.getElementById('message').value.trim();
-  if(!text || !ws || ws.readyState!==WebSocket.OPEN) return;
-  const encrypted = CryptoJS.AES.encrypt(text, SECRET_KEY).toString();
-  ws.send(JSON.stringify({type:'message', to:targetId, text:encrypted}));
-  logMessage("Du: " + text, 'sent');
-  console.log("Ciphertext gesendet:", encrypted);
-  document.getElementById('message').value='';
+// Senden
+function sendData(payload){
+    if(!ws || ws.readyState!==1) return;
+    const encrypted = CryptoJS.AES.encrypt(JSON.stringify(payload), SECRET_KEY).toString();
+    ws.send(JSON.stringify({type:'message', to:targetId, text:encrypted}));
+    console.log("Ciphertext gesendet:", encrypted);
+}
+
+sendBtn.onclick = ()=>{
+    const text = msgInput.value.trim();
+    if(!text) return;
+    sendData({text, isFile:false});
+    addMessage(text,'sent');
+    msgInput.value='';
 };
 
-document.getElementById('disconnectBtn').onclick = () => {
-  if(ws) ws.close();
-  chatContainer.style.display='none';
-  loginContainer.style.display='flex';
-  chatDiv.innerHTML='';
-  logMessage("Verbindung beendet", 'system');
+// Datei Upload
+fileInput.onchange = (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (event)=>{
+        const fileData={name:file.name,type:file.type,data:event.target.result};
+        sendData({fileData,isFile:true});
+        addMessage(fileData,'sent',true);
+    };
+    reader.readAsDataURL(file);
+    fileInput.value='';
 };
+
+msgInput.oninput=()=>sendBtn.classList.toggle('active', msgInput.value.length>0);
+msgInput.onkeypress=(e)=>e.key==='Enter' && sendBtn.click();
 </script>
-
 </body>
 </html>
