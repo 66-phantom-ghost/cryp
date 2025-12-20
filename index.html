@@ -2,225 +2,48 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>WhatsApp Mobile Clone</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Messenger v1.0</title>
 <style>
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    -webkit-tap-highlight-color: transparent;
-}
+    * {box-sizing: border-box; margin:0; padding:0;}
+    body {font-family: Arial, sans-serif; display:flex; flex-direction:column; height:100vh; background:#dadbd3;}
+    
+    header {background:#075e54; color:white; padding:10px 16px; display:flex; flex-direction:column; gap:8px;}
+    .header-top {display:flex; justify-content:space-between; align-items:center;}
+    .header-title {font-weight:bold; font-size:18px;}
+    .header-version {font-size:12px; opacity:0.8;}
 
-body, html {
-    height: 100%;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background-color: #dadbd3;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
+    .config-grid {display:grid; grid-template-columns:1fr 1fr auto; gap:6px;}
+    .config-grid input {padding:6px; border-radius:4px; border:none;}
+    #connectBtn {background:#25d366; color:white; border:none; border-radius:4px; cursor:pointer;}
 
-/* Header Bereich */
-header {
-    background-color: #075e54;
-    color: white;
-    padding: 12px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-    z-index: 10;
-}
+    #chat {flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:6px; background-image:url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-repeat:repeat; background-size:200px;}
 
-.header-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
+    .message {max-width:85%; padding:6px 10px; border-radius:12px; font-size:14px; line-height:1.3; word-wrap:break-word; box-shadow:0 1px 1px rgba(0,0,0,0.15);}
+    .msg-me {background:#dcf8c6; align-self:flex-end;}
+    .msg-peer {background:white; align-self:flex-start;}
+    .msg-info {align-self:center; font-size:12px; color:#555; background:rgba(255,243,199,0.9); padding:4px 8px; border-radius:6px;}
+    .msg-error {background:#fce4e4; color:#cc0000;}
 
-.header-title {
-    font-size: 20px;
-    font-weight: 600;
-}
+    .sender-name {display:block; font-weight:bold; font-size:12px; color:#128c7e; margin-bottom:2px;}
 
-.config-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr auto;
-    gap: 8px;
-    background-color: rgba(0,0,0,0.1);
-    padding: 8px;
-    border-radius: 8px;
-}
+    .input-area {display:flex; padding:6px 12px; background:#ededed; align-items:flex-end; gap:6px; padding-bottom:env(safe-area-inset-bottom,6px);}
+    .input-container {flex:1; background:white; border-radius:25px; display:flex; padding:0 10px; align-items:center; min-height:36px;}
+    #msgInput {flex:1; border:none; outline:none; font-size:14px; background:transparent;}
+    #sendBtn {width:40px; height:40px; border-radius:50%; border:none; background:#075e54; color:white; display:flex; justify-content:center; align-items:center; cursor:pointer;}
+    #sendBtn:disabled {background:#aebac1;}
 
-.config-grid input {
-    padding: 8px;
-    border: none;
-    border-radius: 4px;
-    font-size: 14px;
-    width: 100%;
-    outline: none;
-}
-
-#connectBtn {
-    background-color: #25d366;
-    color: white;
-    border: none;
-    padding: 0 12px;
-    border-radius: 4px;
-    font-weight: bold;
-    font-size: 13px;
-    cursor: pointer;
-    white-space: nowrap;
-}
-
-/* Chat Bereich */
-#chat {
-    flex: 1;
-    overflow-y: auto;
-    padding: 15px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
-    background-repeat: repeat;
-    background-size: 250px;
-}
-
-/* Nachrichten-Bubbles */
-.message {
-    max-width: 85%;
-    padding: 8px 12px;
-    border-radius: 12px;
-    font-size: 15px;
-    line-height: 1.4;
-    position: relative;
-    word-wrap: break-word;
-    box-shadow: 0 1px 1px rgba(0,0,0,0.15);
-}
-
-.msg-info {
-    background-color: rgba(255, 243, 199, 0.9);
-    align-self: center;
-    font-size: 12px;
-    color: #555;
-    margin: 4px 0;
-    border-radius: 6px;
-    padding: 5px 10px;
-    text-align: center;
-}
-
-.msg-error {
-    background-color: #fce4e4;
-    color: #cc0000;
-}
-
-.msg-me {
-    background-color: #dcf8c6;
-    align-self: flex-end;
-    border-top-right-radius: 2px;
-}
-
-.msg-peer {
-    background-color: #ffffff;
-    align-self: flex-start;
-    border-top-left-radius: 2px;
-}
-
-.sender-name {
-    display: block;
-    font-weight: bold;
-    font-size: 12px;
-    color: #128c7e;
-    margin-bottom: 2px;
-}
-
-/* Mobile Input-Area immer sichtbar */
-.input-area {
-    background-color: #ededed;
-    padding: 8px 12px;
-    display: flex;
-    align-items: flex-end;
-    gap: 8px;
-    padding-bottom: env(safe-area-inset-bottom, 8px);
-    position: sticky;
-    bottom: 0;
-    z-index: 10;
-}
-
-.input-container {
-    flex: 1;
-    background: white;
-    border-radius: 25px;
-    display: flex;
-    align-items: center;
-    padding: 0 15px;
-    min-height: 40px;
-}
-
-#msgInput {
-    flex: 1;
-    border: none;
-    padding: 10px 0;
-    outline: none;
-    font-size: 16px;
-    background: transparent;
-}
-
-#sendBtn {
-    background-color: #075e54;
-    color: white;
-    border: none;
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    flex-shrink: 0;
-}
-
-#sendBtn:disabled {
-    background-color: #aebac1;
-}
-
-/* Modal Overlay */
-#alertOverlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.6);
-    z-index: 100;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-}
-#alertBox {
-    background: white;
-    padding: 20px;
-    border-radius: 12px;
-    width: 100%;
-    max-width: 300px;
-    text-align: center;
-}
-.btn-ok {
-    margin-top: 15px;
-    padding: 10px 20px;
-    border-radius: 20px;
-    border: none;
-    background: #075e54;
-    color: white;
-    width: 100%;
-    font-weight: bold;
-}
+    #alertOverlay {display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:100; align-items:center; justify-content:center; padding:12px;}
+    #alertBox {background:white; padding:16px; border-radius:10px; max-width:280px; text-align:center;}
+    .btn-ok {margin-top:12px; padding:8px 16px; width:100%; border:none; border-radius:20px; background:#075e54; color:white; font-weight:bold; cursor:pointer;}
 </style>
 </head>
 <body>
 
 <header>
     <div class="header-top">
-        <div class="header-title">WhatsApp</div>
+        <div class="header-title">Messenger</div>
+        <div class="header-version">v1.0</div>
     </div>
     <div class="config-grid">
         <input type="text" id="myId" placeholder="Meine ID">
@@ -230,18 +53,14 @@ header {
 </header>
 
 <div id="chat">
-    <div class="msg-info">Verbindung herstellen zum Chatten</div>
+    <div class="msg-info">Bitte verbinde dich zum Chat</div>
 </div>
 
 <div class="input-area">
     <div class="input-container">
         <input type="text" id="msgInput" placeholder="Nachricht" disabled autocomplete="off">
     </div>
-    <button id="sendBtn" disabled>
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-            <path d="M1.101 21.757L23.8 12.028 1.101 2.3l.011 7.912 13.623 1.816-13.623 1.817-.011 7.912z"></path>
-        </svg>
-    </button>
+    <button id="sendBtn" disabled>&#9658;</button>
 </div>
 
 <div id="alertOverlay">
@@ -258,84 +77,74 @@ const msgInput = document.getElementById("msgInput");
 const sendBtn = document.getElementById("sendBtn");
 const connectBtn = document.getElementById("connectBtn");
 
-function showAlert(text) {
+function showAlert(text){
     document.getElementById("alertMsg").innerText = text;
-    document.getElementById("alertOverlay").style.display = "flex";
+    document.getElementById("alertOverlay").style.display="flex";
 }
-
-function closeAlert() {
-    document.getElementById("alertOverlay").style.display = "none";
+function closeAlert(){
+    document.getElementById("alertOverlay").style.display="none";
 }
-
-function appendMessage(from, text, type) {
+function appendMessage(from,text,type){
     const div = document.createElement("div");
-    if (type === 'info' || type === 'error') {
-        div.className = `msg-info ${type === 'error' ? 'msg-error' : ''}`;
-        div.innerHTML = text;
-    } else {
-        div.className = `message ${type === 'me' ? 'msg-me' : 'msg-peer'}`;
-        const nameSpan = type === 'peer' ? `<span class="sender-name">${from}</span>` : '';
-        div.innerHTML = `${nameSpan}${text}`;
+    if(type==="info" || type==="error"){
+        div.className = `msg-info ${type==="error"?"msg-error":""}`;
+        div.innerHTML=text;
+    }else{
+        div.className = `message ${type==="me"?"msg-me":"msg-peer"}`;
+        const nameSpan = type==="peer"?`<span class="sender-name">${from}</span>`:'';
+        div.innerHTML=`${nameSpan}${text}`;
     }
     chatBox.appendChild(div);
-    chatBox.scrollTop = chatBox.scrollHeight;
+    chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-connectBtn.onclick = () => {
+connectBtn.onclick = ()=>{
     const myId = document.getElementById("myId").value.trim();
     const peerId = document.getElementById("peerId").value.trim();
-    if (!myId || !peerId) {
-        showAlert("Bitte gib beide IDs ein!");
-        return;
-    }
+    if(!myId || !peerId){ showAlert("Bitte gib beide IDs ein!"); return; }
 
     ws = new WebSocket(`wss://unwintry-strapping-winford.ngrok-free.dev/ws?id=${myId}`);
 
-    ws.onopen = () => {
+    ws.onopen=()=>{
         appendMessage(null, `Verbunden als <b>${myId}</b>`, 'info');
-        appendMessage(null, `Du bist verbunden mit <b>${peerId}</b>`, 'info');
-        msgInput.disabled = false;
-        sendBtn.disabled = false;
-        connectBtn.style.backgroundColor = "#128c7e";
-        connectBtn.innerText = "Online";
+        msgInput.disabled=false; sendBtn.disabled=false;
+        connectBtn.style.backgroundColor="#128c7e"; connectBtn.innerText="Online";
     };
 
-    ws.onmessage = (event) => {
-        try {
-            const data = JSON.parse(event.data);
-            if (data.from && data.message) {
+    ws.onmessage=(event)=>{
+        try{
+            const data=JSON.parse(event.data);
+            if(data.type==="join"){
+                appendMessage(null, `User ${data.user} ist beigetreten`, 'info');
+            } else if(data.from && data.message){
                 appendMessage(data.from, data.message, 'peer');
             }
-            if (data.type === 'join') {
-                appendMessage(null, `User ${data.user} ist dem Chat beigetreten`, 'info');
-            }
-        } catch (err) { console.error(err); }
+        }catch(e){console.error(e);}
     };
 
-    ws.onerror = (err) => appendMessage(null, `Verbindungsfehler`, 'error');
-
-    ws.onclose = () => {
-        appendMessage(null, `Verbindung getrennt`, 'info');
-        msgInput.disabled = true;
-        sendBtn.disabled = true;
-        connectBtn.style.backgroundColor = "#25d366";
-        connectBtn.innerText = "Connect";
+    ws.onerror=(err)=>{appendMessage(null,"Verbindungsfehler","error");};
+    ws.onclose=()=>{
+        appendMessage(null,"Verbindung getrennt","info");
+        msgInput.disabled=true; sendBtn.disabled=true;
+        connectBtn.style.backgroundColor="#25d366"; connectBtn.innerText="Connect";
     };
 
-    sendBtn.onclick = () => {
-        const message = msgInput.value.trim();
-        if (message) {
-            ws.send(JSON.stringify({ to: peerId, message }));
+    sendBtn.onclick = ()=>{
+        const message=msgInput.value.trim();
+        if(message){
+            ws.send(JSON.stringify({to:peerId,message}));
             appendMessage("Du", message, 'me');
-            msgInput.value = "";
-            msgInput.focus();
+            msgInput.value=""; msgInput.focus();
         }
     };
 
-    msgInput.addEventListener("keypress", (e) => {
-        if (e.key === 'Enter') sendBtn.click();
+    msgInput.addEventListener("keypress",(e)=>{
+        if(e.key==="Enter"){ sendBtn.click(); }
     });
 };
+
+window.addEventListener('resize',()=>{ chatBox.scrollTop=chatBox.scrollHeight; });
 </script>
+
 </body>
 </html>
