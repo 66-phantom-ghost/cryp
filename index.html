@@ -1,220 +1,200 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ShadowFX v1.6</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#202c33">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-<script src="https://unpkg.com/lucide@latest"></script>
-<style>
-:root {
-    --bg:#0b141a; --header:#202c33; --panel:#111b21;
-    --input:#2a3942; --text:#e9edef; --text-muted:#8696a0;
-    --green:#00a884; --bubble-out:#005c4b; --bubble-in:#202c33;
-    --accent:#53bdeb;
-}
-body, html{margin:0;padding:0;height:100%;font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;}
-#appVersion{width:100%;text-align:center;padding:5px;background-color:var(--header);color:white;font-size:14px;font-weight:bold;}
-#loginContainer{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background-color:var(--panel);padding:20px;}
-.login-card{background: var(--header); padding:40px; border-radius:8px; width:100%; max-width:400px; text-align:center;}
-#loginContainer input{width:100%;padding:12px;margin:10px 0;border-radius:8px;border:none;background-color:var(--input);color:var(--text);font-size:16px;outline:none;}
-#loginContainer button{width:100%;padding:12px;margin-top:20px;border-radius:8px;border:none;background-color:var(--green);color:#000;font-weight:600;cursor:pointer;}
-#chatContainer{display:none;flex-direction:column;height:100vh;}
-#chatHeader{background-color:var(--header);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;}
-.user-info{display:flex;align-items:center;gap:12px;}
-.avatar{width:40px;height:40px;background:#6a7175;border-radius:50%;display:flex;align-items:center;justify-content:center;}
-#chat{flex:1;overflow-y:auto;background-image:url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');background-repeat:repeat;display:flex;flex-direction:column;}
-#messageList{flex:1;display:flex;flex-direction:column;padding:10px;gap:4px;}
-.message{max-width:70%;padding:8px;border-radius:8px;font-size:14px;display:flex;flex-direction:column;}
-.sent{background-color:var(--bubble-out);align-self:flex-end;border-top-right-radius:0;}
-.received{background-color:var(--bubble-in);align-self:flex-start;border-top-left-radius:0;}
-.msg-meta{align-self:flex-end;font-size:10px;color:var(--text-muted);margin-top:4px;display:flex;align-items:center;gap:3px;}
-.system-msg{align-self:center;background:#182229;color:#8696a0;font-size:12px;padding:4px 12px;border-radius:6px;margin:10px 0;}
-#inputArea{background-color:var(--header);display:flex;align-items:center;gap:10px;padding:8px;position:sticky;bottom:0;z-index:5;}
-#message{flex:1;background:var(--input);border:none;padding:10px;border-radius:20px;color:var(--text);outline:none;font-size:16px;}
-.icon-btn{color:var(--text-muted);cursor:pointer;}
-#sendBtn{background:none;border:none;color:var(--text-muted);cursor:pointer;}
-#sendBtn.active{color:var(--green);}
-#fileInput{display:none;}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShadowFX Messenger</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#202c33">
+
+    <!-- Styles -->
+    <style>
+        :root {
+            --bg: #0b141a;
+            --header: #202c33;
+            --panel: #111b21;
+            --input: #2a3942;
+            --text: #e9edef;
+            --text-muted: #8696a0;
+            --green: #00a884;
+            --bubble-out: #005c4b;
+            --bubble-in: #202c33;
+            --accent: #53bdeb;
+        }
+
+        body, html {
+            margin: 0; padding: 0; height: 100%;
+            font-family: 'Segoe UI', Helvetica, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+        }
+
+        #version {
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--green);
+            font-weight: bold;
+            font-size: 14px;
+            z-index: 1000;
+        }
+
+        /* Login */
+        #loginContainer {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; background-color: var(--panel); padding: 20px;
+        }
+
+        .login-card {
+            background: var(--header); padding: 40px; border-radius: 8px;
+            box-shadow: 0 17px 50px rgba(0,0,0,.19); width: 100%; max-width: 400px; text-align: center;
+        }
+
+        #loginContainer input {
+            width: 100%; box-sizing: border-box; padding: 12px; margin: 10px 0;
+            border-radius: 8px; border: none; background-color: var(--input);
+            color: var(--text); font-size: 16px; outline: none;
+        }
+
+        #loginContainer button {
+            width: 100%; padding: 12px; margin-top: 20px; border-radius: 8px;
+            border: none; background-color: var(--green); color: #000;
+            font-weight: 600; cursor: pointer;
+        }
+
+        /* Chat */
+        #chatContainer { display: none; flex-direction: column; height: 100vh; }
+
+        #chatHeader {
+            background-color: var(--header); padding: 10px 16px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+
+        .user-info { display: flex; align-items: center; gap: 12px; }
+        .avatar { width: 40px; height: 40px; background: #6a7175; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+
+        #chat {
+            flex: 1; overflow-y: auto; display: flex; flex-direction: column;
+        }
+
+        #messageList { display: flex; flex-direction: column; padding: 20px; gap: 4px; }
+
+        .message { max-width: 65%; padding: 8px; border-radius: 8px; font-size: 14px; }
+        .sent { background-color: var(--bubble-out); align-self: flex-end; border-top-right-radius: 0; }
+        .received { background-color: var(--bubble-in); align-self: flex-start; border-top-left-radius: 0; }
+        .system-msg { align-self: center; background: #182229; color: #8696a0; font-size: 12px; padding: 4px 12px; border-radius: 6px; margin: 10px 0; }
+
+        #inputArea { background-color: var(--header); padding: 10px 16px; display: flex; align-items: center; gap: 15px; }
+        #message { flex: 1; background: var(--input); border: none; padding: 10px; border-radius: 8px; color: var(--text); outline: none; }
+
+        button#sendBtn { background: none; border: none; color: var(--text-muted); cursor: pointer; }
+        button#sendBtn.active { color: var(--green); }
+    </style>
 </head>
 <body>
+    <div id="version">v1.1</div>
 
-<div id="appVersion">ShadowFX v1.6</div>
-
-<div id="loginContainer">
-<div class="login-card">
-    <div style="color: var(--green); margin-bottom:15px;"><i data-lucide="message-square" size="48"></i></div>
-    <h2>ShadowFX Messenger</h2>
-    <input type="text" id="userIdInput" placeholder="Dein Name">
-    <input type="text" id="targetIdInput" placeholder="Empfänger Name">
-    <button id="loginBtn">Chat Beitreten</button>
-    <p id="loginFeedback"></p>
-</div>
-</div>
-
-<div id="chatContainer">
-<div id="chatHeader">
-    <div class="user-info">
-        <div class="avatar"><i data-lucide="user"></i></div>
-        <div>
-            <div id="targetNameDisplay" style="font-weight:500;">Chat</div>
-            <div style="font-size:12px;color:var(--text-muted);">online</div>
+    <div id="loginContainer">
+        <div class="login-card">
+            <h2>ShadowFX Messenger</h2>
+            <input type="text" id="userIdInput" placeholder="Dein Name">
+            <input type="text" id="targetIdInput" placeholder="Empfänger ID">
+            <button id="loginBtn">Chat Beitreten</button>
+            <p id="loginFeedback"></p>
         </div>
     </div>
-    <div style="display:flex;gap:20px;">
-        <i data-lucide="video" class="icon-btn"></i>
-        <i data-lucide="phone" class="icon-btn"></i>
-        <i data-lucide="more-vertical" class="icon-btn" onclick="location.reload()"></i>
+
+    <div id="chatContainer">
+        <div id="chatHeader">
+            <div class="user-info">
+                <div class="avatar">U</div>
+                <div>
+                    <div id="targetNameDisplay" style="font-weight: 500;">Chat</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">online</div>
+                </div>
+            </div>
+            <button onclick="location.reload()">✕</button>
+        </div>
+
+        <div id="chat">
+            <div id="messageList"></div>
+        </div>
+
+        <div id="inputArea">
+            <input type="text" id="message" placeholder="Nachricht schreiben" autocomplete="off">
+            <button id="sendBtn">Senden</button>
+        </div>
     </div>
-</div>
 
-<div id="chat">
-    <div id="messageList"></div>
-</div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 
-<div id="inputArea">
-    <i data-lucide="smile" class="icon-btn"></i>
-    <label for="fileInput" class="icon-btn"><i data-lucide="paperclip"></i></label>
-    <input type="file" id="fileInput">
-    <input type="text" id="message" placeholder="Nachricht schreiben" autocomplete="off">
-    <button id="sendBtn"><i data-lucide="send"></i></button>
-</div>
-</div>
+    <script>
+        const SERVER_URL = 'wss://unwintry-strapping-winford.ngrok-free.dev';
+        const SECRET_KEY = "supergeheimeschluessel";
+        let ws;
+        let userId = '', targetId = '';
 
-<script>
-const SERVER_URL='wss://unwintry-strapping-winford.ngrok-free.dev';
-const SECRET_KEY="supergeheimeschluessel";
-let ws,userId='',targetId='';
+        const msgList = document.getElementById('messageList');
+        const msgInput = document.getElementById('message');
+        const sendBtn = document.getElementById('sendBtn');
 
-// IndexedDB für lokale Speicherung
-let db;
-const dbRequest = indexedDB.open("ShadowFXDB",1);
-dbRequest.onupgradeneeded = e => {
-    const db = e.target.result;
-    db.createObjectStore("chats",{keyPath:"targetId"});
-};
-dbRequest.onsuccess = e => { db = e.target.result; };
-
-lucide.createIcons();
-
-const msgList=document.getElementById('messageList');
-const msgInput=document.getElementById('message');
-const fileInput=document.getElementById('fileInput');
-const sendBtn=document.getElementById('sendBtn');
-
-function saveChat() {
-    if(!db || !targetId) return;
-    const tx = db.transaction("chats","readwrite");
-    const store = tx.objectStore("chats");
-    store.put({targetId, messages: msgList.innerHTML});
-}
-
-function loadChat() {
-    if(!db || !targetId) return;
-    const tx = db.transaction("chats","readonly");
-    const store = tx.objectStore("chats");
-    const req = store.get(targetId);
-    req.onsuccess = () => {
-        if(req.result) msgList.innerHTML=req.result.messages;
-    }
-}
-
-function addMessage(data,type='system',isFile=false){
-    const div=document.createElement('div');
-    const time=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-    if(type==='system'){div.className='system-msg';div.textContent=data;}
-    else{
-        div.className=`message ${type}`;
-        let contentHtml='';
-        if(isFile){
-            if(data.type.startsWith('image/')) contentHtml=`<img src="${data.data}" class="chat-image" onclick="window.open('${data.data}')">`;
-            else contentHtml=`<a href="${data.data}" download="${data.name}" class="file-box"><i data-lucide="file"></i><span>${data.name}</span></a>`;
-        } else contentHtml=`<div class="text-content">${data}</div>`;
-        const check = type==='sent'?'<i data-lucide="check-check" size="14" style="color: var(--accent)"></i>':'';
-        div.innerHTML=`${contentHtml}<div class="msg-meta">${time} ${check}</div>`;
-    }
-    msgList.appendChild(div);
-    lucide.createIcons();
-    document.getElementById('chat').scrollTo({ top: document.getElementById('chat').scrollHeight, behavior: 'smooth' });
-    saveChat();
-}
-
-// Login
-document.getElementById('loginBtn').onclick=()=>{
-    userId=document.getElementById('userIdInput').value.trim();
-    targetId=document.getElementById('targetIdInput').value.trim();
-    if(!userId||!targetId){document.getElementById('loginFeedback').textContent='Bitte beide User-IDs eingeben!';return;}
-
-    ws=new WebSocket(SERVER_URL);
-    ws.onopen=()=>{
-        ws.send(JSON.stringify({type:'register',userId}));
-        document.getElementById('loginContainer').style.display='none';
-        document.getElementById('chatContainer').style.display='flex';
-        document.getElementById('targetNameDisplay').textContent=targetId;
-        addMessage("Nachrichten sind Ende-zu-Ende verschlüsselt.");
-        loadChat();
-    };
-    ws.onmessage=(event)=>{
-        const msg=JSON.parse(event.data);
-        if(msg.from===targetId){
-            const decrypted=CryptoJS.AES.decrypt(msg.text,SECRET_KEY).toString(CryptoJS.enc.Utf8);
-            try{
-                const parsed=JSON.parse(decrypted);
-                if(parsed.isFile && parsed.fileData){
-                    addMessage(parsed.fileData,'received',true);
-                } else if(parsed.text){
-                    addMessage(parsed.text,'received');
-                }
-            }catch(e){
-                addMessage(decrypted,'received');
+        function addMessage(data, type='system') {
+            const div = document.createElement('div');
+            const time = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+            if(type==='system'){
+                div.className='system-msg';
+                div.textContent=data;
+            } else {
+                div.className=`message ${type}`;
+                div.textContent=data;
             }
-            console.log("Ciphertext empfangen:",msg.text);
+            msgList.appendChild(div);
+            document.getElementById('chat').scrollTo({top: document.getElementById('chat').scrollHeight,behavior:'smooth'});
         }
-    };
-};
 
-// Senden
-function sendData(payload){
-    if(!ws||ws.readyState!==1)return;
-    const encrypted=CryptoJS.AES.encrypt(JSON.stringify(payload),SECRET_KEY).toString();
-    ws.send(JSON.stringify({type:'message',to:targetId,text:encrypted}));
-    console.log("Ciphertext gesendet:",encrypted);
-}
+        document.getElementById('loginBtn').onclick = () => {
+            userId = document.getElementById('userIdInput').value.trim();
+            targetId = document.getElementById('targetIdInput').value.trim();
+            if(!userId || !targetId) return;
 
-sendBtn.onclick=()=>{
-    const text=msgInput.value.trim();
-    if(!text)return;
-    sendData({text,isFile:false});
-    addMessage(text,'sent');
-    msgInput.value='';
-};
+            ws = new WebSocket(SERVER_URL);
+            ws.onopen = () => {
+                ws.send(JSON.stringify({type:'register',userId}));
+                document.getElementById('loginContainer').style.display='none';
+                document.getElementById('chatContainer').style.display='flex';
+                document.getElementById('targetNameDisplay').textContent=targetId;
+                addMessage("Nachrichten sind Ende-zu-Ende verschlüsselt.");
+            };
 
-// Datei Upload
-fileInput.onchange=(e)=>{
-    const file=e.target.files[0];
-    if(!file)return;
-    const reader=new FileReader();
-    reader.onload=(event)=>{
-        const fileData={name:file.name,type:file.type,data:event.target.result};
-        sendData({fileData,isFile:true});
-        addMessage(fileData,'sent',true);
-    };
-    reader.readAsDataURL(file);
-    fileInput.value='';
-};
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                if(msg.from===targetId){
+                    const decrypted = CryptoJS.AES.decrypt(msg.text, SECRET_KEY).toString(CryptoJS.enc.Utf8);
+                    addMessage(decrypted,'received');
+                }
+            };
+        };
 
-msgInput.oninput=()=>sendBtn.classList.toggle('active',msgInput.value.length>0);
-msgInput.onkeypress=(e)=>e.key==='Enter'&&sendBtn.click();
+        sendBtn.onclick = () => {
+            const text = msgInput.value.trim();
+            if(!text) return;
+            const encrypted = CryptoJS.AES.encrypt(JSON.stringify({text}), SECRET_KEY).toString();
+            ws.send(JSON.stringify({type:'message',to:targetId,text:encrypted}));
+            addMessage(text,'sent');
+            msgInput.value='';
+        };
 
-// Service Worker für PWA
-if('serviceWorker' in navigator){
-    navigator.serviceWorker.register("/cryp/sw.js")
-    .then(()=>console.log("Service Worker registriert"))
-    .catch(err=>console.log("Service Worker Fehler:",err));
-}
-</script>
+        msgInput.oninput = () => sendBtn.classList.toggle('active', msgInput.value.length > 0);
+        msgInput.onkeypress = e => e.key==='Enter' && sendBtn.click();
+
+        // PWA Service Worker
+        if('serviceWorker' in navigator){
+            window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js'));
+        }
+    </script>
 </body>
 </html>
