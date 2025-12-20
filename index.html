@@ -14,7 +14,6 @@
             --sab: env(safe-area-inset-bottom); 
             --primary: #ef4444; 
             --font-size-base: 13px;
-            --bubble-opacity: 1;
         }
 
         body { 
@@ -43,32 +42,18 @@
             border-radius: 20px; 
             font-size: var(--font-size-base); 
             line-height: 1.5; 
-            cursor: pointer; 
             position: relative; 
-            transition: opacity 0.2s, background 0.3s; 
+            word-break: break-word;
         }
-        .bubble-me { background: var(--primary); color: white; align-self: flex-end; border-bottom-right-radius: 4px; opacity: var(--bubble-opacity); }
+        .bubble-me { background: var(--primary); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
         .bubble-peer { background: #18181b; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #27272a; }
         
-        input::placeholder { color: #52525b; }
         .status-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
         
         .no-select { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-        
-        /* Range Slider Styling */
-        input[type=range] { -webkit-appearance: none; background: transparent; }
-        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: #27272a; border-radius: 2px; }
-        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%; background: var(--primary); cursor: pointer; margin-top: -7px; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
-
-        .color-dot { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.2s; }
-        .color-dot.active { border-color: white; transform: scale(1.2); }
-
         .text-accent { color: var(--primary); }
         .bg-accent { background-color: var(--primary); }
-        .border-accent { border-color: var(--primary); }
-
-        .key-box { font-size: 8px; word-break: break-all; font-family: monospace; background: #09090b; border: 1px solid #18181b; padding: 10px; border-radius: 12px; color: #71717a; }
     </style>
 </head>
 <body class="no-select">
@@ -120,362 +105,212 @@
         </nav>
     </div>
 
-    <!-- Settings Panel -->
+    <!-- Modals -->
+    <div id="add-modal" class="fixed inset-0 z-[4000] bg-black/98 p-8 flex flex-col justify-center items-center hidden">
+        <h2 class="text-xl font-bold mb-4 uppercase tracking-tighter text-white">Code einlösen</h2>
+        <textarea id="invite-input" placeholder="ShadowFX Handshake Code einfügen..." class="w-full bg-zinc-900 border border-zinc-800 p-6 rounded-2xl font-mono text-center text-white text-xs mb-6 outline-none h-40 resize-none"></textarea>
+        <button onclick="validateInviteCode()" class="w-full bg-white text-black p-5 rounded-2xl font-bold uppercase text-xs">Code prüfen</button>
+        <button onclick="$('add-modal').classList.add('hidden')" class="w-full p-4 text-zinc-600 text-[10px] mt-6 uppercase font-bold">Abbrechen</button>
+    </div>
+
+    <div id="confirm-add-modal" class="fixed inset-0 z-[5000] bg-black/95 flex items-center justify-center p-8 hidden">
+        <div class="w-full max-w-sm bg-zinc-950 border border-zinc-900 p-8 rounded-[2.5rem] text-center">
+            <div class="w-16 h-16 bg-accent/10 rounded-3xl flex items-center justify-center mx-auto mb-6"><i data-lucide="shield-check" class="w-8 h-8 text-accent"></i></div>
+            <h3 class="text-white font-bold text-lg mb-2 uppercase tracking-tighter">Handshake erkannt</h3>
+            <p class="text-xs text-zinc-500 mb-8 uppercase tracking-widest">Verschlüsselten Tunnel zu <span id="confirm-peer-name" class="text-white">...</span> starten?</p>
+            <div class="space-y-3">
+                <button onclick="finalizeInvite()" class="w-full bg-accent text-white p-5 rounded-2xl font-bold uppercase text-xs">Tunnel starten</button>
+                <button onclick="$('confirm-add-modal').classList.add('hidden')" class="w-full p-4 text-zinc-600 text-[10px] uppercase font-bold">Abbrechen</button>
+            </div>
+        </div>
+    </div>
+
     <div id="settings-panel" class="panel-slide bg-[#050505] flex flex-col overflow-hidden">
         <div class="w-full py-6" onclick="toggleSettings(false)"><div class="w-12 h-1 bg-zinc-800 rounded-full mx-auto"></div></div>
-        
-        <div id="profile-main-view" class="flex-1 overflow-y-auto px-8 space-y-6">
+        <div class="flex-1 overflow-y-auto px-8 space-y-6">
             <div class="flex flex-col items-center py-6">
                 <div class="w-20 h-20 bg-zinc-900 rounded-[2rem] border border-zinc-800 flex items-center justify-center mb-4">
                     <i data-lucide="user" class="w-10 h-10 text-zinc-500"></i>
                 </div>
                 <h2 id="settings-user-name" class="text-xl font-bold text-white uppercase tracking-tighter">---</h2>
-                <p class="text-[8px] text-zinc-600 uppercase font-bold tracking-[0.3em] mt-1">ShadowFX Identity</p>
+                <p class="text-[8px] text-zinc-600 uppercase font-bold tracking-[0.3em] mt-1">Identity Profile</p>
             </div>
-
-            <div class="space-y-2">
-                <button onclick="showSettingsSubTab()" class="w-full p-5 bg-zinc-900/50 border border-zinc-800 rounded-2xl flex items-center justify-between active:bg-zinc-800 transition-colors">
-                    <div class="flex items-center gap-4">
-                        <i data-lucide="settings" class="w-5 h-5 text-zinc-400"></i>
-                        <span class="text-[10px] uppercase font-bold text-white tracking-widest">Einstellungen</span>
-                    </div>
-                    <i data-lucide="chevron-right" class="w-4 h-4 text-zinc-600"></i>
-                </button>
-                <button onclick="nav('invite'); toggleSettings(false);" class="w-full p-5 bg-zinc-900/50 border border-zinc-800 rounded-2xl flex items-center justify-between active:bg-zinc-800 transition-colors">
-                    <div class="flex items-center gap-4">
-                        <i data-lucide="share-2" class="w-5 h-5 text-zinc-400"></i>
-                        <span class="text-[10px] uppercase font-bold text-white tracking-widest">Mein Code</span>
-                    </div>
-                    <i data-lucide="chevron-right" class="w-4 h-4 text-zinc-600"></i>
-                </button>
-            </div>
+            <button onclick="fullReset()" class="w-full p-5 text-red-500 text-[10px] font-bold border border-red-900/20 rounded-2xl uppercase bg-red-900/5">Alle Daten vernichten</button>
         </div>
-
-        <!-- Sub-View for Settings -->
-        <div id="settings-sub-view" class="hidden flex-1 overflow-y-auto px-8 space-y-8 pb-32">
-            <div class="flex items-center gap-4 py-4" onclick="hideSettingsSubTab()">
-                <i data-lucide="arrow-left" class="w-5 h-5 text-zinc-500"></i>
-                <span class="text-[10px] uppercase font-bold text-zinc-500 tracking-widest">Zurück</span>
-            </div>
-
-            <!-- Appearance Section -->
-            <section>
-                <h3 class="text-[9px] font-bold text-zinc-600 uppercase tracking-[0.2em] mb-4">Erscheinungsbild</h3>
-                <div class="bg-zinc-900/30 border border-zinc-800/50 rounded-2xl p-6 space-y-6">
-                    <div>
-                        <label class="text-[10px] uppercase font-bold text-zinc-500 block mb-4">Akzentfarbe</label>
-                        <div class="flex justify-between items-center" id="color-picker">
-                            <div class="color-dot bg-[#ef4444]" data-color="#ef4444"></div>
-                            <div class="color-dot bg-[#10b981]" data-color="#10b981"></div>
-                            <div class="color-dot bg-[#3b82f6]" data-color="#3b82f6"></div>
-                            <div class="color-dot bg-[#8b5cf6]" data-color="#8b5cf6"></div>
-                            <div class="color-dot bg-[#f59e0b]" data-color="#f59e0b"></div>
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <div class="flex justify-between mb-4">
-                            <label class="text-[10px] uppercase font-bold text-zinc-500">Schriftgröße</label>
-                            <span id="font-size-label" class="text-[10px] font-mono text-zinc-400">13px</span>
-                        </div>
-                        <input type="range" id="font-size-slider" min="10" max="20" value="13" class="w-full">
-                    </div>
-
-                    <div>
-                        <div class="flex justify-between mb-4">
-                            <label class="text-[10px] uppercase font-bold text-zinc-500">Blasen-Deckkraft</label>
-                            <span id="opacity-label" class="text-[10px] font-mono text-zinc-400">100%</span>
-                        </div>
-                        <input type="range" id="opacity-slider" min="20" max="100" value="100" class="w-full">
-                    </div>
-                </div>
-            </section>
-
-            <!-- Cryptographic Identity Section -->
-            <section>
-                <h3 class="text-[9px] font-bold text-zinc-600 uppercase tracking-[0.2em] mb-4">Kryptografie</h3>
-                <div class="bg-zinc-900/30 border border-zinc-800/50 rounded-2xl p-6 space-y-6">
-                    <div>
-                        <label class="text-[10px] uppercase font-bold text-zinc-500 block mb-2">Öffentlicher Schlüssel (Public Key)</label>
-                        <div class="key-box" id="public-key-display">Lade...</div>
-                        <button onclick="copyKey('public-key-display')" class="mt-2 text-[8px] uppercase font-bold text-accent">Kopieren</button>
-                    </div>
-
-                    <div>
-                        <label class="text-[10px] uppercase font-bold text-zinc-500 block mb-2">Privater Schlüssel (Geheim)</label>
-                        <div id="private-key-container">
-                            <div id="private-key-warning" class="bg-red-950/20 border border-red-900/30 p-4 rounded-xl text-center">
-                                <p class="text-[8px] text-red-400 font-bold uppercase mb-2">Achtung: Sichtbarkeit gefährdet Sicherheit</p>
-                                <button onclick="revealPrivateKey()" class="text-[9px] bg-red-900 text-white px-4 py-2 rounded-lg font-bold uppercase">Schlüssel anzeigen</button>
-                            </div>
-                            <div id="private-key-display" class="key-box hidden">Lade...</div>
-                        </div>
-                        <button id="copy-private-btn" onclick="copyKey('private-key-display')" class="mt-2 text-[8px] uppercase font-bold text-accent hidden">Kopieren</button>
-                    </div>
-
-                    <div class="pt-2">
-                        <button onclick="resetIdentity()" class="w-full p-4 bg-zinc-800 rounded-xl text-zinc-300 text-[10px] font-bold uppercase border border-zinc-700 hover:bg-zinc-700 transition-colors">Identität zurücksetzen (Reset)</button>
-                        <p class="text-[7px] text-zinc-600 mt-2 uppercase text-center leading-normal">Ein Reset generiert neue Schlüssel. Bestehende Chats können nicht mehr entschlüsselt werden.</p>
-                    </div>
-                </div>
-            </section>
-
-            <section>
-                <h3 class="text-[9px] font-bold text-zinc-600 uppercase tracking-[0.2em] mb-4">Infrastruktur</h3>
-                <div class="space-y-3">
-                    <div class="p-5 bg-zinc-900/20 border border-zinc-800/50 rounded-2xl flex justify-between items-center">
-                        <span class="text-[10px] uppercase font-bold text-zinc-500">Relay Node</span>
-                        <span id="relay-host-display" class="text-[9px] text-zinc-300 font-mono">---</span>
-                    </div>
-                </div>
-            </section>
-
-            <section>
-                <h3 class="text-[9px] font-bold text-zinc-600 uppercase tracking-[0.2em] mb-4">Sicherheit</h3>
-                <button onclick="fullReset()" class="w-full p-5 text-red-500 text-[10px] font-bold border border-red-900/20 rounded-2xl uppercase bg-red-900/5 hover:bg-red-900/10 transition-colors">Alle Daten vernichten</button>
-            </section>
-        </div>
-    </div>
-
-    <!-- Modals -->
-    <div id="msg-action-modal" class="fixed inset-0 z-[6000] bg-black/80 backdrop-blur-sm flex items-end justify-center hidden" onclick="closeMsgActions()">
-        <div class="w-full max-md bg-zinc-950 rounded-t-[2.5rem] p-8 border-t border-zinc-800 flex flex-col gap-3" onclick="event.stopPropagation()">
-            <button id="delete-me-btn" class="w-full p-5 bg-zinc-900 rounded-2xl text-white font-bold text-xs uppercase tracking-widest">Lokal entfernen</button>
-            <button id="delete-all-btn" class="w-full p-5 bg-red-900/20 text-red-500 border border-red-900/30 rounded-2xl font-bold text-xs uppercase tracking-widest">Für alle vernichten</button>
-            <button onclick="closeMsgActions()" class="w-full p-4 text-zinc-600 text-[10px] uppercase font-bold tracking-widest">Abbrechen</button>
-        </div>
-    </div>
-
-    <div id="add-modal" class="fixed inset-0 z-[4000] bg-black/98 p-8 flex flex-col justify-center items-center hidden">
-        <h2 class="text-xl font-bold mb-4 uppercase tracking-tighter text-white">Code einlösen</h2>
-        <textarea id="invite-input" placeholder="ShadowFX Handshake Code einfügen..." class="w-full bg-zinc-900 border border-zinc-800 p-6 rounded-2xl font-mono text-center text-white text-xs mb-6 outline-none h-40 resize-none focus:border-accent/30 transition-colors"></textarea>
-        <button onclick="processInviteCode()" class="w-full bg-white text-black p-5 rounded-2xl font-bold active:scale-95 transition-all uppercase text-xs">Entschlüsseln</button>
-        <button onclick="$('add-modal').classList.add('hidden')" class="w-full p-4 text-zinc-600 text-[10px] mt-6 uppercase font-bold">Abbrechen</button>
     </div>
 
     <script>
         const $ = id => document.getElementById(id);
         const RELAY_HOST = "unwintry-strapping-winford.ngrok-free.dev";
         let socket;
-        let reconnectTimer;
+        let inviteRefreshInterval = null;
         
         let state = { 
-            profiles: [], 
-            activeProfileId: null, 
-            view: 'chats', 
-            activeChatId: null, 
-            pendingHS: null,
-            settings: {
-                accent: '#ef4444',
-                fontSize: 13,
-                opacity: 100
-            }
+            profiles: [], activeProfileId: null, view: 'chats', activeChatId: null, 
+            usedNonces: [], settings: { accent: '#ef4444' }
         };
-        
-        let pressTimer;
-        function initLongPress(element, callback) {
-            const start = (e) => { pressTimer = setTimeout(() => { callback(); pressTimer = null; }, 600); };
-            const cancel = () => { if(pressTimer) clearTimeout(pressTimer); };
-            element.addEventListener('mousedown', start);
-            element.addEventListener('touchstart', start);
-            element.addEventListener('mouseup', cancel);
-            element.addEventListener('mouseleave', cancel);
-            element.addEventListener('touchend', cancel);
+
+        let currentPendingInvite = null;
+
+        // --- CRYPTO HELPER ---
+        function cleanB64(str) {
+            return str.replace(/\s/g, '');
         }
 
-        async function generateKeyPair() {
+        // --- CRYPTO ---
+        async function generateKeyPair() { 
             return await crypto.subtle.generateKey(
-                { name: "RSA-OAEP", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
+                { name: "RSA-OAEP", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" }, 
                 true, ["encrypt", "decrypt"]
-            );
+            ); 
         }
 
-        async function exportKey(key) {
-            const exported = await crypto.subtle.exportKey(key.type === "public" ? "spki" : "pkcs8", key);
-            return btoa(String.fromCharCode(...new Uint8Array(exported)));
+        async function exportKey(key) { 
+            const format = key.type === "public" ? "spki" : "pkcs8";
+            const exported = await crypto.subtle.exportKey(format, key); 
+            return btoa(String.fromCharCode(...new Uint8Array(exported))); 
         }
 
-        async function importPublicKey(pem) {
-            const binary = atob(pem);
-            const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-            return await crypto.subtle.importKey("spki", bytes.buffer, { name: "RSA-OAEP" , hash: "SHA-256" }, true, ["encrypt"]);
+        async function importPublicKey(pem) { 
+            try {
+                const binary = atob(cleanB64(pem)); 
+                const bytes = new Uint8Array(binary.length); 
+                for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i); 
+                return await crypto.subtle.importKey(
+                    "spki", bytes.buffer, { name: "RSA-OAEP", hash: "SHA-256" }, true, ["encrypt"]
+                );
+            } catch (e) { console.error("Public Key Import Error", e); throw e; }
         }
 
-        async function importPrivateKey(pem) {
-            const binary = atob(pem);
-            const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-            return await crypto.subtle.importKey("pkcs8", bytes.buffer, { name: "RSA-OAEP", hash: "SHA-256" }, true, ["decrypt"]);
+        async function importPrivateKey(pem) { 
+            try {
+                const binary = atob(cleanB64(pem)); 
+                const bytes = new Uint8Array(binary.length); 
+                for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i); 
+                return await crypto.subtle.importKey(
+                    "pkcs8", bytes.buffer, { name: "RSA-OAEP", hash: "SHA-256" }, true, ["decrypt"]
+                );
+            } catch (e) { console.error("Private Key Import Error", e); throw e; }
         }
 
-        async function encryptData(publicKey, text) {
-            const encoder = new TextEncoder();
-            const data = encoder.encode(text);
-            const encrypted = await crypto.subtle.encrypt({ name: "RSA-OAEP" }, publicKey, data);
-            return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
+        async function encryptData(publicKey, text) { 
+            const data = new TextEncoder().encode(text); 
+            const encrypted = await crypto.subtle.encrypt({ name: "RSA-OAEP" }, publicKey, data); 
+            return btoa(String.fromCharCode(...new Uint8Array(encrypted))); 
         }
 
-        async function decryptData(privateKey, encryptedBase64) {
-            const binary = atob(encryptedBase64);
-            const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-            const decrypted = await crypto.subtle.decrypt({ name: "RSA-OAEP" }, privateKey, bytes.buffer);
-            return new TextDecoder().decode(decrypted);
+        async function decryptData(privateKey, b64) { 
+            try {
+                const binary = atob(cleanB64(b64)); 
+                const bytes = new Uint8Array(binary.length); 
+                for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i); 
+                const decrypted = await crypto.subtle.decrypt({ name: "RSA-OAEP" }, privateKey, bytes.buffer); 
+                return new TextDecoder().decode(decrypted); 
+            } catch (e) { console.error("Decryption failed", e); throw e; }
         }
 
-        function applySettings() {
-            document.documentElement.style.setProperty('--primary', state.settings.accent);
-            document.documentElement.style.setProperty('--font-size-base', state.settings.fontSize + 'px');
-            document.documentElement.style.setProperty('--bubble-opacity', state.settings.opacity / 100);
-            
-            $('font-size-label').innerText = state.settings.fontSize + 'px';
-            $('opacity-label').innerText = state.settings.opacity + '%';
-            
-            document.querySelectorAll('.color-dot').forEach(dot => {
-                dot.classList.toggle('active', dot.dataset.color === state.settings.accent);
-            });
-
-            const p = getActiveProfile();
-            if (p) {
-                $('public-key-display').innerText = p.pubKey;
-                $('private-key-display').innerText = p.privateKeyPem;
-            }
-        }
-
-        function revealPrivateKey() {
-            $('private-key-warning').classList.add('hidden');
-            $('private-key-display').classList.remove('hidden');
-            $('copy-private-btn').classList.remove('hidden');
-        }
-
-        async function resetIdentity() {
-            const confirm1 = confirm("IDENTITÄT WIRKLICH ZURÜCKSETZEN?\n\nDies generiert ein neues RSA-Paar. Alte Nachrichten können nicht mehr gelesen werden.");
-            if (!confirm1) return;
-            const confirm2 = confirm("BIST DU SICHER?\n\nDeine Kontakte werden dich nicht mehr erreichen können, bis du ihnen den neuen Code sendest.");
-            if (!confirm2) return;
-
-            const keys = await generateKeyPair();
-            const pubPem = await exportKey(keys.publicKey);
-            const privPem = await exportKey(keys.privateKey);
-
-            const p = getActiveProfile();
-            p.pubKey = pubPem;
-            p.privateKeyPem = privPem;
-            // Optionale Entscheidung: Nachrichten löschen oder behalten (sie sind aber nutzlos)
-            p.messages = {}; 
-            
-            save();
-            location.reload(); // Reload um Socket mit neuer ID/Queue neu zu starten
-        }
-
-        function copyKey(id) {
-            const text = $(id).innerText;
-            const tmp = document.createElement('textarea');
-            document.body.appendChild(tmp);
-            tmp.value = text;
-            tmp.select();
-            document.execCommand('copy');
-            document.body.removeChild(tmp);
-            alert("Schlüssel in Zwischenablage kopiert.");
-        }
+        // --- CORE ---
+        function getActiveProfile() { return state.profiles.find(p => p.id === state.activeProfileId); }
 
         function initSocket() {
-            if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) return;
+            if (socket?.readyState === WebSocket.OPEN) return;
             socket = new WebSocket(`wss://${RELAY_HOST}`);
-
             socket.onopen = () => {
                 $('ws-status-dot').className = 'w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]';
-                const profile = getActiveProfile();
-                if (profile) socket.send(JSON.stringify({ type: 'OPEN_ANON_QUEUE', queueId: profile.queueId }));
+                const p = getActiveProfile();
+                if (p) socket.send(JSON.stringify({ type: 'OPEN_ANON_QUEUE', queueId: p.queueId }));
                 updateProfileDisplay();
-                clearTimeout(reconnectTimer);
             };
-
             socket.onmessage = async (e) => {
                 try {
                     const data = JSON.parse(e.data);
                     if (data.type === 'RELAY_IN') await handleIncomingRelay(data.payload);
-                } catch(err) { console.error("Protokollfehler", err); }
+                } catch(err) { console.error("Socket message error", err); }
             };
-
             socket.onclose = () => {
                 $('ws-status-dot').className = 'w-1.5 h-1.5 rounded-full bg-red-500 status-pulse';
-                reconnectTimer = setTimeout(initSocket, 5000);
+                setTimeout(initSocket, 5000);
             };
         }
 
         async function handleIncomingRelay(payload) {
             const profile = getActiveProfile();
-            if (payload.action === 'DELETE_MSG') {
-                const contact = profile.contacts.find(c => c.pubKey === payload.from);
-                if (contact && profile.messages[contact.id]) {
-                    profile.messages[contact.id] = profile.messages[contact.id].filter(m => String(m.msgId) !== String(payload.msgId));
-                    save(); if (state.view === 'chat-detail' && state.activeChatId === contact.id) render();
-                }
+            if (!profile) return;
+            let contact = profile.contacts.find(c => c.pubKey === payload.from);
+            
+            if (!contact && payload.isHandshake) {
+                try {
+                    const privKey = await importPrivateKey(profile.privateKeyPem);
+                    const rawData = await decryptData(privKey, payload.text);
+                    const hData = JSON.parse(rawData);
+                    if (profile.contacts.some(c => c.pubKey === hData.k)) return;
+                    const contactId = 'C-' + Date.now();
+                    profile.contacts.push({ id: contactId, name: hData.n, pubKey: hData.k, queueId: hData.q });
+                    profile.messages[contactId] = [{ msgId: 'sys-'+Date.now(), type: 'peer', text: `Tunnel stabilisiert.`, time: Date.now() }];
+                    save(); render();
+                } catch(e) { console.error("Handshake In Error", e); }
                 return;
             }
-            const contact = profile.contacts.find(c => c.pubKey === payload.from);
+
             if (contact) {
                 try {
                     const privKey = await importPrivateKey(profile.privateKeyPem);
-                    const decryptedText = await decryptData(privKey, payload.text);
+                    const text = await decryptData(privKey, payload.text);
                     if (!profile.messages[contact.id]) profile.messages[contact.id] = [];
-                    profile.messages[contact.id].push({ msgId: payload.msgId, type: 'peer', text: decryptedText, time: Date.now() });
-                    save(); if (state.view === 'chat-detail' && state.activeChatId === contact.id) render();
-                } catch(e) { console.error(e); }
+                    if (profile.messages[contact.id].some(m => m.msgId === payload.msgId)) return;
+                    profile.messages[contact.id].push({ msgId: payload.msgId, type: 'peer', text, time: Date.now() });
+                    save(); 
+                    if (state.view === 'chat-detail' && state.activeChatId === contact.id) render();
+                } catch(e) { console.error("Decryption Error", e); }
             }
         }
 
         async function setupApp() {
             const name = $('user-display-input').value.trim();
             if(!name) return;
-            $('start-btn').innerText = "Verschlüsselung läuft...";
-            $('start-btn').disabled = true;
-
-            const keys = await generateKeyPair();
-            const pubPem = await exportKey(keys.publicKey);
-            const privPem = await exportKey(keys.privateKey);
-
-            const profile = {
-                id: 'P-' + Date.now(),
-                name: name,
-                queueId: 'Q-' + Math.random().toString(36).substring(2, 12).toUpperCase(),
-                pubKey: pubPem,
-                privateKeyPem: privPem,
-                contacts: [],
-                messages: {}
-            };
-            state.profiles = [profile];
-            state.activeProfileId = profile.id;
-            save(); bootstrap();
+            try {
+                const keys = await generateKeyPair();
+                const profile = {
+                    id: 'P-' + Date.now(),
+                    name: name,
+                    queueId: 'Q-' + Math.random().toString(36).substring(2, 12).toUpperCase(),
+                    pubKey: await exportKey(keys.publicKey),
+                    privateKeyPem: await exportKey(keys.privateKey),
+                    contacts: [],
+                    messages: {}
+                };
+                state.profiles = [profile];
+                state.activeProfileId = profile.id;
+                save(); bootstrap();
+            } catch(e) { console.error("Setup failed", e); }
         }
 
         function bootstrap() {
-            if(!state.activeProfileId) return;
             const p = getActiveProfile();
+            if(!p) return;
             $('onboarding').classList.add('hidden');
             $('app-ui').classList.remove('hidden');
             setTimeout(() => $('app-ui').classList.add('opacity-100'), 50);
-            $('relay-host-display').innerText = RELAY_HOST;
             $('settings-user-name').innerText = p.name;
-            applySettings();
             initSocket();
             render();
             updateProfileDisplay();
         }
 
-        function getActiveProfile() { return state.profiles.find(p => p.id === state.activeProfileId); }
         function updateProfileDisplay() { 
             const p = getActiveProfile();
-            const connected = socket && socket.readyState === WebSocket.OPEN;
-            $('active-profile-name').innerText = p ? (connected ? p.name.toUpperCase() : 'RELAY OFFLINE') : 'INIT...'; 
-            $('active-profile-name').className = `text-[8px] font-bold uppercase tracking-widest ${connected ? 'text-emerald-500' : 'text-zinc-500'}`;
+            const conn = socket?.readyState === WebSocket.OPEN;
+            $('active-profile-name').innerText = p ? (conn ? p.name.toUpperCase() : 'OFFLINE') : 'INIT...'; 
+            $('active-profile-name').className = `text-[8px] font-bold uppercase tracking-widest ${conn ? 'text-emerald-500' : 'text-zinc-500'}`;
         }
 
         function nav(v) { 
             state.view = v; 
-            if (v !== 'chat-detail') state.activeChatId = null;
+            if (v !== 'chat-detail') state.activeChatId = null; 
+            if (v !== 'invite' && inviteRefreshInterval) {
+                clearInterval(inviteRefreshInterval);
+                inviteRefreshInterval = null;
+            }
             render(); 
         }
 
@@ -485,8 +320,8 @@
             if (!profile) return;
             
             if (state.view === 'chat-detail') {
-                const contact = profile.contacts.find(c => c.id === state.activeChatId);
-                $('view-title').innerText = contact ? contact.name.toUpperCase() : "SECRET";
+                const c = profile.contacts.find(c => c.id === state.activeChatId);
+                $('view-title').innerText = c ? c.name.toUpperCase() : "SECRET";
                 $('back-btn').classList.remove('hidden');
                 $('bottom-nav').classList.add('hidden');
             } else {
@@ -499,57 +334,55 @@
             $('nav-invite').style.color = state.view === 'invite' ? state.settings.accent : '#52525b';
 
             if(state.view === 'chats') {
-                content.innerHTML = `<button onclick="$('add-modal').classList.remove('hidden')" class="w-full bg-zinc-900/30 border border-zinc-800 p-6 rounded-3xl mb-4 text-[10px] font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-[0.98] transition-transform text-accent"><i data-lucide='plus' class='w-4 h-4'></i> Tunnel hinzufügen</button>`;
-                if (profile.contacts.length === 0) {
-                    content.innerHTML += `<div class="mt-20 text-center flex flex-col items-center opacity-20"><i data-lucide="shield" class="w-12 h-12 mb-4"></i><span class="text-[8px] font-bold uppercase tracking-[0.4em]">Keine Tunnel aktiv</span></div>`;
-                }
+                content.innerHTML = `<button onclick="$('add-modal').classList.remove('hidden')" class="w-full bg-zinc-900/30 border border-zinc-800 p-6 rounded-3xl mb-4 text-[10px] font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-3 text-accent"><i data-lucide='plus' class='w-4 h-4'></i> Tunnel hinzufügen</button>`;
                 profile.contacts.forEach(c => {
                     const row = document.createElement('div');
-                    row.className = "p-6 bg-zinc-950 border border-zinc-900 rounded-3xl flex justify-between items-center active:bg-zinc-900 transition-all border-l-4 border-accent/20";
-                    row.innerHTML = `<div><span class="font-bold text-sm text-white uppercase tracking-tight">${c.name}</span><div class="text-[8px] text-zinc-600 font-bold mt-1 uppercase tracking-widest">Quantum Link Secured</div></div><div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]"></div>`;
-                    row.onclick = () => { if(pressTimer === null) openChat(c.id); };
-                    initLongPress(row, () => openChatActions(c.id, c.name));
+                    row.className = "p-6 bg-zinc-950 border border-zinc-900 rounded-3xl flex justify-between items-center active:bg-zinc-900 transition-all border-l-4 border-accent/20 cursor-pointer mb-2";
+                    row.innerHTML = `<div><span class="font-bold text-sm text-white uppercase tracking-tight">${c.name}</span><div class="text-[8px] text-zinc-600 font-bold mt-1 uppercase tracking-widest">Secured Tunnel</div></div><div class="w-2 h-2 rounded-full bg-emerald-500"></div>`;
+                    row.onclick = () => { nav('chat-detail'); state.activeChatId = c.id; render(); };
                     content.appendChild(row);
                 });
-            } else if(state.view === 'invite') renderInvite(content);
+            } else if(state.view === 'invite') {
+                renderInvite(content);
+                if (!inviteRefreshInterval) {
+                    inviteRefreshInterval = setInterval(() => renderInvite(content), 10000); 
+                }
+            }
             else if(state.view === 'chat-detail') renderChatDetail(content);
             lucide.createIcons();
         }
 
         function renderInvite(container) {
             const p = getActiveProfile();
-            const identityPart = btoa(JSON.stringify({ n: p.name, q: p.queueId, k: p.pubKey }));
-            const finalCode = `SFX#${identityPart}`;
+            const ts = Date.now();
+            const idPart = btoa(JSON.stringify({ n: p.name, q: p.queueId, k: p.pubKey, t: ts }));
+            const code = `SFX#${idPart}`;
+            
             container.innerHTML = `
                 <div class="flex flex-col items-center justify-center mt-12 text-center">
-                    <div class="w-20 h-20 bg-accent/5 rounded-[2.5rem] flex items-center justify-center mb-8 border border-accent/20"><i data-lucide="zap" class="w-10 h-10 text-accent"></i></div>
-                    <h2 class="font-bold text-xl text-white mb-2 uppercase tracking-tighter">ShadowFX Code</h2>
-                    <p class="text-[9px] text-zinc-500 px-12 mb-10 uppercase tracking-widest leading-relaxed">Einmaliger Tunnel-Code zur Etablierung einer E2EE Verbindung.</p>
-                    <div class="w-full bg-zinc-950 border border-zinc-900 p-6 rounded-3xl mb-8 overflow-hidden">
-                        <div class="text-[6px] font-mono text-zinc-500 break-all leading-tight opacity-50 select-all">${finalCode}</div>
+                    <div class="w-20 h-20 bg-accent/5 rounded-[2.5rem] flex items-center justify-center mb-8 border border-accent/20">
+                        <i data-lucide="zap" class="w-10 h-10 text-accent"></i>
                     </div>
-                    <button id="copy-btn" class="w-full bg-white text-black p-5 rounded-2xl font-bold uppercase text-xs active:scale-95 transition-all">Code kopieren</button>
+                    <h2 class="font-bold text-xl text-white mb-2 uppercase tracking-tighter">ShadowFX Code</h2>
+                    <p class="text-[9px] text-zinc-500 px-12 mb-10 uppercase tracking-widest">Gültig für 120 Sekunden.</p>
+                    <div class="w-full bg-zinc-950 border border-zinc-900 p-6 rounded-3xl mb-8 overflow-hidden">
+                        <div class="text-[6px] font-mono text-zinc-500 break-all leading-tight opacity-50 select-all" id="raw-code">${code}</div>
+                    </div>
+                    <button id="copy-btn" class="w-full bg-white text-black p-5 rounded-2xl font-bold uppercase text-xs">Code kopieren</button>
                 </div>`;
+            
             $('copy-btn').onclick = () => {
-                const tmp = document.createElement('textarea'); document.body.appendChild(tmp); tmp.value = finalCode; tmp.select(); document.execCommand('copy'); document.body.removeChild(tmp);
+                const tmp = document.createElement('textarea'); document.body.appendChild(tmp); tmp.value = code; tmp.select(); document.execCommand('copy'); document.body.removeChild(tmp);
                 $('copy-btn').innerText = 'KOPIERT'; setTimeout(() => { if($('copy-btn')) $('copy-btn').innerText = 'Code kopieren'; }, 2000);
             }
+            lucide.createIcons();
         }
 
         function renderChatDetail(container) {
             const p = getActiveProfile();
             const msgs = p.messages[state.activeChatId] || [];
-            container.innerHTML = `
-                <div class="flex-1 flex flex-col gap-3 pb-32">
-                    ${msgs.map(m => `<div onclick="openMsgActions('${m.msgId}', '${m.type}')" class="bubble ${m.type === 'me' ? 'bubble-me' : 'bubble-peer'}">${m.text}</div>`).join('')}
-                    <div id="anchor"></div>
-                </div>
-                <div class="fixed bottom-[calc(var(--sab)+20px)] left-4 right-4 flex gap-2 bg-zinc-950/90 p-3 rounded-[2.5rem] border border-zinc-900 backdrop-blur-xl">
-                    <input id="chat-msg" placeholder="Geheimnachricht..." class="flex-1 bg-transparent px-5 py-3 text-sm text-white outline-none" autocomplete="off">
-                    <button onclick="sendMsg()" class="bg-accent w-12 h-12 rounded-[1.2rem] flex items-center justify-center text-white active:scale-90 transition-all"><i data-lucide="send" class="w-5 h-5"></i></button>
-                </div>`;
-            setTimeout(() => $('anchor').scrollIntoView({ behavior: 'smooth' }), 50);
-            $('chat-msg').onkeypress = (e) => { if(e.key === 'Enter') sendMsg(); };
+            container.innerHTML = `<div class="flex-1 flex flex-col gap-3 pb-32">${msgs.map(m => `<div class="bubble ${m.type === 'me' ? 'bubble-me' : 'bubble-peer'}">${m.text}</div>`).join('')}<div id="anchor"></div></div><div class="fixed bottom-[calc(var(--sab)+20px)] left-4 right-4 flex gap-2 bg-zinc-950/90 p-3 rounded-[2.5rem] border border-zinc-900 backdrop-blur-xl"><input id="chat-msg" placeholder="Geheimnachricht..." class="flex-1 bg-transparent px-5 py-3 text-sm text-white outline-none" autocomplete="off"><button onclick="sendMsg()" class="bg-accent w-12 h-12 rounded-[1.2rem] flex items-center justify-center text-white active:scale-90 transition-all"><i data-lucide="send" class="w-5 h-5"></i></button></div>`;
+            setTimeout(() => $('anchor')?.scrollIntoView({ behavior: 'smooth' }), 100);
         }
 
         async function sendMsg() {
@@ -558,63 +391,100 @@
             const contact = p.contacts.find(c => c.id === state.activeChatId);
             const text = inp.value.trim();
             if(!text || !contact) return;
-            const msgId = Date.now() + "_" + Math.floor(Math.random()*1000);
             try {
-                const peerPubKey = await importPublicKey(contact.pubKey);
-                const encryptedText = await encryptData(peerPubKey, text);
-                if(!p.messages[state.activeChatId]) p.messages[state.activeChatId] = [];
-                p.messages[state.activeChatId].push({ msgId: msgId, type: 'me', text: text, time: Date.now() });
-                if (socket && socket.readyState === WebSocket.OPEN) {
-                    socket.send(JSON.stringify({ type: 'CHAT_MSG', to: contact.queueId, payload: { from: p.pubKey, text: encryptedText, msgId: msgId } }));
+                const peerKey = await importPublicKey(contact.pubKey);
+                const enc = await encryptData(peerKey, text);
+                const msgId = Date.now().toString();
+                if (!p.messages[state.activeChatId]) p.messages[state.activeChatId] = [];
+                p.messages[state.activeChatId].push({ msgId, type: 'me', text, time: Date.now() });
+                if (socket?.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({ type: 'CHAT_MSG', to: contact.queueId, payload: { from: p.pubKey, text: enc, msgId } }));
                 }
                 save(); render(); inp.value = '';
-            } catch(e) { console.error(e); }
+            } catch(e) { console.error("Send failed", e); }
         }
 
-        function processInviteCode() {
+        function validateInviteCode() {
             const val = $('invite-input').value.trim();
             if(!val.startsWith('SFX#')) return;
             try {
-                const identity = JSON.parse(atob(val.split('#')[1]));
-                const profile = getActiveProfile();
-                const contactId = 'C-' + Date.now();
-                profile.contacts.push({ id: contactId, name: identity.n, pubKey: identity.k, queueId: identity.q });
-                profile.messages[contactId] = [{ msgId: 'sys-'+Date.now(), type: 'peer', text: `Verbindung zu ${identity.n} gesichert.`, time: Date.now() }];
-                save(); $('add-modal').classList.add('hidden'); nav('chats');
-            } catch(e) { console.error(e); }
+                const raw = val.split('#')[1];
+                const identity = JSON.parse(atob(cleanB64(raw)));
+                
+                const now = Date.now();
+                const codeAgeSeconds = (now - identity.t) / 1000;
+                
+                if (codeAgeSeconds > 120) {
+                    alert("Handshake fehlgeschlagen: Code ist abgelaufen (Limit 120s).");
+                    return;
+                }
+
+                if(state.usedNonces?.includes(identity.t)) return alert("Code bereits verwendet.");
+                
+                currentPendingInvite = identity;
+                $('confirm-peer-name').innerText = identity.n;
+                $('add-modal').classList.add('hidden');
+                $('confirm-add-modal').classList.remove('hidden');
+            } catch(e) { alert("Ungültiger Code."); }
         }
 
-        function toggleSettings(show) { $('settings-panel').classList.toggle('open', show); if(!show) hideSettingsSubTab(); }
-        function showSettingsSubTab() { $('profile-main-view').classList.add('hidden'); $('settings-sub-view').classList.remove('hidden'); }
-        function hideSettingsSubTab() { $('profile-main-view').classList.remove('hidden'); $('settings-sub-view').classList.add('hidden'); }
-
-        $('color-picker').onclick = (e) => {
-            if (e.target.dataset.color) {
-                state.settings.accent = e.target.dataset.color;
-                save(); applySettings(); render();
+        async function finalizeInvite() {
+            if(!currentPendingInvite) return;
+            const p = getActiveProfile();
+            
+            // Check if already connected
+            if (p.contacts.some(c => c.pubKey === currentPendingInvite.k)) {
+                $('confirm-add-modal').classList.add('hidden');
+                return nav('chats');
             }
-        };
 
-        $('font-size-slider').oninput = (e) => {
-            state.settings.fontSize = parseInt(e.target.value);
-            save(); applySettings(); render();
-        };
+            const contactId = 'C-' + Date.now();
+            const newContact = { 
+                id: contactId, 
+                name: currentPendingInvite.n, 
+                pubKey: currentPendingInvite.k, 
+                queueId: currentPendingInvite.q 
+            };
+            
+            p.contacts.push(newContact);
+            p.messages[contactId] = [{ msgId: 'sys-'+Date.now(), type: 'peer', text: `Tunnel aktiv.`, time: Date.now() }];
+            
+            if(!state.usedNonces) state.usedNonces = [];
+            state.usedNonces.push(currentPendingInvite.t);
 
-        $('opacity-slider').oninput = (e) => {
-            state.settings.opacity = parseInt(e.target.value);
-            save(); applySettings(); render();
-        };
+            try {
+                // Ensure Public Key is valid for response handshake
+                const peerKey = await importPublicKey(currentPendingInvite.k);
+                const handshake = JSON.stringify({ n: p.name, q: p.queueId, k: p.pubKey });
+                const encHandshake = await encryptData(peerKey, handshake);
+                
+                if (socket?.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({ 
+                        type: 'CHAT_MSG', to: currentPendingInvite.q, 
+                        payload: { from: p.pubKey, text: encHandshake, isHandshake: true } 
+                    }));
+                }
+            } catch(e) { 
+                console.error("Handshake response Error", e);
+                // Even if handshake fails to send, we keep the contact locally as fallback
+            }
 
+            save();
+            $('confirm-add-modal').classList.add('hidden');
+            nav('chats');
+        }
+
+        function toggleSettings(show) { $('settings-panel').classList.toggle('open', show); }
         function save() { localStorage.setItem('shadowfx_zk_data', JSON.stringify(state)); }
-        function fullReset() { if(confirm("ALLE SCHLÜSSEL UND NACHRICHTEN LÖSCHEN?")) { localStorage.clear(); location.reload(); } }
+        function fullReset() { if(confirm("ALLES LÖSCHEN?")) { localStorage.clear(); location.reload(); } }
 
         window.onload = () => {
             const saved = localStorage.getItem('shadowfx_zk_data');
             if(saved) { 
-                const loaded = JSON.parse(saved);
-                state = { ...state, ...loaded };
-                state.settings = { ...state.settings, ...loaded.settings }; 
-                bootstrap(); 
+                try {
+                    state = JSON.parse(saved); 
+                    bootstrap(); 
+                } catch(e) { localStorage.clear(); }
             }
             lucide.createIcons();
         };
