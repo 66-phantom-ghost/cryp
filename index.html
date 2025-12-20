@@ -14,22 +14,36 @@
             --sar: env(safe-area-inset-right);
             --sab: env(safe-area-inset-bottom);
             --sal: env(safe-area-inset-left);
+            --accent-color: #b91c1c;
+            --glow-intensity: 10px;
+            --ui-blur: 8px;
+            --viewport-height: 100dvh;
         }
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #050505;
-            color: #e4e4e7;
-            /* Nutzt dynamic viewport height für mobile Browser */
-            height: 100dvh;
+        body, html {
             margin: 0;
             padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #050505;
+            color: #e4e4e7;
+            overflow: hidden;
+            position: fixed;
         }
 
         #app {
-            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: var(--viewport-height);
+            transition: height 0.1s ease-out;
         }
 
+        .accent-bg { background-color: var(--accent-color); }
+        .accent-text { color: var(--accent-color); }
+        .accent-border { border-color: var(--accent-color); }
+        .glass { backdrop-filter: blur(var(--ui-blur)); background: rgba(10, 10, 10, 0.8); }
+        
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #18181b; border-radius: 10px; }
@@ -40,105 +54,137 @@
         .fade-in { animation: fadeIn 0.2s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Verhindert das Springen des Layouts bei Tastatur-Einblendung */
-        .safe-bottom {
+        #settingsModal {
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(12px);
+        }
+
+        .input-bar-container {
             padding-bottom: calc(var(--sab) + 0.5rem);
+            background: #0a0a0a;
+            border-top: 1px solid #18181b;
         }
     </style>
 </head>
-<body class="overflow-hidden">
-    <div id="app" class="flex h-full w-full overflow-hidden select-none md:select-auto">
-        <!-- Sidebar -->
-        <aside id="sidebar" class="fixed md:relative z-50 w-full md:w-80 lg:w-96 h-full bg-[#0a0a0a] border-r border-zinc-900 flex flex-col transition-all duration-300 ease-in-out -translate-x-full md:translate-x-0">
-            <div class="p-4 md:p-6 bg-black border-b-2 border-red-700 space-y-4 pt-[calc(var(--sat)+1rem)]">
-                <div class="flex justify-between items-center">
-                    <span class="text-[10px] text-zinc-500 font-bold tracking-[0.2em] uppercase">ShadowFX Protocol v2</span>
-                    <button onclick="toggleSidebar()" class="md:hidden text-zinc-500 hover:text-white p-2">
-                        <i data-lucide="x"></i>
-                    </button>
-                </div>
-                
-                <div class="grid grid-cols-1 gap-2">
-                    <input type="text" id="myName" oninput="saveProfile()" placeholder="Operator Name" class="w-full bg-zinc-950 border border-zinc-800 p-3 rounded-xl text-xs outline-none focus:border-red-600 transition-all">
-                    <input type="text" id="myId" oninput="saveProfile()" placeholder="System ID" class="w-full bg-zinc-950 border border-zinc-800 p-3 rounded-xl text-xs outline-none focus:border-red-600 transition-all">
-                </div>
-                
-                <div class="flex gap-2" id="connectionControls">
-                    <button id="connectBtn" onclick="toggleConnection()" class="flex-1 py-3 bg-red-700 hover:bg-red-600 rounded-xl text-[10px] font-bold uppercase flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-900/10 active:scale-95">
+<body>
+    <div id="app" class="select-none md:select-auto">
+        <div class="flex flex-1 overflow-hidden relative">
+            <!-- Sidebar -->
+            <aside id="sidebar" class="fixed md:relative z-[60] w-full md:w-80 lg:w-96 h-full bg-[#0a0a0a] border-r border-zinc-900 flex flex-col transition-all duration-300 ease-in-out -translate-x-full md:translate-x-0">
+                <div class="p-4 md:p-6 bg-black border-b-2 accent-border space-y-4 pt-[calc(var(--sat)+1rem)]">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] text-zinc-500 font-bold tracking-[0.2em] uppercase">ShadowFX Protocol v2</span>
+                        <div class="flex gap-1">
+                            <button onclick="openSettings()" class="text-zinc-500 hover:text-white p-2 transition-colors">
+                                <i data-lucide="settings" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="toggleSidebar()" class="md:hidden text-zinc-500 hover:text-white p-2">
+                                <i data-lucide="x"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 gap-2">
+                        <input type="text" id="myName" oninput="saveProfile()" placeholder="Operator Name" class="w-full bg-zinc-950 border border-zinc-800 p-3 rounded-xl text-xs outline-none focus:accent-border transition-all">
+                        <input type="text" id="myId" oninput="saveProfile()" placeholder="System ID" class="w-full bg-zinc-950 border border-zinc-800 p-3 rounded-xl text-xs outline-none focus:accent-border transition-all">
+                    </div>
+                    
+                    <button id="connectBtn" onclick="toggleConnection()" class="w-full py-3 accent-bg hover:opacity-90 rounded-xl text-[10px] font-bold uppercase flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg">
                         <i data-lucide="power" class="w-4 h-4"></i> Uplink Starten
                     </button>
-                </div>
 
-                <div class="flex gap-2 pt-2 border-t border-zinc-900">
-                    <input type="text" id="newContactId" placeholder="Ziel-ID hinzufügen..." class="flex-1 bg-zinc-950 border border-zinc-800 p-3 rounded-xl text-xs outline-none focus:border-red-900">
-                    <button onclick="addContact()" class="bg-red-700 hover:bg-red-600 p-3 rounded-xl transition-all active:scale-95">
-                        <i data-lucide="plus"></i>
-                    </button>
-                </div>
-            </div>
-
-            <div id="contactList" class="flex-1 overflow-y-auto custom-scrollbar bg-[#080808]">
-                <!-- Kontakte werden hier gerendert -->
-            </div>
-        </aside>
-
-        <!-- Main Chat Area -->
-        <main class="flex-1 flex flex-col relative h-full bg-[#050505]">
-            <header class="h-16 flex items-center justify-between px-4 md:px-6 bg-[#0a0a0a] border-b border-zinc-900 shrink-0 z-30 pt-[var(--sat)]">
-                <div class="flex items-center gap-4">
-                    <button onclick="toggleSidebar()" class="md:hidden text-zinc-400 p-2 active:bg-zinc-900 rounded-full">
-                        <i data-lucide="menu"></i>
-                    </button>
-                    <div class="flex flex-col">
-                        <h2 class="text-red-600 font-bold text-sm tracking-widest uppercase flex items-center gap-1">
-                            <i data-lucide="shield" class="w-4 h-4" id="e2eeIcon"></i> 
-                            <span id="activePeerName">Private Notizen</span>
-                        </h2>
-                    </div>
-                </div>
-                
-                <button onclick="toggleE2EE()" id="e2eeToggle" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-bold border transition-all border-red-800 text-red-500 bg-red-950/20">
-                    <i data-lucide="lock" class="w-3 h-3"></i>
-                    <span class="hidden sm:inline">E2EE AKTIV</span>
-                    <span class="sm:hidden">E2EE</span>
-                </button>
-            </header>
-
-            <div id="chatArea" class="flex-1 overflow-y-auto p-3 md:p-6 lg:px-24 flex flex-col gap-1.5 bg-[#050505] custom-scrollbar">
-                <!-- Nachrichten werden hier gerendert -->
-            </div>
-
-            <!-- Image Preview -->
-            <div id="imagePreview" class="hidden absolute bottom-24 left-4 right-4 md:left-24 md:right-24 bg-zinc-900 border border-red-900/40 rounded-2xl p-3 shadow-2xl z-40 fade-in">
-                <div class="flex items-center gap-3">
-                    <div class="relative w-16 h-16 shrink-0">
-                        <img id="previewImg" src="" class="w-full h-full object-cover rounded-xl border border-zinc-800">
-                        <button onclick="clearImage()" class="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1.5">
-                            <i data-lucide="x" class="w-3 h-3"></i>
+                    <div class="flex gap-2 pt-2 border-t border-zinc-900">
+                        <input type="text" id="newContactId" placeholder="Ziel-ID..." class="flex-1 bg-zinc-950 border border-zinc-800 p-3 rounded-xl text-xs outline-none">
+                        <button onclick="addContact()" class="accent-bg hover:opacity-90 p-3 rounded-xl transition-all">
+                            <i data-lucide="plus"></i>
                         </button>
                     </div>
-                    <p class="text-[10px] text-zinc-500 uppercase font-bold tracking-tighter">Medienanhang bereit</p>
                 </div>
-            </div>
 
-            <!-- Input Bar -->
-            <div class="p-3 md:p-5 lg:px-24 bg-[#0a0a0a] border-t border-zinc-900 z-50 safe-bottom">
-                <div class="flex gap-2 items-end">
-                    <button onclick="document.getElementById('fileInput').click()" class="text-zinc-500 hover:text-red-500 p-2.5 bg-zinc-900/30 rounded-xl transition-all mb-0.5">
-                        <i data-lucide="image"></i>
-                    </button>
-                    <input type="file" id="fileInput" onchange="handleFileSelect(event)" accept="image/*" class="hidden">
-                    
-                    <div class="flex-1 bg-zinc-950 rounded-2xl border border-zinc-800 px-4 py-1.5 flex items-center focus-within:border-red-900/40 transition-all">
-                        <textarea id="msgInput" rows="1" placeholder="Nachricht..." class="w-full bg-transparent py-1 text-sm md:text-base outline-none text-zinc-200 resize-none max-h-32"></textarea>
+                <div id="contactList" class="flex-1 overflow-y-auto custom-scrollbar bg-[#080808]">
+                    <!-- Kontakte -->
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="flex-1 flex flex-col min-w-0 bg-[#050505]">
+                <header class="h-16 flex items-center justify-between px-4 md:px-6 bg-[#0a0a0a] border-b border-zinc-900 shrink-0 z-30 pt-[var(--sat)]">
+                    <div class="flex items-center gap-4">
+                        <button onclick="toggleSidebar()" class="md:hidden text-zinc-400 p-2 active:bg-zinc-900 rounded-full">
+                            <i data-lucide="menu"></i>
+                        </button>
+                        <h2 class="accent-text font-bold text-sm tracking-widest uppercase flex items-center gap-1">
+                            <i data-lucide="shield" class="w-4 h-4" id="e2eeIcon"></i> 
+                            <span id="activePeerName" class="truncate max-w-[120px] sm:max-w-none">Private Notizen</span>
+                        </h2>
                     </div>
                     
-                    <button id="sendBtn" onclick="handleSend()" class="bg-red-700 hover:bg-red-600 text-white w-11 h-11 flex items-center justify-center rounded-xl transition-all shadow-lg mb-0.5 active:bg-red-500 cursor-pointer">
-                        <i data-lucide="send" class="w-5 h-5 pointer-events-none"></i>
+                    <button onclick="toggleE2EE()" id="e2eeToggle" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-bold border accent-border accent-text glass">
+                        <i data-lucide="lock" class="w-3 h-3"></i>
+                        <span class="hidden sm:inline">E2EE AKTIV</span>
                     </button>
+                </header>
+
+                <div id="chatArea" class="flex-1 overflow-y-auto p-4 md:px-24 flex flex-col gap-2 custom-scrollbar">
+                    <!-- Nachrichten -->
                 </div>
+
+                <!-- Media Preview -->
+                <div id="imagePreview" class="hidden absolute bottom-24 left-4 right-4 bg-zinc-900 border accent-border rounded-2xl p-2 z-40 fade-in glass">
+                    <div class="flex items-center gap-3">
+                        <div class="relative w-12 h-12">
+                            <img id="previewImg" src="" class="w-full h-full object-cover rounded-lg">
+                            <button onclick="clearImage()" class="absolute -top-2 -right-2 bg-red-600 rounded-full p-1"><i data-lucide="x" class="w-3 h-3"></i></button>
+                        </div>
+                        <span class="text-[10px] text-zinc-500 font-bold">BILD BEREIT</span>
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="input-bar-container px-4 py-2 md:px-24">
+                    <div class="flex gap-2 items-end max-w-5xl mx-auto">
+                        <button onclick="document.getElementById('fileInput').click()" class="text-zinc-500 hover:accent-text p-3 bg-zinc-900/50 rounded-xl mb-1">
+                            <i data-lucide="image" class="w-5 h-5"></i>
+                        </button>
+                        <input type="file" id="fileInput" onchange="handleFileSelect(event)" accept="image/*" class="hidden">
+                        
+                        <div class="flex-1 bg-zinc-950 rounded-2xl border border-zinc-800 px-4 py-2 flex items-center focus-within:accent-border transition-all">
+                            <textarea id="msgInput" rows="1" placeholder="Nachricht..." class="w-full bg-transparent py-1 text-base outline-none text-zinc-200 resize-none max-h-32"></textarea>
+                        </div>
+                        
+                        <button id="sendBtn" onclick="handleSend()" class="accent-bg text-white w-12 h-12 flex items-center justify-center rounded-xl shadow-lg mb-1 active:scale-90 transition-transform">
+                            <i data-lucide="send" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div class="bg-zinc-900 border border-zinc-800 w-full max-w-md rounded-2xl p-6 space-y-6 shadow-2xl">
+                <div class="flex justify-between items-center border-b border-zinc-800 pb-4">
+                    <h3 class="text-sm font-bold uppercase tracking-widest accent-text">System-Parameter</h3>
+                    <button onclick="closeSettings()" class="text-zinc-500 hover:text-white"><i data-lucide="x"></i></button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[10px] text-zinc-500 uppercase font-bold block mb-2">Akzentfarbe</label>
+                        <div class="flex gap-2">
+                            <button onclick="setThemeColor('#b91c1c')" class="w-8 h-8 rounded-full bg-red-700"></button>
+                            <button onclick="setThemeColor('#1d4ed8')" class="w-8 h-8 rounded-full bg-blue-700"></button>
+                            <button onclick="setThemeColor('#047857')" class="w-8 h-8 rounded-full bg-emerald-700"></button>
+                            <button onclick="setThemeColor('#7e22ce')" class="w-8 h-8 rounded-full bg-purple-700"></button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-zinc-500 uppercase font-bold block mb-2">UI Blur</label>
+                        <input type="range" min="0" max="20" value="8" oninput="setUIBlur(this.value)" class="w-full accent-red-700">
+                    </div>
+                </div>
+                <button onclick="closeSettings()" class="w-full py-3 bg-zinc-800 rounded-xl text-xs font-bold uppercase">Schließen</button>
             </div>
-        </main>
+        </div>
     </div>
 
     <script>
@@ -152,13 +198,233 @@
             wsStatus: 'OFFLINE',
             e2eeEnabled: true,
             pendingImage: null,
-            sidebarOpen: false
+            sidebarOpen: false,
+            settings: JSON.parse(localStorage.getItem('sfx_settings') || '{"color":"#b91c1c","blur":"8","glow":"10"}')
         };
 
         let ws = null;
         const SALT = "SFX-SALT-V2";
 
-        // --- Crypto ---
+        // --- Viewport Fix for Mobile ---
+        function updateViewportHeight() {
+            const vv = window.visualViewport;
+            const height = vv ? vv.height : window.innerHeight;
+            document.documentElement.style.setProperty('--viewport-height', `${height}px`);
+            
+            if (vv && height < window.innerHeight) {
+                setTimeout(() => {
+                    const anchor = document.getElementById('anchor');
+                    if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                }, 100);
+            }
+        }
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', updateViewportHeight);
+            window.visualViewport.addEventListener('scroll', updateViewportHeight);
+        }
+        window.addEventListener('resize', updateViewportHeight);
+
+        // --- UI Logic ---
+        function applySettings() {
+            document.documentElement.style.setProperty('--accent-color', state.settings.color);
+            document.documentElement.style.setProperty('--ui-blur', state.settings.blur + 'px');
+            localStorage.setItem('sfx_settings', JSON.stringify(state.settings));
+        }
+
+        function setThemeColor(color) { state.settings.color = color; applySettings(); }
+        function setUIBlur(val) { state.settings.blur = val; applySettings(); }
+        function openSettings() { document.getElementById('settingsModal').classList.remove('hidden'); }
+        function closeSettings() { document.getElementById('settingsModal').classList.add('hidden'); }
+        function toggleSidebar() { 
+            state.sidebarOpen = !state.sidebarOpen; 
+            document.getElementById('sidebar').classList.toggle('-translate-x-full', !state.sidebarOpen); 
+        }
+
+        function saveProfile() {
+            state.myName = document.getElementById('myName').value;
+            state.myId = document.getElementById('myId').value;
+            localStorage.setItem('sfx_myid', state.myId);
+            localStorage.setItem('sfx_myname', state.myName);
+        }
+
+        function addContact() {
+            const input = document.getElementById('newContactId');
+            const id = input.value.trim();
+            if (id && !state.contacts.includes(id)) {
+                state.contacts.push(id);
+                input.value = '';
+                saveAndRender();
+            }
+        }
+
+        function toggleE2EE() {
+            state.e2eeEnabled = !state.e2eeEnabled;
+            updateUI();
+        }
+
+        // --- Messaging ---
+        function toggleConnection() {
+            if (state.wsStatus === 'ONLINE') { if (ws) ws.close(); } 
+            else { if (!state.myId) return; connect(); }
+        }
+
+        function connect() {
+            state.wsStatus = 'CONNECTING...';
+            updateUI();
+            ws = new WebSocket(`wss://unwintry-strapping-winford.ngrok-free.dev/ws?id=${state.myId}`);
+            ws.onopen = () => { state.wsStatus = 'ONLINE'; updateUI(); };
+            ws.onmessage = async (e) => {
+                try {
+                    const data = JSON.parse(e.data);
+                    if (data.from && data.message) {
+                        const { data: result, encrypted } = await decryptData(data.message, state.myId);
+                        let text = (result instanceof ArrayBuffer) ? new TextDecoder().decode(result) : result;
+                        let msgObj = { type: 'peer', time: getCurrentTime(), text: text, encrypted: encrypted };
+                        if (data.mediaType === 'image') {
+                            msgObj.isImage = true;
+                            msgObj.imageUrl = `data:image/png;base64,${result}`;
+                            msgObj.text = data.caption || "";
+                        }
+                        if (!state.chatLog[data.from]) state.chatLog[data.from] = [];
+                        state.chatLog[data.from].push(msgObj);
+                        if (!state.contacts.includes(data.from)) state.contacts.push(data.from);
+                        saveAndRender();
+                    }
+                } catch (err) { console.error("Recv Err:", err); }
+            };
+            ws.onclose = () => { state.wsStatus = 'OFFLINE'; updateUI(); };
+            ws.onerror = () => { state.wsStatus = 'ERROR'; updateUI(); };
+        }
+
+        async function handleSend() {
+            const input = document.getElementById('msgInput');
+            const text = input.value.trim();
+            if ((!text && !state.pendingImage) || !state.activePeer) return;
+
+            // Nachricht Objekt vorbereiten
+            let msgObj = { 
+                type: 'me', 
+                time: getCurrentTime(), 
+                text: text, 
+                encrypted: state.e2eeEnabled,
+                isImage: !!state.pendingImage,
+                imageUrl: state.pendingImage ? state.pendingImage.url : null
+            };
+            
+            // Lokale Notizen
+            if (state.activePeer === 'Private Notizen') {
+                if (!state.chatLog[state.activePeer]) state.chatLog[state.activePeer] = [];
+                state.chatLog[state.activePeer].push(msgObj);
+                clearInput(); 
+                saveAndRender(); 
+                return;
+            }
+
+            // Remote Nachrichten
+            if (state.wsStatus !== 'ONLINE') {
+                console.warn("Uplink nicht bereit");
+                return; 
+            }
+
+            try {
+                let payload;
+                if (state.pendingImage) {
+                    payload = state.e2eeEnabled ? 
+                        await encryptData(state.pendingImage.buffer, state.activePeer) : 
+                        btoa(String.fromCharCode.apply(null, new Uint8Array(state.pendingImage.buffer)));
+                } else {
+                    payload = state.e2eeEnabled ? 
+                        await encryptData(new TextEncoder().encode(text), state.activePeer) : 
+                        text;
+                }
+
+                ws.send(JSON.stringify({ 
+                    to: state.activePeer, 
+                    message: payload, 
+                    mediaType: state.pendingImage ? 'image' : 'text', 
+                    caption: text 
+                }));
+
+                if (!state.chatLog[state.activePeer]) state.chatLog[state.activePeer] = [];
+                state.chatLog[state.activePeer].push(msgObj);
+            } catch (err) { 
+                console.error("Send Failure:", err); 
+            } finally {
+                clearInput(); 
+                saveAndRender();
+            }
+        }
+
+        // --- Helpers ---
+        function clearInput() { 
+            const input = document.getElementById('msgInput');
+            input.value = ''; 
+            input.style.height = 'auto'; 
+            clearImage(); 
+        }
+        function clearImage() { 
+            state.pendingImage = null; 
+            document.getElementById('imagePreview').classList.add('hidden'); 
+            document.getElementById('fileInput').value = "";
+        }
+        function getCurrentTime() { const d = new Date(); return d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0'); }
+        
+        function saveAndRender() { 
+            localStorage.setItem('sfx_contacts', JSON.stringify(state.contacts)); 
+            localStorage.setItem('sfx_log', JSON.stringify(state.chatLog)); 
+            localStorage.setItem('sfx_last_active', state.activePeer); 
+            updateUI(); 
+        }
+
+        function updateUI() {
+            const connBtn = document.getElementById('connectBtn');
+            connBtn.innerHTML = state.wsStatus === 'ONLINE' ? `<i data-lucide="power-off"></i> Trennen` : `<i data-lucide="power"></i> Uplink Starten`;
+            connBtn.className = `w-full py-3 rounded-xl text-[10px] font-bold uppercase flex items-center justify-center gap-2 ${state.wsStatus === 'ONLINE' ? 'bg-zinc-800' : 'accent-bg'}`;
+
+            const e2eeBtn = document.getElementById('e2eeToggle');
+            const e2eeIcon = document.getElementById('e2eeIcon');
+            if (state.e2eeEnabled) {
+                e2eeBtn.className = "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-bold border accent-border accent-text glass";
+                e2eeBtn.innerHTML = `<i data-lucide="lock" class="w-3 h-3"></i><span class="hidden sm:inline">E2EE AKTIV</span>`;
+                e2eeIcon.classList.add('accent-text');
+            } else {
+                e2eeBtn.className = "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-bold border border-zinc-800 text-zinc-500 bg-zinc-900";
+                e2eeBtn.innerHTML = `<i data-lucide="unlock" class="w-3 h-3"></i><span class="hidden sm:inline">RAW TRANSMISSION</span>`;
+                e2eeIcon.classList.remove('accent-text');
+            }
+
+            document.getElementById('contactList').innerHTML = state.contacts.map(id => `
+                <div onclick="setActive('${id}')" class="p-4 cursor-pointer border-b border-zinc-900/30 flex justify-between items-center ${state.activePeer === id ? 'bg-zinc-900 border-l-4 accent-border' : ''}">
+                    <span class="text-sm font-bold ${state.activePeer === id ? 'accent-text' : 'text-zinc-300'}">${id}</span>
+                </div>
+            `).join('');
+
+            document.getElementById('activePeerName').innerText = state.activePeer;
+            const messages = state.chatLog[state.activePeer] || [];
+            document.getElementById('chatArea').innerHTML = messages.map(msg => `
+                <div class="flex flex-col ${msg.type === 'me' ? 'items-end' : 'items-start'}">
+                    <div class="max-w-[85%] px-3 py-2 rounded-xl relative ${msg.type === 'me' ? 'accent-bg text-white shadow-lg' : 'bg-zinc-900 border border-zinc-800 shadow-sm'}">
+                        ${msg.isImage ? `<img src="${msg.imageUrl}" class="rounded-lg mb-1 max-h-[30vh] object-cover">` : ''}
+                        <p class="text-sm leading-snug break-words">${msg.text}</p>
+                        <span class="text-[8px] opacity-50 block text-right mt-1">${msg.time}</span>
+                    </div>
+                </div>
+            `).join('') + '<div id="anchor"></div>';
+            
+            lucide.createIcons();
+            setTimeout(() => document.getElementById('anchor')?.scrollIntoView({ behavior: 'auto', block: 'end' }), 50);
+        }
+
+        function setActive(id) { 
+            state.activePeer = id; 
+            if (window.innerWidth < 768) {
+                state.sidebarOpen = false;
+                document.getElementById('sidebar').classList.add('-translate-x-full');
+            }
+            updateUI(); 
+        }
+
         async function getEncryptionKey(peerId) {
             const enc = new TextEncoder();
             const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(peerId.padEnd(16, '0').slice(0, 16)), { name: "PBKDF2" }, false, ["deriveBits", "deriveKey"]);
@@ -166,15 +432,12 @@
         }
 
         async function encryptData(data, peerId) {
-            try {
-                const key = await getEncryptionKey(peerId);
-                const iv = crypto.getRandomValues(new Uint8Array(12));
-                const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, data);
-                const combined = new Uint8Array(iv.length + encrypted.byteLength);
-                combined.set(iv);
-                combined.set(new Uint8Array(encrypted), iv.length);
-                return "SFXv2:" + btoa(String.fromCharCode.apply(null, combined));
-            } catch (e) { return null; }
+            const key = await getEncryptionKey(peerId);
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, data);
+            const combined = new Uint8Array(iv.length + encrypted.byteLength);
+            combined.set(iv); combined.set(new Uint8Array(encrypted), iv.length);
+            return "SFXv2:" + btoa(String.fromCharCode.apply(null, combined));
         }
 
         async function decryptData(encodedData, peerId) {
@@ -188,148 +451,7 @@
                 const key = await getEncryptionKey(peerId);
                 const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, data);
                 return { data: decrypted, encrypted: true };
-            } catch (e) { return { data: "[DECRYPT ERROR]", error: true, encrypted: true }; }
-        }
-
-        // --- Logic ---
-        function toggleSidebar() {
-            state.sidebarOpen = !state.sidebarOpen;
-            document.getElementById('sidebar').classList.toggle('-translate-x-full', !state.sidebarOpen);
-        }
-
-        function saveProfile() {
-            state.myName = document.getElementById('myName').value;
-            state.myId = document.getElementById('myId').value;
-            localStorage.setItem('sfx_myid', state.myId);
-            localStorage.setItem('sfx_myname', state.myName);
-        }
-
-        function toggleE2EE() {
-            state.e2eeEnabled = !state.e2eeEnabled;
-            const btn = document.getElementById('e2eeToggle');
-            const icon = document.getElementById('e2eeIcon');
-            if (state.e2eeEnabled) {
-                btn.className = "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-bold border border-red-800 text-red-500 bg-red-950/20";
-                btn.innerHTML = `<i data-lucide="lock" class="w-3 h-3"></i><span class="hidden sm:inline">E2EE AKTIV</span>`;
-                icon.className = "text-red-600 w-4 h-4";
-            } else {
-                btn.className = "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-bold border border-zinc-800 text-zinc-500 bg-zinc-900";
-                btn.innerHTML = `<i data-lucide="unlock" class="w-3 h-3"></i><span class="hidden sm:inline">RAW TRANSMISSION</span>`;
-                icon.className = "text-zinc-700 w-4 h-4";
-            }
-            lucide.createIcons();
-        }
-
-        function toggleConnection() {
-            if (state.wsStatus === 'ONLINE') {
-                if (ws) ws.close();
-            } else {
-                if (!state.myId) return alert("System-ID erforderlich.");
-                connect();
-            }
-        }
-
-        function connect() {
-            state.wsStatus = 'CONNECTING...';
-            updateUI();
-            
-            ws = new WebSocket(`wss://unwintry-strapping-winford.ngrok-free.dev/ws?id=${state.myId}`);
-            
-            ws.onopen = () => {
-                state.wsStatus = 'ONLINE';
-                updateUI();
-            };
-            
-            ws.onmessage = async (e) => {
-                const data = JSON.parse(e.data);
-                if (data.from && data.message) {
-                    const { data: result, encrypted } = await decryptData(data.message, state.myId);
-                    let text = (result instanceof ArrayBuffer) ? new TextDecoder().decode(result) : result;
-                    
-                    let msgObj = { 
-                        type: 'peer', 
-                        time: getCurrentTime(), 
-                        text: text,
-                        encrypted: encrypted 
-                    };
-
-                    if (data.mediaType === 'image') {
-                        msgObj.isImage = true;
-                        msgObj.imageUrl = `data:image/png;base64,${result}`;
-                        msgObj.text = data.caption || "";
-                    }
-
-                    if (!state.chatLog[data.from]) state.chatLog[data.from] = [];
-                    state.chatLog[data.from].push(msgObj);
-                    if (!state.contacts.includes(data.from)) state.contacts.push(data.from);
-                    
-                    saveAndRender();
-                }
-            };
-            
-            ws.onclose = () => {
-                state.wsStatus = 'OFFLINE';
-                updateUI();
-            };
-        }
-
-        function addContact() {
-            const input = document.getElementById('newContactId');
-            const id = input.value.trim();
-            if (id && !state.contacts.includes(id)) {
-                state.contacts.push(id);
-                input.value = '';
-                saveAndRender();
-            }
-        }
-
-        async function handleSend() {
-            const input = document.getElementById('msgInput');
-            const text = input.value.trim();
-            if ((!text && !state.pendingImage) || !state.activePeer) return;
-
-            let msgObj = { type: 'me', time: getCurrentTime(), text: text, encrypted: state.e2eeEnabled };
-            
-            if (state.activePeer === 'Private Notizen') {
-                if (state.pendingImage) {
-                    msgObj.isImage = true;
-                    msgObj.imageUrl = state.pendingImage.url;
-                }
-                if (!state.chatLog[state.activePeer]) state.chatLog[state.activePeer] = [];
-                state.chatLog[state.activePeer].push(msgObj);
-                clearInput();
-                saveAndRender();
-                return;
-            }
-
-            if (state.wsStatus !== 'ONLINE') return;
-
-            let payload;
-            let mediaType = 'text';
-
-            try {
-                if (state.pendingImage) {
-                    mediaType = 'image';
-                    msgObj.isImage = true;
-                    msgObj.imageUrl = state.pendingImage.url;
-                    const buffer = state.pendingImage.buffer;
-                    payload = state.e2eeEnabled ? await encryptData(buffer, state.activePeer) : btoa(String.fromCharCode.apply(null, new Uint8Array(buffer)));
-                } else {
-                    payload = state.e2eeEnabled ? await encryptData(new TextEncoder().encode(text), state.activePeer) : text;
-                }
-
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({ to: state.activePeer, message: payload, mediaType, caption: text }));
-                    
-                    if (!state.chatLog[state.activePeer]) state.chatLog[state.activePeer] = [];
-                    state.chatLog[state.activePeer].push(msgObj);
-                    
-                    clearInput();
-                    saveAndRender();
-                }
-            } catch (err) {
-                console.error("Senden fehlgeschlagen", err);
-            }
+            } catch (e) { return { data: "[FEHLER]", encrypted: true }; }
         }
 
         function handleFileSelect(e) {
@@ -344,108 +466,23 @@
             reader.readAsArrayBuffer(file);
         }
 
-        function clearImage() {
-            state.pendingImage = null;
-            document.getElementById('imagePreview').classList.add('hidden');
-        }
-
-        function clearInput() {
-            document.getElementById('msgInput').value = '';
-            document.getElementById('msgInput').style.height = 'auto';
-            clearImage();
-        }
-
-        function getCurrentTime() {
-            const d = new Date();
-            return d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
-        }
-
-        function saveAndRender() {
-            localStorage.setItem('sfx_contacts', JSON.stringify(state.contacts));
-            localStorage.setItem('sfx_log', JSON.stringify(state.chatLog));
-            localStorage.setItem('sfx_last_active', state.activePeer);
-            updateUI();
-        }
-
-        function updateUI() {
-            const connBtn = document.getElementById('connectBtn');
-            if (state.wsStatus === 'ONLINE') {
-                connBtn.innerHTML = `<i data-lucide="power-off" class="w-4 h-4"></i> Trennen`;
-                connBtn.className = "flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-[10px] font-bold uppercase flex items-center justify-center gap-2 text-zinc-400";
-            } else {
-                connBtn.innerHTML = `<i data-lucide="power" class="w-4 h-4"></i> Uplink Starten`;
-                connBtn.className = "flex-1 py-3 bg-red-700 hover:bg-red-600 rounded-xl text-[10px] font-bold uppercase flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-900/10";
-            }
-
-            const list = document.getElementById('contactList');
-            list.innerHTML = state.contacts.map(id => `
-                <div onclick="setActive('${id}')" class="p-4 cursor-pointer border-b border-zinc-900/30 flex justify-between items-center transition-all group ${state.activePeer === id ? 'bg-zinc-900 border-l-4 border-l-red-600' : 'hover:bg-white/5'}">
-                    <div class="flex items-center gap-4 overflow-hidden">
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${id === 'Private Notizen' ? 'bg-red-950 text-red-500' : 'bg-zinc-800 text-zinc-500'}">
-                            <i data-lucide="${id === 'Private Notizen' ? 'book' : 'zap'}" class="w-5 h-5"></i>
-                        </div>
-                        <div class="flex flex-col overflow-hidden">
-                            <span class="text-sm font-bold truncate ${state.activePeer === id ? 'text-red-500' : 'text-zinc-300'}">${id}</span>
-                            <span class="text-[9px] text-zinc-600 uppercase tracking-tighter">${id === 'Private Notizen' ? 'Lokaler Tresor' : 'Verschlüsselt'}</span>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-
-            document.getElementById('activePeerName').innerText = state.activePeer;
-
-            const chat = document.getElementById('chatArea');
-            const messages = state.chatLog[state.activePeer] || [];
-            if (messages.length > 0) {
-                chat.innerHTML = messages.map(msg => `
-                    <div class="flex flex-col ${msg.type === 'me' ? 'items-end' : 'items-start'}">
-                        <div class="max-w-[85%] md:max-w-[70%] lg:max-w-[55%] px-3 py-1.5 rounded-xl relative shadow-sm ${msg.type === 'me' ? 'bg-red-800 text-white rounded-tr-none' : 'bg-zinc-900 text-zinc-200 rounded-tl-none border border-zinc-800/50'}">
-                            ${msg.isImage ? `<div class="mb-1.5 rounded-lg overflow-hidden bg-black/40"><img src="${msg.imageUrl}" class="max-h-[40vh] w-full object-contain"></div>` : ''}
-                            ${msg.text ? `<p class="text-[13px] md:text-[14.5px] leading-snug whitespace-pre-wrap pr-8">${msg.text}</p>` : ''}
-                            <div class="absolute bottom-1 right-2 flex items-center gap-1 opacity-50 text-[8px] font-mono pointer-events-none">
-                                <span>${msg.time}</span>
-                                ${msg.type === 'me' ? '<i data-lucide="check-check" class="w-2.5 h-2.5 text-blue-400"></i>' : ''}
-                            </div>
-                        </div>
-                    </div>
-                `).join('') + '<div id="anchor"></div>';
-                
-                const anchor = document.getElementById('anchor');
-                if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'end' });
-            } else {
-                chat.innerHTML = `<div class="m-auto flex flex-col items-center gap-4 opacity-10 select-none grayscale"><i data-lucide="shield" class="w-16 h-16"></i><p class="text-[10px] uppercase tracking-[1em] text-center ml-[1em]">Secure Interface</p></div>`;
-            }
-
-            lucide.createIcons();
-        }
-
-        function setActive(id) {
-            state.activePeer = id;
-            if (window.innerWidth < 768) {
-                document.getElementById('sidebar').classList.add('-translate-x-full');
-                state.sidebarOpen = false;
-            }
-            updateUI();
-        }
-
         window.onload = () => {
+            applySettings();
             document.getElementById('myName').value = state.myName;
             document.getElementById('myId').value = state.myId;
             updateUI();
+            updateViewportHeight();
             
             const tx = document.getElementById('msgInput');
-            tx.addEventListener('input', function() {
-                this.style.height = 'auto';
-                this.style.height = this.scrollHeight + 'px';
+            tx.addEventListener('input', function() { 
+                this.style.height = 'auto'; 
+                this.style.height = Math.min(this.scrollHeight, 128) + 'px'; 
             });
-            tx.addEventListener('keydown', e => {
-                if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
-            });
-
-            // Fokus-Fix für Mobile: Scrollt zum Ende, wenn das Keyboard eingeblendet wird
-            window.visualViewport?.addEventListener('resize', () => {
-                const anchor = document.getElementById('anchor');
-                if (anchor) anchor.scrollIntoView({ behavior: 'smooth' });
+            tx.addEventListener('keydown', e => { 
+                if(e.key === 'Enter' && !e.shiftKey) { 
+                    e.preventDefault(); 
+                    handleSend(); 
+                } 
             });
         };
     </script>
