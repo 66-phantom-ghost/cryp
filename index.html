@@ -1,64 +1,67 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<title>Mini-Messenger</title>
-<style>
-body { font-family: Arial, sans-serif; background: #f4f4f4; display:flex; flex-direction: column; align-items: center; padding: 20px;}
-#chat { width: 400px; height: 400px; border: 1px solid #ccc; background: #fff; overflow-y: scroll; padding: 10px; margin-bottom: 10px; }
-#message { width: 300px; }
-button { padding: 5px 10px; }
-.message { margin: 5px 0; }
-.sender { font-weight: bold; }
-</style>
+  <meta charset="UTF-8">
+  <title>Simplex-Style Messenger</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #chat { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll; margin-bottom: 10px; }
+    #chat div { margin-bottom: 5px; }
+    input, button { padding: 5px; margin-right: 5px; }
+  </style>
 </head>
 <body>
+  <h2>Messenger</h2>
 
-<h2>Mini-Messenger</h2>
-<div id="chat"></div>
-<input type="text" id="message" placeholder="Nachricht schreiben...">
-<button onclick="sendMessage()">Senden</button>
+  <div>Deine generierte ID: <span id="myID"></span></div>
+  <br>
 
-<script>
-const username = prompt("Dein Name:") || "User";
-const ws = new WebSocket("wss://unwintry-strapping-winford.ngrok-free.dev/ws?id=" + username);
+  <label>Empfänger-ID:</label>
+  <input id="to" placeholder="ID des Empfängers">
+  <input id="msg" placeholder="Nachricht">
+  <button id="send">Senden</button>
 
-const chat = document.getElementById("chat");
-const input = document.getElementById("message");
+  <div id="chat"></div>
 
-// Lokaler Speicher für Nachrichten
-let messages = JSON.parse(localStorage.getItem("messages") || "[]");
-messages.forEach(msg => addMessage(msg.sender, msg.text));
+  <script>
+    // Eigene ID automatisch generieren
+    const myID = 'user-' + Math.random().toString(36).substring(2, 10);
+    document.getElementById("myID").textContent = myID;
 
-// WebSocket-Nachrichten empfangen
-ws.onmessage = (event) => {
-    const msg = JSON.parse(event.data);
-    addMessage(msg.sender, msg.text);
-    messages.push(msg);
-    localStorage.setItem("messages", JSON.stringify(messages));
-};
+    let ws = new WebSocket(`wss://unwintry-strapping-winford.ngrok-free.dev/ws?id=${myID}`);
+    const chatDiv = document.getElementById("chat");
+    const inputTo = document.getElementById("to");
+    const inputMsg = document.getElementById("msg");
+    const sendBtn = document.getElementById("send");
 
-// Nachricht senden
-function sendMessage() {
-    const text = input.value.trim();
-    if(!text) return;
-    const msg = { sender: username, text };
-    ws.send(JSON.stringify(msg));
-    addMessage(username, text);
-    messages.push(msg);
-    localStorage.setItem("messages", JSON.stringify(messages));
-    input.value = "";
-}
+    function addMessage(sender, text) {
+      const div = document.createElement("div");
+      div.textContent = `${sender}: ${text}`;
+      chatDiv.appendChild(div);
+      chatDiv.scrollTop = chatDiv.scrollHeight;
+    }
 
-// Nachricht im Chatfenster anzeigen
-function addMessage(sender, text) {
-    const div = document.createElement("div");
-    div.className = "message";
-    div.innerHTML = `<span class="sender">${sender}:</span> ${text}`;
-    chat.appendChild(div);
-    chat.scrollTop = chat.scrollHeight;
-}
-</script>
+    ws.onopen = () => addMessage("System", "Verbunden mit dem Server!");
+    ws.onclose = () => addMessage("System", "Verbindung geschlossen!");
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      addMessage(data.from, data.message);
+    };
 
+    sendBtn.onclick = () => {
+      if (ws.readyState !== WebSocket.OPEN) {
+        alert("Du bist nicht verbunden!");
+        return;
+      }
+
+      const to = inputTo.value.trim();
+      const message = inputMsg.value.trim();
+      if (!to || !message) return;
+
+      ws.send(JSON.stringify({ to, message }));
+      addMessage(`Ich → ${to}`, message);
+      inputMsg.value = "";
+    };
+  </script>
 </body>
 </html>
