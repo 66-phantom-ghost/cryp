@@ -1,161 +1,126 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ShadowFX | Dezentraler Messenger</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        :root {
-            --bg-dark: #050505;
-            --panel-dark: #121212;
-            --accent: #10b981;
-        }
-        body {
-            background-color: var(--bg-dark);
-            color: #e5e7eb;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-        }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
-        .message-in { border-bottom-left-radius: 2px; }
-        .message-out { border-bottom-right-radius: 2px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShadowFX | Dezentraler Messenger</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+:root {
+    --bg-dark: #050505;
+    --panel-dark: #121212;
+    --accent: #10b981;
+}
+body, html { margin:0; padding:0; height:100%; font-family:'Inter', sans-serif; background-color:var(--bg-dark); color:#e5e7eb; }
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
+#app-screen { display:flex; height:100vh; overflow:hidden; }
+#sidebar { width:300px; background-color:var(--panel-dark); display:flex; flex-direction:column; transition:transform 0.3s ease; }
+#sidebar.hidden-mobile { transform:translateX(-100%); position:absolute; z-index:50; height:100%; }
+#chat-window { flex:1; display:flex; flex-direction:column; background-color:var(--bg-dark); }
+#message-container { flex:1; overflow-y:auto; padding:1rem; }
+#input-area { display:flex; gap:0.5rem; padding:0.5rem; background:var(--panel-dark); border-top:1px solid #222; position:sticky; bottom:0; }
+#msg-input { flex:1; padding:0.5rem 1rem; border-radius:9999px; background:#222; border:none; color:#fff; outline:none; }
+#send-btn { padding:0.5rem 1rem; background:var(--accent); border:none; border-radius:9999px; color:#000; font-weight:bold; }
+.contact { padding:0.75rem 1rem; cursor:pointer; border-bottom:1px solid #222; }
+.contact.active { background:#222; }
+@media(max-width:768px){
+    #sidebar { position:absolute; z-index:50; height:100%; top:0; left:0; }
+}
+</style>
 </head>
-<body class="h-screen overflow-hidden">
+<body>
 
-    <!-- Startbildschirm / Profil erstellen -->
-    <div id="setup-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-[#050505] p-6">
-        <div class="w-full max-w-sm text-center">
-            <div class="mb-8 flex justify-center">
-                <div class="w-20 h-20 bg-emerald-500/10 rounded-3xl flex items-center justify-center text-emerald-500 shadow-2xl shadow-emerald-500/10">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                </div>
-            </div>
-            <h1 class="text-3xl font-bold mb-2">ShadowFX</h1>
-            <p class="text-zinc-500 mb-8 text-sm">Dezentral. Verschlüsselt. Keine Cloud.</p>
-            <input type="text" id="username-input" placeholder="Anzeigename wählen" class="w-full bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mb-4 outline-none focus:border-emerald-500 transition-all text-center">
-            <button onclick="createProfile()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-emerald-900/20">
-                Profil lokal erstellen
-            </button>
-        </div>
-    </div>
+<div id="setup-screen" class="fixed inset-0 flex items-center justify-center bg-[#050505] p-6 z-50">
+<div class="w-full max-w-sm text-center">
+<h1 class="text-3xl font-bold mb-2">ShadowFX</h1>
+<input type="text" id="username-input" placeholder="Anzeigename wählen" class="w-full bg-zinc-900 rounded-full p-4 mb-4 outline-none">
+<button onclick="createProfile()" class="w-full bg-emerald-600 text-black py-3 rounded-full font-bold">Profil erstellen</button>
+</div>
+</div>
 
-    <!-- Hauptanwendung -->
-    <div id="app-screen" class="flex h-screen opacity-0 transition-opacity duration-500">
-        <!-- Sidebar -->
-        <div id="sidebar" class="w-full md:w-80 border-r border-zinc-900 flex flex-col bg-[#080808]">
-            <div class="p-6 flex items-center justify-between">
-                <h2 class="text-xl font-bold tracking-tight">Chats</h2>
-                <div class="flex gap-2">
-                    <button onclick="toggleSettings()" class="p-2 hover:bg-zinc-900 rounded-xl text-zinc-500">⚙️</button>
-                    <button onclick="openAddContact()" class="p-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-500 shadow-md">➕</button>
-                </div>
-            </div>
-            <div id="contact-list" class="flex-1 overflow-y-auto px-3 custom-scrollbar"></div>
-            <div class="p-4 border-t border-zinc-900 bg-[#050505]">
-                <div class="flex items-center gap-3">
-                    <div id="status-dot" class="w-2 h-2 rounded-full bg-red-500"></div>
-                    <span id="status-text" class="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Getrennt</span>
-                </div>
-            </div>
-        </div>
+<div id="app-screen" class="hidden">
 
-        <!-- Chat Fenster -->
-        <div id="chat-window" class="flex-1 flex flex-col bg-[#050505]">
-            <div id="no-chat" class="flex-1 flex flex-col items-center justify-center text-zinc-600 space-y-4">
-                <div class="w-24 h-24 border-2 border-dashed border-zinc-800 rounded-full flex items-center justify-center opacity-20">
-                    💬
-                </div>
-                <p>Wähle einen sicheren Kanal</p>
-            </div>
+<!-- Sidebar -->
+<div id="sidebar" class="hidden-mobile">
+<div class="p-4 border-b border-zinc-900 flex justify-between items-center">
+<h2 class="font-bold">Chats</h2>
+<button onclick="toggleSidebar()" class="md:hidden">☰</button>
+</div>
+<div id="contact-list" class="flex-1 overflow-y-auto custom-scrollbar"></div>
+</div>
 
-            <div id="active-chat" class="hidden flex-1 flex flex-col">
-                <div class="p-4 border-b border-zinc-900 flex items-center gap-4">
-                    <button onclick="backToList()" class="md:hidden p-2 text-zinc-400">⬅️</button>
-                    <div id="chat-avatar" class="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center font-bold text-emerald-500">?</div>
-                    <div>
-                        <div id="chat-name" class="font-bold">Unbekannt</div>
-                        <div class="text-[10px] text-emerald-500 font-mono" id="chat-id-small">ID: ...</div>
-                    </div>
-                </div>
+<!-- Chat Window -->
+<div id="chat-window">
+<div id="chat-header" class="p-4 border-b border-zinc-900 flex justify-between items-center">
+<div id="chat-name">Kein Chat ausgewählt</div>
+<div>
+<button onclick="openAddContact()">+</button>
+</div>
+</div>
+<div id="message-container"></div>
+<div id="input-area">
+<input type="text" id="msg-input" placeholder="Nachricht...">
+<button id="send-btn" onclick="sendMsg()">Senden</button>
+</div>
+</div>
 
-                <div id="message-container" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"></div>
+</div>
 
-                <div class="p-4">
-                    <div class="max-w-4xl mx-auto flex items-center gap-3 bg-zinc-900 p-2 pl-4 rounded-2xl border border-zinc-800 focus-within:border-emerald-500/50 transition-all">
-                        <input type="text" id="msg-input" placeholder="Nachricht..." class="flex-1 bg-transparent outline-none py-2 text-sm">
-                        <button onclick="sendMsg()" class="p-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-900/20">➡️</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+<script>
+const WS_URL = 'wss://unwintry-strapping-winford.ngrok-free.dev';
+let ws, myId, myName, keyPair, activeContact=null, contacts = JSON.parse(localStorage.getItem('sfx_contacts')||'[]');
 
-    <!-- Modals -->
-    <div id="modal-container" class="hidden fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-6">
-        <!-- Settings Modal -->
-        <div id="settings-modal" class="hidden w-full max-w-md bg-zinc-900 rounded-3xl p-6 border border-zinc-800">
-            <h2 class="text-xl font-bold mb-6">Deine Identität</h2>
-            <div class="space-y-4">
-                <div>
-                    <label class="text-[10px] uppercase text-zinc-500 font-bold mb-2 block tracking-widest">Deine ID (Teilen zum Chatten)</label>
-                    <div class="flex items-center gap-2 bg-black p-4 rounded-2xl border border-zinc-800">
-                        <code id="my-id-display" class="text-emerald-500 text-xs truncate flex-1 font-mono">...</code>
-                        <button onclick="copyMyId()" class="text-zinc-500 hover:text-white">📋</button>
-                    </div>
-                </div>
-                <button onclick="logout()" class="w-full text-red-500 bg-red-500/10 py-4 rounded-2xl font-bold hover:bg-red-500/20">Daten löschen</button>
-                <button onclick="closeModals()" class="w-full bg-zinc-800 py-4 rounded-2xl font-bold">Schließen</button>
-            </div>
-        </div>
+async function exportKey(key){ const exported=await crypto.subtle.exportKey(key.type==='private'?'pkcs8':'spki',key); return btoa(String.fromCharCode(...new Uint8Array(exported))); }
+async function importKey(base64,type){ const bin=Uint8Array.from(atob(base64),c=>c.charCodeAt(0)); return crypto.subtle.importKey(type==='private'?'pkcs8':'spki',bin,{name:"RSA-OAEP",hash:"SHA-256"},true,type==='private'?["decrypt"]:["encrypt"]); }
 
-        <!-- Add Contact Modal -->
-        <div id="add-modal" class="hidden w-full max-w-sm bg-zinc-900 rounded-3xl p-6 border border-zinc-800">
-            <h2 class="text-xl font-bold mb-4">Neuer Kanal</h2>
-            <input type="text" id="target-id-input" placeholder="ID des Empfängers" class="w-full bg-black border border-zinc-800 rounded-2xl p-4 mb-4 outline-none focus:border-emerald-500 transition-all font-mono text-xs">
-            <input type="text" id="target-name-input" placeholder="Name für Kontakt" class="w-full bg-black border border-zinc-800 rounded-2xl p-4 mb-6 outline-none focus:border-emerald-500 transition-all">
-            <div class="flex gap-3">
-                <button onclick="closeModals()" class="flex-1 bg-zinc-800 py-4 rounded-2xl font-bold">Abbruch</button>
-                <button onclick="saveNewContact()" class="flex-1 bg-emerald-600 py-4 rounded-2xl font-bold">Speichern</button>
-            </div>
-        </div>
-    </div>
+async function init(){
+myId=localStorage.getItem('sfx_uid'); myName=localStorage.getItem('sfx_name'); const pubB64=localStorage.getItem('sfx_pub'); const privB64=localStorage.getItem('sfx_priv');
+if(!myId || !pubB64){ document.getElementById('setup-screen').classList.remove('hidden'); }
+else{ keyPair={publicKey:await importKey(pubB64,'public'), privateKey:await importKey(privB64,'private')}; startApp(); }
+}
 
-    <!-- Script -->
-    <script>
-        const WS_URL='wss://unwintry-strapping-winford.ngrok-free.dev';
-        let ws,myId,myName,keyPair;
-        let activeContact=null;
-        let contacts=JSON.parse(localStorage.getItem('sfx_contacts')||'[]');
+async function createProfile(){
+const name=document.getElementById('username-input').value.trim();
+if(!name) return;
+myName=name; myId='sfx-'+Math.random().toString(36).substr(2,9);
+keyPair=await crypto.subtle.generateKey({name:"RSA-OAEP",modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:"SHA-256"},true,["encrypt","decrypt"]);
+localStorage.setItem('sfx_uid',myId); localStorage.setItem('sfx_name',myName); localStorage.setItem('sfx_pub',await exportKey(keyPair.publicKey)); localStorage.setItem('sfx_priv',await exportKey(keyPair.privateKey));
+document.getElementById('setup-screen').classList.add('hidden'); startApp();
+}
 
-        async function exportKey(key){const exported=await crypto.subtle.exportKey(key.type==='private'?'pkcs8':'spki',key);return btoa(String.fromCharCode(...new Uint8Array(exported)));}
-        async function importKey(base64,type){const bin=Uint8Array.from(atob(base64),c=>c.charCodeAt(0));return crypto.subtle.importKey(type==='private'?'pkcs8':'spki',bin,{name:"RSA-OAEP",hash:"SHA-256"},true,type==='private'?["decrypt"]:["encrypt"]);}
-        async function init(){myId=localStorage.getItem('sfx_uid');myName=localStorage.getItem('sfx_name');const pubB64=localStorage.getItem('sfx_pub');const privB64=localStorage.getItem('sfx_priv');if(!myId||!pubB64||!privB64){document.getElementById('setup-screen').classList.remove('hidden');}else{keyPair={publicKey:await importKey(pubB64,'public'),privateKey:await importKey(privB64,'private')};startApp();}}
-        async function createProfile(){const nameInput=document.getElementById('username-input').value.trim();if(!nameInput)return;myName=nameInput;myId='sfx-'+Math.random().toString(36).substr(2,9);keyPair=await crypto.subtle.generateKey({name:"RSA-OAEP",modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:"SHA-256"},true,["encrypt","decrypt"]);localStorage.setItem('sfx_uid',myId);localStorage.setItem('sfx_name',myName);localStorage.setItem('sfx_pub',await exportKey(keyPair.publicKey));localStorage.setItem('sfx_priv',await exportKey(keyPair.privateKey));document.getElementById('setup-screen').classList.add('hidden');startApp();}
+function startApp(){ document.getElementById('app-screen').classList.remove('hidden'); renderContacts(); connectWS(); }
 
-        function startApp(){document.getElementById('app-screen').classList.remove('opacity-0');document.getElementById('my-id-display').textContent=myId;renderContacts();connectWS();}
-        function connectWS(){ws=new WebSocket(WS_URL);ws.onopen=()=>{ws.send(JSON.stringify({type:'register',userId:myId}));document.getElementById('status-dot').className='w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]';document.getElementById('status-text').textContent='Bereit';};ws.onclose=()=>{document.getElementById('status-dot').className='w-2 h-2 rounded-full bg-red-500';document.getElementById('status-text').textContent='Getrennt';setTimeout(connectWS,5000);};ws.onmessage=async e=>{const msg=JSON.parse(e.data);if(msg.type==='message'){handleIncomingMessage(msg);}}}
+function connectWS(){ ws=new WebSocket(WS_URL);
+ws.onopen=()=>{ ws.send(JSON.stringify({type:'register',userId:myId})); }
+ws.onmessage=async e=>{ const msg=JSON.parse(e.data); if(msg.type==='message'){ handleIncomingMessage(msg); } }
+ws.onclose=()=>{ setTimeout(connectWS,5000); } }
 
-        async function handleIncomingMessage(msg){const contact=contacts.find(c=>c.id===msg.from);if(!contact)return;try{const buffer=Uint8Array.from(atob(msg.text),c=>c.charCodeAt(0)).buffer;const dec=new TextDecoder();const text=dec.decode(await crypto.subtle.decrypt({name:"RSA-OAEP"},keyPair.privateKey,buffer));saveMessage(msg.from,text,'received');if(activeContact&&activeContact.id===msg.from)renderMessages();}catch(e){console.error("Entschlüsselung fehlgeschlagen",e);}}
+async function handleIncomingMessage(msg){ const contact=contacts.find(c=>c.id===msg.from); if(!contact) return;
+try{ const buffer=Uint8Array.from(atob(msg.text),c=>c.charCodeAt(0)).buffer;
+const dec=new TextDecoder(); const text=dec.decode(await crypto.subtle.decrypt({name:"RSA-OAEP"},keyPair.privateKey,buffer)); saveMessage(msg.from,text,'received'); if(activeContact && activeContact.id===msg.from) renderMessages(); } catch(e){ console.error(e); } }
 
-        function saveMessage(chatId,text,type){const chatLog=JSON.parse(localStorage.getItem('chat_'+chatId)||'[]');chatLog.push({text,type,time:Date.now()});localStorage.setItem('chat_'+chatId,JSON.stringify(chatLog));}
+function renderContacts(){ const list=document.getElementById('contact-list'); list.innerHTML=''; contacts.forEach(c=>{ const div=document.createElement('div'); div.className='contact'; if(activeContact?.id===c.id) div.classList.add('active'); div.textContent=c.name; div.onclick=()=>selectContact(c); list.appendChild(div); }); }
 
-        function renderContacts(){const list=document.getElementById('contact-list');list.innerHTML='';contacts.forEach(c=>{const div=document.createElement('div');div.className=`flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition-all ${activeContact?.id===c.id?'bg-zinc-900':'hover:bg-zinc-900/50'}`;div.onclick=()=>selectContact(c);div.innerHTML=`<div class="w-12 h-12 bg-zinc-800 rounded-full flex items-center justify-center font-bold text-emerald-500 uppercase">${c.name[0]}</div><div class="flex-1 truncate"><div class="font-bold text-sm">${c.name}</div><div class="text-[10px] text-zinc-600 font-mono">${c.id}</div></div>`;list.appendChild(div);});}
-        function selectContact(c){activeContact=c;document.getElementById('no-chat').classList.add('hidden');document.getElementById('active-chat').classList.remove('hidden');document.getElementById('chat-name').textContent=c.name;document.getElementById('chat-id-small').textContent='ID: '+c.id;document.getElementById('chat-avatar').textContent=c.name[0];renderContacts();renderMessages();}
-        function renderMessages(){if(!activeContact)return;const container=document.getElementById('message-container');const chatLog=JSON.parse(localStorage.getItem('chat_'+activeContact.id)||'[]');container.innerHTML='';chatLog.forEach(m=>{const div=document.createElement('div');div.className=`flex ${m.type==='sent'?'justify-end':'justify-start'}`;div.innerHTML=`<div class="max-w-[80%] p-3 px-4 rounded-2xl text-sm ${m.type==='sent'?'bg-emerald-600 text-white message-out':'bg-zinc-900 text-zinc-200 message-in'}">${m.text}</div>`;container.appendChild(div);});container.scrollTop=container.scrollHeight;}
-        async function sendMsg(){const input=document.getElementById('msg-input');const text=input.value.trim();if(!text||!activeContact)return;try{const targetKey=await importKey(activeContact.publicKey,'public');const enc=new TextEncoder();const encrypted=await crypto.subtle.encrypt({name:"RSA-OAEP"},targetKey,enc.encode(text));const b64=btoa(String.fromCharCode(...new Uint8Array(encrypted)));ws.send(JSON.stringify({type:'message',to:activeContact.id,text:b64,from:myId}));saveMessage(activeContact.id,text,'sent');input.value='';renderMessages();}catch(e){console.error("Senden fehlgeschlagen",e);}}
+function selectContact(c){ activeContact=c; document.getElementById('chat-name').textContent=c.name; renderContacts(); renderMessages(); }
 
-        function openAddContact(){document.getElementById('modal-container').classList.remove('hidden');document.getElementById('add-modal').classList.remove('hidden');}
-        function toggleSettings(){document.getElementById('modal-container').classList.remove('hidden');document.getElementById('settings-modal').classList.remove('hidden');}
-        function closeModals(){document.getElementById('modal-container').classList.add('hidden');document.getElementById('add-modal').classList.add('hidden');document.getElementById('settings-modal').classList.add('hidden');}
-        function saveNewContact(){const id=document.getElementById('target-id-input').value.trim();const name=document.getElementById('target-name-input').value.trim();if(!id||!name)return;const parts=id.split(':');const uid=parts[0];const pub=parts[1]||"";contacts.push({id:uid,name:name,publicKey:pub});localStorage.setItem('sfx_contacts',JSON.stringify(contacts));renderContacts();closeModals();}
-        function copyMyId(){const pub=localStorage.getItem('sfx_pub');const fullId=`${myId}:${pub}`;navigator.clipboard.writeText(fullId);alert('ID kopiert!');}
-        function logout(){localStorage.clear();location.reload();}
-        init();
-    </script>
+function renderMessages(){ if(!activeContact) return; const container=document.getElementById('message-container'); const chatLog=JSON.parse(localStorage.getItem('chat_'+activeContact.id)||'[]'); container.innerHTML=''; chatLog.forEach(m=>{ const div=document.createElement('div'); div.className=m.type==='sent'?'text-right':'text-left'; div.textContent=m.text; container.appendChild(div); }); container.scrollTop=container.scrollHeight; }
+
+async function sendMsg(){ const input=document.getElementById('msg-input'); const text=input.value.trim(); if(!text || !activeContact) return;
+const enc=new TextEncoder(); const encrypted=await crypto.subtle.encrypt({name:"RSA-OAEP"},keyPair.publicKey,enc.encode(text));
+const b64=btoa(String.fromCharCode(...new Uint8Array(encrypted)));
+ws.send(JSON.stringify({type:'message',to:activeContact.id,text:b64,from:myId}));
+saveMessage(activeContact.id,text,'sent'); input.value=''; renderMessages(); }
+
+function saveMessage(chatId,text,type){ const chatLog=JSON.parse(localStorage.getItem('chat_'+chatId)||'[]'); chatLog.push({text,type,time:Date.now()}); localStorage.setItem('chat_'+chatId,JSON.stringify(chatLog)); }
+
+function openAddContact(){ const id=prompt('ID des Empfängers:'); const name=prompt('Name für Kontakt:'); if(!id||!name) return; contacts.push({id,name,publicKey:''}); localStorage.setItem('sfx_contacts',JSON.stringify(contacts)); renderContacts(); }
+
+function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('hidden-mobile'); }
+
+init();
+</script>
+
 </body>
 </html>
