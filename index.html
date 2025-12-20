@@ -1,67 +1,80 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <title>Simplex-Style Messenger</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    #chat { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll; margin-bottom: 10px; }
-    #chat div { margin-bottom: 5px; }
-    input, button { padding: 5px; margin-right: 5px; }
-  </style>
+<meta charset="UTF-8">
+<title>Mini-Messenger</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; }
+  #chat { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll; }
+  input, button { padding: 5px; margin: 5px 0; }
+</style>
 </head>
 <body>
-  <h2>Messenger</h2>
+<h2>Mini-Messenger</h2>
 
-  <div>Deine generierte ID: <span id="myID"></span></div>
-  <br>
+<label>Deine ID:</label><br>
+<input type="text" id="myId" placeholder="z. B. alice"><br>
 
-  <label>Empfänger-ID:</label>
-  <input id="to" placeholder="ID des Empfängers">
-  <input id="msg" placeholder="Nachricht">
-  <button id="send">Senden</button>
+<label>Empfänger ID:</label><br>
+<input type="text" id="peerId" placeholder="z. B. bob"><br>
 
-  <div id="chat"></div>
+<button id="connectBtn">Verbinden</button>
 
-  <script>
-    // Eigene ID automatisch generieren
-    const myID = 'user-' + Math.random().toString(36).substring(2, 10);
-    document.getElementById("myID").textContent = myID;
+<div id="chat"></div>
 
-    let ws = new WebSocket(`wss://unwintry-strapping-winford.ngrok-free.dev/ws?id=${myID}`);
-    const chatDiv = document.getElementById("chat");
-    const inputTo = document.getElementById("to");
-    const inputMsg = document.getElementById("msg");
-    const sendBtn = document.getElementById("send");
+<input type="text" id="msgInput" placeholder="Nachricht..." disabled>
+<button id="sendBtn" disabled>Senden</button>
 
-    function addMessage(sender, text) {
-      const div = document.createElement("div");
-      div.textContent = `${sender}: ${text}`;
-      chatDiv.appendChild(div);
-      chatDiv.scrollTop = chatDiv.scrollHeight;
+<script>
+let ws;
+
+const chatBox = document.getElementById("chat");
+const msgInput = document.getElementById("msgInput");
+const sendBtn = document.getElementById("sendBtn");
+const connectBtn = document.getElementById("connectBtn");
+
+connectBtn.onclick = () => {
+    const myId = document.getElementById("myId").value.trim();
+    const peerId = document.getElementById("peerId").value.trim();
+
+    if (!myId || !peerId) {
+        alert("Bitte beide IDs eingeben!");
+        return;
     }
 
-    ws.onopen = () => addMessage("System", "Verbunden mit dem Server!");
-    ws.onclose = () => addMessage("System", "Verbindung geschlossen!");
+    // Verbindung zum WebSocket-Server über Ngrok-Link
+    ws = new WebSocket(`wss://unwintry-strapping-winford.ngrok-free.dev/ws?id=${myId}`);
+
+    ws.onopen = () => {
+        chatBox.innerHTML += `<div><em>Verbunden als ${myId}</em></div>`;
+        msgInput.disabled = false;
+        sendBtn.disabled = false;
+    };
+
     ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      addMessage(data.from, data.message);
+        try {
+            const data = JSON.parse(event.data);
+            if (data.from && data.message) {
+                chatBox.innerHTML += `<div><strong>${data.from}:</strong> ${data.message}</div>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        } catch (err) { console.error(err); }
+    };
+
+    ws.onerror = (err) => {
+        chatBox.innerHTML += `<div style="color:red;"><em>Fehler: ${err.message}</em></div>`;
     };
 
     sendBtn.onclick = () => {
-      if (ws.readyState !== WebSocket.OPEN) {
-        alert("Du bist nicht verbunden!");
-        return;
-      }
-
-      const to = inputTo.value.trim();
-      const message = inputMsg.value.trim();
-      if (!to || !message) return;
-
-      ws.send(JSON.stringify({ to, message }));
-      addMessage(`Ich → ${to}`, message);
-      inputMsg.value = "";
+        const message = msgInput.value.trim();
+        if (message) {
+            ws.send(JSON.stringify({ to: peerId, message }));
+            chatBox.innerHTML += `<div><strong>Du:</strong> ${message}</div>`;
+            msgInput.value = "";
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
     };
-  </script>
+};
+</script>
 </body>
 </html>
