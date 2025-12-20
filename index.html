@@ -3,196 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ShadowFX | Secure Mesh</title>
+    <title>ShadowFX | Pro Messenger</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
         
         :root { 
             --primary: #ef4444; 
-            --font-size-base: 13px;
+            --bg: #000000;
         }
 
         body { 
-            background-color: #000000; 
+            background-color: var(--bg); 
             color: #e4e4e7; 
-            font-family: 'JetBrains Mono', monospace; 
+            font-family: 'Inter', sans-serif; 
             height: 100dvh; 
             margin: 0; 
             overflow: hidden; 
             -webkit-tap-highlight-color: transparent;
-            font-size: var(--font-size-base);
         }
 
-        .ios-blur { background: rgba(5, 5, 5, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
-        
-        .panel-slide { 
-            position: fixed; bottom: 0; left: 0; right: 0; height: 92dvh; z-index: 2000; 
-            transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1); 
-            border-top: 1px solid #18181b; border-radius: 32px 32px 0 0; 
-        }
-        .panel-slide.open { transform: translateY(0); }
+        .mono { font-family: 'JetBrains Mono', monospace; }
 
+        .ios-blur { 
+            background: rgba(10, 10, 10, 0.8); 
+            backdrop-filter: blur(25px); 
+            -webkit-backdrop-filter: blur(25px); 
+        }
+
+        /* Message Bubbles */
         .bubble { 
-            max-width: 85%; 
-            padding: 12px 16px; 
-            border-radius: 20px; 
-            font-size: var(--font-size-base); 
-            line-height: 1.4; 
+            max-width: 75%; 
+            padding: 10px 14px; 
+            border-radius: 18px; 
+            font-size: 14px; 
             position: relative; 
-            word-break: break-word;
-            display: flex;
-            flex-direction: column;
-            cursor: pointer;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s;
+            user-select: none;
         }
+        .bubble:active { transform: scale(0.96); }
         .bubble-me { background: var(--primary); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
-        .bubble-peer { background: #18181b; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #27272a; }
-        
-        .bubble-meta {
-            font-size: 8px;
-            margin-top: 4px;
-            opacity: 0.7;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 4px;
-            text-transform: uppercase;
+        .bubble-peer { background: #1c1c1e; align-self: flex-start; border-bottom-left-radius: 4px; }
+
+        /* Context Menus */
+        .context-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 5000;
+            display: flex; align-items: center; justify-content: center; padding: 20px;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s;
         }
+        .context-overlay.active { opacity: 1; pointer-events: auto; }
+        .menu-card {
+            background: #1c1c1e; border-radius: 20px; width: 100%; max-width: 280px;
+            overflow: hidden; transform: scale(0.9); transition: transform 0.2s;
+        }
+        .context-overlay.active .menu-card { transform: scale(1); }
+        .menu-item {
+            padding: 16px; border-bottom: 1px solid #2c2c2e; display: flex; align-items: center; gap: 12px;
+            width: 100%; text-align: left; font-size: 14px; font-weight: 500;
+        }
+        .menu-item:last-child { border-bottom: none; }
+        .menu-item.danger { color: #ff453a; }
 
-        .status-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
-        
         .no-select { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-        .bg-accent { background-color: var(--primary); }
-
-        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .animate-slide-up { animation: slideUp 0.3s ease-out; }
     </style>
 </head>
 <body class="no-select">
 
-    <!-- Onboarding -->
-    <div id="onboarding" class="fixed inset-0 bg-black z-[3000] p-10 flex flex-col justify-center items-center text-center transition-all duration-500">
-        <div class="w-20 h-20 bg-red-500/10 rounded-[2.5rem] flex items-center justify-center mb-8 border border-red-500/20">
-            <i data-lucide="zap" class="w-10 h-10 text-red-500"></i>
+    <!-- Splash/Setup -->
+    <div id="onboarding" class="fixed inset-0 bg-black z-[6000] p-10 flex flex-col justify-center items-center text-center">
+        <div class="w-20 h-20 bg-red-500/10 rounded-[2rem] flex items-center justify-center mb-6 border border-red-500/20">
+            <i data-lucide="shield-check" class="w-10 h-10 text-red-500"></i>
         </div>
-        <h1 class="text-3xl font-bold mb-3 uppercase tracking-tighter text-white">ShadowFX</h1>
-        <p class="text-[10px] text-zinc-500 uppercase tracking-[0.3em] mb-12 max-w-[240px] leading-loose">Dein Code ändert sich bei jeder Generierung.</p>
-        <div class="w-full max-w-xs space-y-4">
-            <input type="text" id="user-display-input" placeholder="PSEUDONYM" class="w-full bg-zinc-900/50 p-5 rounded-2xl border border-zinc-800 text-center text-white font-bold outline-none uppercase text-xs">
-            <button onclick="setupApp()" class="w-full bg-red-500 p-5 rounded-2xl font-bold text-white uppercase text-xs shadow-lg shadow-red-500/20 active:scale-95 transition-all">Starten</button>
+        <h1 class="text-2xl font-bold mb-8 uppercase tracking-tighter">ShadowFX Pro</h1>
+        <div class="w-full max-w-xs space-y-3">
+            <input type="text" id="user-display-input" placeholder="WÄHLE EIN PSEUDONYM" class="w-full bg-zinc-900 p-4 rounded-xl border border-zinc-800 text-center text-white font-bold outline-none text-xs">
+            <button onclick="setupApp()" class="w-full bg-red-500 p-4 rounded-xl font-bold text-white uppercase text-xs shadow-lg shadow-red-500/20 active:scale-95 transition-all">Einsteigen</button>
         </div>
     </div>
 
-    <!-- Main UI -->
-    <div id="app-ui" class="flex flex-col h-full hidden opacity-0 transition-opacity duration-500">
-        <header class="ios-blur pt-12 pb-5 px-6 border-b border-zinc-900 flex justify-between items-center z-50">
-            <div class="flex items-center gap-4">
-                <button id="back-btn" onclick="nav('chats')" class="hidden w-8 h-8 bg-zinc-900 rounded-lg flex items-center justify-center border border-zinc-800">
-                    <i data-lucide="chevron-left" class="w-5 h-5 text-zinc-400"></i>
+    <!-- Main Application UI -->
+    <div id="app-ui" class="flex flex-col h-full hidden">
+        <header class="ios-blur pt-12 pb-4 px-6 border-b border-zinc-900 flex justify-between items-center z-50">
+            <div class="flex items-center gap-3">
+                <button id="back-btn" onclick="nav('chats')" class="hidden w-8 h-8 flex items-center justify-center">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
                 </button>
-                <div>
-                    <h1 id="view-title" class="font-bold text-lg text-white uppercase tracking-tight">ShadowFX</h1>
-                    <div class="flex items-center gap-2 mt-1">
-                        <div id="ws-status-dot" class="w-1.5 h-1.5 rounded-full bg-zinc-600"></div>
-                        <span class="text-[8px] text-emerald-500 font-bold uppercase tracking-widest">GESICHERT</span>
-                    </div>
-                </div>
+                <h1 id="view-title" class="font-bold text-xl uppercase tracking-tighter">Chats</h1>
             </div>
-            <div id="header-action-btn" onclick="toggleSettings(true)" class="w-10 h-10 bg-zinc-900/50 rounded-xl flex items-center justify-center border border-zinc-800">
-                <i data-lucide="user" class="w-5 h-5 text-zinc-400"></i>
-            </div>
+            <div id="connection-indicator" class="w-2 h-2 rounded-full bg-zinc-700"></div>
         </header>
 
-        <main id="main-content" class="flex-1 overflow-y-auto p-4 flex flex-col gap-4"></main>
+        <main id="main-content" class="flex-1 overflow-y-auto p-4 flex flex-col gap-2"></main>
 
-        <nav id="bottom-nav" class="ios-blur pb-8 pt-4 px-8 border-t border-zinc-900 flex justify-around items-center z-50">
-            <button onclick="nav('chats')" class="flex flex-col items-center gap-1.5" id="nav-chats">
-                <i data-lucide="message-square" class="w-6 h-6"></i>
-                <span class="text-[8px] font-bold uppercase tracking-widest">CHATS</span>
-            </button>
-            <button onclick="nav('invite')" class="flex flex-col items-center gap-1.5" id="nav-invite">
-                <i data-lucide="plus-circle" class="w-6 h-6"></i>
-                <span class="text-[8px] font-bold uppercase tracking-widest">INVITE</span>
-            </button>
+        <nav id="bottom-nav" class="ios-blur pb-8 pt-2 px-10 border-t border-zinc-900 flex justify-around items-center z-50">
+            <button onclick="nav('chats')" id="nav-chats" class="p-2 opacity-100"><i data-lucide="message-circle"></i></button>
+            <button onclick="nav('invite')" id="nav-invite" class="p-2 opacity-40"><i data-lucide="plus-square"></i></button>
+            <button onclick="fullReset()" class="p-2 opacity-40"><i data-lucide="refresh-cw"></i></button>
         </nav>
     </div>
 
-    <!-- Modals -->
-    <div id="invite-modal" class="fixed inset-0 z-[4000] bg-black/98 p-8 flex flex-col justify-center items-center hidden">
-        <h2 class="text-xl font-bold mb-4 uppercase tracking-tighter text-white">Code einlösen</h2>
-        <textarea id="invite-input" placeholder="SFX#..." class="w-full bg-zinc-900 border border-zinc-800 p-6 rounded-2xl font-mono text-center text-white text-[10px] mb-6 outline-none h-40 resize-none"></textarea>
-        <button onclick="validateInviteCode()" class="w-full bg-white text-black p-5 rounded-2xl font-bold uppercase text-xs">Tunnel öffnen</button>
-        <button onclick="$('invite-modal').classList.add('hidden')" class="w-full p-4 text-zinc-600 text-[10px] mt-6 uppercase font-bold">Abbrechen</button>
+    <!-- Universal Context Menu -->
+    <div id="context-menu" class="context-overlay" onclick="closeContextMenu()">
+        <div class="menu-card" onclick="event.stopPropagation()">
+            <div id="menu-content"></div>
+            <button onclick="closeContextMenu()" class="menu-item text-zinc-500 justify-center font-bold">Abbrechen</button>
+        </div>
     </div>
 
-    <div id="settings-panel" class="panel-slide bg-[#050505] flex flex-col">
-        <div class="w-full py-6" onclick="toggleSettings(false)"><div class="w-12 h-1 bg-zinc-800 rounded-full mx-auto"></div></div>
-        <div class="flex-1 px-8 space-y-6">
-            <div class="flex flex-col items-center py-6">
-                <div class="w-20 h-20 bg-zinc-900 rounded-[2rem] border border-zinc-800 flex items-center justify-center mb-4">
-                    <i data-lucide="user" class="w-10 h-10 text-zinc-500"></i>
-                </div>
-                <h2 id="settings-user-name" class="text-xl font-bold text-white uppercase tracking-tighter">USER</h2>
-            </div>
-            <div class="space-y-2">
-                <button id="delete-chat-btn" class="hidden w-full p-5 text-red-500 text-[10px] font-bold border border-red-900/20 rounded-2xl uppercase bg-red-900/5">Chat & Nachrichten löschen</button>
-                <button onclick="fullReset()" class="w-full p-5 text-zinc-500 text-[10px] font-bold border border-zinc-800 rounded-2xl uppercase bg-zinc-900/20">Gesamte App zurücksetzen</button>
-            </div>
-        </div>
+    <!-- Invite Modal -->
+    <div id="invite-modal" class="fixed inset-0 z-[7000] bg-black/95 p-8 flex flex-col justify-center items-center hidden">
+        <h2 class="text-xl font-bold mb-4 uppercase">Code einlösen</h2>
+        <input id="invite-input" placeholder="SFX#..." class="w-full bg-zinc-900 border border-zinc-800 p-4 rounded-xl font-mono text-white text-xs mb-4 outline-none">
+        <button onclick="validateInviteCode()" class="w-full bg-white text-black p-4 rounded-xl font-bold uppercase text-xs">Tunnel starten</button>
+        <button onclick="$('invite-modal').classList.add('hidden')" class="mt-4 text-zinc-500 text-xs uppercase font-bold">Schließen</button>
     </div>
 
     <script>
         const $ = id => document.getElementById(id);
         const RELAY_HOST = "unwintry-strapping-winford.ngrok-free.dev";
         let socket;
-        let state = { profiles: [], activeProfileId: null, view: 'chats', activeChatId: null };
+        let state = { profiles: [], activeProfileId: null, view: 'chats', activeChatId: null, lastGeneratedCode: null };
+        let longPressTimer;
 
-        // --- KRYPTO & STORAGE ---
-        async function generateKeyPair() { 
-            return await crypto.subtle.generateKey(
-                { name: "RSA-OAEP", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" }, 
-                true, ["encrypt", "decrypt"]
-            ); 
-        }
-        async function exportKey(key) { 
-            const format = key.type === "public" ? "spki" : "pkcs8";
-            const exported = await crypto.subtle.exportKey(format, key); 
-            return btoa(String.fromCharCode(...new Uint8Array(exported))); 
-        }
-        async function importPublicKey(pem) { 
-            const binary = atob(pem); 
-            const bytes = new Uint8Array(binary.length); 
-            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i); 
-            return await crypto.subtle.importKey("spki", bytes.buffer, { name: "RSA-OAEP", hash: "SHA-256" }, true, ["encrypt"]);
-        }
-        async function importPrivateKey(pem) { 
-            const binary = atob(pem); 
-            const bytes = new Uint8Array(binary.length); 
-            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i); 
-            return await crypto.subtle.importKey("pkcs8", bytes.buffer, { name: "RSA-OAEP", hash: "SHA-256" }, true, ["decrypt"]);
-        }
-        async function encrypt(pubKey, text) { 
-            const data = new TextEncoder().encode(text); 
-            const encrypted = await crypto.subtle.encrypt({ name: "RSA-OAEP" }, pubKey, data); 
-            return btoa(String.fromCharCode(...new Uint8Array(encrypted))); 
-        }
-        async function decrypt(privKey, b64) { 
-            const binary = atob(b64); 
-            const bytes = new Uint8Array(binary.length); 
-            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i); 
-            const decrypted = await crypto.subtle.decrypt({ name: "RSA-OAEP" }, privKey, bytes.buffer); 
-            return new TextDecoder().decode(decrypted); 
-        }
+        // --- KRYPTO CORE ---
+        async function generateKeyPair() { return await crypto.subtle.generateKey({ name: "RSA-OAEP", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" }, true, ["encrypt", "decrypt"]); }
+        async function exportKey(key) { const format = key.type === "public" ? "spki" : "pkcs8"; const exported = await crypto.subtle.exportKey(format, key); return btoa(String.fromCharCode(...new Uint8Array(exported))); }
+        async function importPublicKey(pem) { const binary = atob(pem); const bytes = new Uint8Array(binary.length); for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i); return await crypto.subtle.importKey("spki", bytes.buffer, { name: "RSA-OAEP", hash: "SHA-256" }, true, ["encrypt"]); }
+        async function importPrivateKey(pem) { const binary = atob(pem); const bytes = new Uint8Array(binary.length); for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i); return await crypto.subtle.importKey("pkcs8", bytes.buffer, { name: "RSA-OAEP", hash: "SHA-256" }, true, ["decrypt"]); }
+        async function encrypt(pubKey, text) { const data = new TextEncoder().encode(text); const encrypted = await crypto.subtle.encrypt({ name: "RSA-OAEP" }, pubKey, data); return btoa(String.fromCharCode(...new Uint8Array(encrypted))); }
+        async function decrypt(privKey, b64) { const binary = atob(b64); const bytes = new Uint8Array(binary.length); for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i); const decrypted = await crypto.subtle.decrypt({ name: "RSA-OAEP" }, privKey, bytes.buffer); return new TextDecoder().decode(decrypted); }
 
-        // --- ENGINE ---
         function getActiveProfile() { return state.profiles.find(p => p.id === state.activeProfileId); }
 
+        // --- SOCKET & RELAY ---
         function initSocket() {
             if (socket?.readyState === WebSocket.OPEN) return;
             socket = new WebSocket(`wss://${RELAY_HOST}`);
             socket.onopen = () => {
-                $('ws-status-dot').className = 'w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]';
+                $('connection-indicator').className = 'w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]';
                 const p = getActiveProfile();
                 if (p) socket.send(JSON.stringify({ type: 'OPEN_ANON_QUEUE', queueId: p.queueId }));
             };
@@ -201,7 +153,7 @@
                 if (data.type === 'RELAY_IN') handleRelay(data.payload);
             };
             socket.onclose = () => {
-                $('ws-status-dot').className = 'w-1.5 h-1.5 rounded-full bg-red-500 status-pulse';
+                $('connection-indicator').className = 'w-2 h-2 rounded-full bg-red-500';
                 setTimeout(initSocket, 5000);
             };
         }
@@ -214,11 +166,10 @@
                 const decrypted = await decrypt(privKey, payload.text);
                 const msgObj = JSON.parse(decrypted);
 
-                if (msgObj.type === 'ACK') {
+                if (msgObj.type === 'DELETE_REQUEST') {
                     const contact = p.contacts.find(c => c.pubKey === payload.from);
                     if (contact && p.messages[contact.id]) {
-                        const m = p.messages[contact.id].find(m => m.msgId === msgObj.msgId);
-                        if (m) m.read = true;
+                        p.messages[contact.id] = p.messages[contact.id].filter(m => m.msgId !== msgObj.msgId);
                         save(); render();
                     }
                     return;
@@ -227,16 +178,10 @@
                 let contact = p.contacts.find(c => c.pubKey === payload.from);
                 if (contact) {
                     if (!p.messages[contact.id]) p.messages[contact.id] = [];
-                    const mid = payload.msgId || msgObj.msgId || Date.now();
+                    const mid = msgObj.msgId || Date.now();
                     if (p.messages[contact.id].some(m => m.msgId === mid)) return;
-                    
-                    p.messages[contact.id].push({ msgId: mid, type: 'peer', text: msgObj.text, time: Date.now(), read: true });
+                    p.messages[contact.id].push({ msgId: mid, type: 'peer', text: msgObj.text, time: Date.now() });
                     save(); render();
-
-                    // Send ACK
-                    const peerKey = await importPublicKey(contact.pubKey);
-                    const ackEnc = await encrypt(peerKey, JSON.stringify({ type: 'ACK', msgId: mid }));
-                    socket.send(JSON.stringify({ type: 'CHAT_MSG', to: contact.queueId, payload: { from: p.pubKey, text: ackEnc } }));
                 } else {
                     if (!p.pendingRequests) p.pendingRequests = [];
                     if (!p.pendingRequests.find(r => r.pubKey === payload.from)) {
@@ -244,17 +189,16 @@
                         save(); render();
                     }
                 }
-            } catch(e) { console.error("Relay error", e); }
+            } catch(e) { console.error(e); }
         }
 
-        // --- UI ACTIONS ---
+        // --- APP LOGIC ---
         function setupApp() {
             const name = $('user-display-input').value.trim();
             if (!name) return;
             generateKeyPair().then(async keys => {
                 const p = {
-                    id: 'P-' + Date.now(),
-                    name: name,
+                    id: 'P-' + Date.now(), name,
                     queueId: 'Q-' + Math.random().toString(36).substring(2, 12).toUpperCase(),
                     pubKey: await exportKey(keys.publicKey),
                     privateKeyPem: await exportKey(keys.privateKey),
@@ -271,13 +215,15 @@
             if(!p) return;
             $('onboarding').classList.add('hidden');
             $('app-ui').classList.remove('hidden');
-            setTimeout(() => $('app-ui').classList.add('opacity-100'), 50);
-            $('settings-user-name').innerText = p.name;
             initSocket();
             render();
         }
 
-        function nav(v) { state.view = v; if (v !== 'chat-detail') state.activeChatId = null; render(); }
+        function nav(v) { 
+            state.view = v; 
+            if (v !== 'chat-detail') state.activeChatId = null; 
+            render(); 
+        }
 
         function render() {
             const p = getActiveProfile();
@@ -286,17 +232,16 @@
 
             if (state.view === 'chat-detail') {
                 const c = p.contacts.find(c => c.id === state.activeChatId);
-                $('view-title').innerText = c ? c.name.toUpperCase() : "CHAT";
+                $('view-title').innerText = c ? c.name : "Chat";
                 $('back-btn').classList.remove('hidden');
                 $('bottom-nav').classList.add('hidden');
-                $('delete-chat-btn').classList.remove('hidden');
-                $('delete-chat-btn').onclick = () => deleteFullChat(c.id);
                 renderChatDetail(content, p);
             } else {
-                $('view-title').innerText = "SHADOWFX";
+                $('view-title').innerText = state.view === 'chats' ? "Chats" : "Einladen";
                 $('back-btn').classList.add('hidden');
                 $('bottom-nav').classList.remove('hidden');
-                $('delete-chat-btn').classList.add('hidden');
+                $('nav-chats').style.opacity = state.view === 'chats' ? '1' : '0.4';
+                $('nav-invite').style.opacity = state.view === 'invite' ? '1' : '0.4';
                 if(state.view === 'chats') renderChatsList(content, p);
                 else renderInviteView(content, p);
             }
@@ -304,16 +249,18 @@
         }
 
         function renderChatsList(container, p) {
-            container.innerHTML = `<button onclick="$('invite-modal').classList.remove('hidden')" class="w-full bg-zinc-900/30 border border-zinc-800 p-6 rounded-3xl mb-4 text-[10px] font-bold uppercase tracking-widest text-red-500">Tunnel hinzufügen</button>`;
+            container.innerHTML = `
+                <button onclick="$('invite-modal').classList.remove('hidden')" class="w-full bg-zinc-900/50 p-4 rounded-2xl mb-4 text-[10px] font-bold text-red-500 uppercase tracking-widest border border-zinc-800">
+                    + Neuen Tunnel öffnen
+                </button>`;
             
             p.pendingRequests?.forEach((req, i) => {
                 container.innerHTML += `
-                <div class="p-5 bg-zinc-900 border border-zinc-800 rounded-3xl mb-4">
-                    <p class="text-[10px] font-bold text-white uppercase">${req.name}</p>
-                    <p class="text-[8px] text-zinc-500 mt-1 italic">"${req.firstMsg}"</p>
-                    <div class="flex gap-2 mt-4">
-                        <button onclick="acceptReq(${i})" class="flex-1 bg-emerald-500/20 text-emerald-500 border border-emerald-900/30 py-2 rounded-xl text-[9px] font-bold uppercase">Annehmen</button>
-                        <button onclick="p.pendingRequests.splice(${i},1);save();render();" class="flex-1 bg-red-500/20 text-red-500 border border-red-900/30 py-2 rounded-xl text-[9px] font-bold uppercase">Ablehnen</button>
+                <div class="p-4 bg-red-500/5 border border-red-500/10 rounded-2xl mb-4 animate-pulse">
+                    <p class="text-xs font-bold text-red-500 uppercase tracking-tighter">${req.name} will Kontakt</p>
+                    <div class="flex gap-2 mt-3">
+                        <button onclick="acceptReq(${i})" class="flex-1 bg-white text-black py-2 rounded-lg text-[10px] font-bold">ANNEHMEN</button>
+                        <button onclick="p.pendingRequests.splice(${i},1);save();render();" class="flex-1 bg-zinc-800 py-2 rounded-lg text-[10px] font-bold">ABLEHNEN</button>
                     </div>
                 </div>`;
             });
@@ -321,36 +268,40 @@
             p.contacts.forEach(c => {
                 const msgs = p.messages[c.id] || [];
                 const last = msgs[msgs.length - 1];
-                container.innerHTML += `
-                <div onclick="state.activeChatId='${c.id}';nav('chat-detail')" class="p-5 bg-zinc-950 border border-zinc-900 rounded-3xl mb-2 active:bg-zinc-900">
-                    <div class="flex justify-between items-center">
-                        <span class="font-bold text-sm text-white uppercase">${c.name}</span>
-                        <i data-lucide="chevron-right" class="w-4 h-4 text-zinc-800"></i>
+                const div = document.createElement('div');
+                div.className = "p-4 bg-zinc-900/40 border border-zinc-800/50 rounded-2xl mb-2 active:bg-zinc-900";
+                div.innerHTML = `
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-sm text-white">${c.name}</span>
+                        <span class="text-[10px] text-zinc-600">${last ? new Date(last.time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : ''}</span>
                     </div>
-                    <p class="text-[8px] text-zinc-500 mt-1 uppercase line-clamp-1">${last ? last.text : 'Keine Nachrichten'}</p>
-                </div>`;
+                    <p class="text-xs text-zinc-500 truncate">${last ? last.text : 'Keine Nachrichten'}</p>
+                `;
+                div.onmousedown = div.ontouchstart = (e) => startLongPress(e, () => showChatMenu(c.id));
+                div.onmouseup = div.onmouseleave = div.ontouchend = () => cancelLongPress();
+                div.onclick = () => { if(!longPressTimer) { state.activeChatId=c.id; nav('chat-detail'); } };
+                container.appendChild(div);
             });
         }
 
         function renderChatDetail(container, p) {
             const msgs = p.messages[state.activeChatId] || [];
-            container.innerHTML = `
-                <div class="flex-1 flex flex-col gap-3 pb-32">
-                    ${msgs.map((m, i) => `
-                        <div onclick="deleteMessage(${i})" class="bubble ${m.type === 'me' ? 'bubble-me' : 'bubble-peer'}">
-                            <span>${m.text}</span>
-                            <div class="bubble-meta">
-                                <span>${new Date(m.time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span>
-                                ${m.type === 'me' ? `<i data-lucide="${m.read?'check':'clock'}" class="w-2.5 h-2.5"></i>` : ''}
-                            </div>
-                        </div>`).join('')}
-                    <div id="anchor"></div>
-                </div>
-                <div class="fixed bottom-8 left-4 right-4 flex gap-2 bg-zinc-950/90 p-3 rounded-[2.5rem] border border-zinc-900 backdrop-blur-xl">
-                    <input id="chat-msg" placeholder="Nachricht..." class="flex-1 bg-transparent px-5 py-3 text-sm text-white outline-none">
-                    <button onclick="send()" class="bg-red-500 w-12 h-12 rounded-[1.2rem] flex items-center justify-center text-white"><i data-lucide="send" class="w-5 h-5"></i></button>
+            container.innerHTML = `<div class="flex-1 flex flex-col gap-2 pb-24" id="msg-list"></div>
+                <div class="fixed bottom-6 left-4 right-4 flex gap-2 bg-zinc-900 p-2 rounded-2xl border border-zinc-800 animate-slide-up">
+                    <input id="chat-msg" placeholder="Nachricht..." class="flex-1 bg-transparent px-4 py-3 text-sm text-white outline-none">
+                    <button onclick="send()" class="bg-red-500 w-11 h-11 rounded-xl flex items-center justify-center text-white"><i data-lucide="send" class="w-5 h-5"></i></button>
                 </div>`;
-            $('anchor').scrollIntoView();
+
+            const list = $('msg-list');
+            msgs.forEach((m, i) => {
+                const bubble = document.createElement('div');
+                bubble.className = `bubble ${m.type === 'me' ? 'bubble-me' : 'bubble-peer'}`;
+                bubble.innerText = m.text;
+                bubble.onmousedown = bubble.ontouchstart = (e) => startLongPress(e, () => showMsgMenu(m.msgId, m.type));
+                bubble.onmouseup = bubble.onmouseleave = bubble.ontouchend = () => cancelLongPress();
+                list.appendChild(bubble);
+            });
+            window.scrollTo(0, document.body.scrollHeight);
         }
 
         async function send() {
@@ -361,55 +312,128 @@
             if(!text || !contact) return;
             try {
                 const peerKey = await importPublicKey(contact.pubKey);
-                const mid = 'M-' + Date.now();
+                const mid = 'M-' + Date.now() + Math.random().toString(36).substring(7);
                 const enc = await encrypt(peerKey, JSON.stringify({ type: 'TEXT', text, msgId: mid, name: p.name, q: p.queueId }));
-                
                 if(!p.messages[contact.id]) p.messages[contact.id] = [];
-                p.messages[contact.id].push({ msgId: mid, type: 'me', text, time: Date.now(), read: false });
-                
-                socket.send(JSON.stringify({ type: 'CHAT_MSG', to: contact.queueId, payload: { from: p.pubKey, text: enc, msgId: mid } }));
+                p.messages[contact.id].push({ msgId: mid, type: 'me', text, time: Date.now() });
+                socket.send(JSON.stringify({ type: 'CHAT_MSG', to: contact.queueId, payload: { from: p.pubKey, text: enc } }));
                 save(); render(); inp.value = '';
             } catch(e) { console.error(e); }
         }
 
+        // --- CONTEXT MENUS ---
+        function startLongPress(e, callback) {
+            cancelLongPress();
+            longPressTimer = setTimeout(() => {
+                callback();
+                longPressTimer = null;
+            }, 600);
+        }
+
+        function cancelLongPress() {
+            if(longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+        }
+
+        function showChatMenu(cid) {
+            const menu = $('menu-content');
+            menu.innerHTML = `
+                <button onclick="clearChat('${cid}')" class="menu-item"><i data-lucide="eraser" class="w-4 h-4"></i> Chat leeren</button>
+                <button onclick="deleteChat('${cid}')" class="menu-item danger"><i data-lucide="trash-2" class="w-4 h-4"></i> Chat löschen</button>
+            `;
+            $('context-menu').classList.add('active');
+            lucide.createIcons();
+        }
+
+        function showMsgMenu(mid, type) {
+            const menu = $('menu-content');
+            let content = `<button onclick="deleteMsgLocal('${mid}')" class="menu-item"><i data-lucide="eye-off" class="w-4 h-4"></i> Für mich löschen</button>`;
+            if (type === 'me') {
+                content += `<button onclick="deleteMsgEveryone('${mid}')" class="menu-item danger font-bold"><i data-lucide="user-x" class="w-4 h-4 text-red-500"></i> Für alle löschen</button>`;
+            }
+            menu.innerHTML = content;
+            $('context-menu').classList.add('active');
+            lucide.createIcons();
+        }
+
+        function closeContextMenu() { $('context-menu').classList.remove('active'); }
+
+        // --- DELETE ACTIONS ---
+        function clearChat(cid) {
+            const p = getActiveProfile();
+            p.messages[cid] = [];
+            save(); render(); closeContextMenu();
+        }
+
+        function deleteChat(cid) {
+            const p = getActiveProfile();
+            p.contacts = p.contacts.filter(c => c.id !== cid);
+            delete p.messages[cid];
+            save(); render(); closeContextMenu();
+        }
+
+        function deleteMsgLocal(mid) {
+            const p = getActiveProfile();
+            const msgs = p.messages[state.activeChatId];
+            p.messages[state.activeChatId] = msgs.filter(m => m.msgId !== mid);
+            save(); render(); closeContextMenu();
+        }
+
+        async function deleteMsgEveryone(mid) {
+            const p = getActiveProfile();
+            const contact = p.contacts.find(c => c.id === state.activeChatId);
+            if (!contact) return;
+            try {
+                const peerKey = await importPublicKey(contact.pubKey);
+                const enc = await encrypt(peerKey, JSON.stringify({ type: 'DELETE_REQUEST', msgId: mid }));
+                socket.send(JSON.stringify({ type: 'CHAT_MSG', to: contact.queueId, payload: { from: p.pubKey, text: enc } }));
+                deleteMsgLocal(mid);
+            } catch(e) { console.error(e); }
+        }
+
+        // --- INVITE SYSTEM ---
         function renderInviteView(container, p) {
             container.innerHTML = `
-                <div class="flex flex-col items-center justify-center mt-12 text-center">
-                    <div class="w-16 h-16 bg-red-500/5 rounded-3xl flex items-center justify-center mb-6 border border-red-500/20">
-                        <i data-lucide="zap" class="w-8 h-8 text-red-500"></i>
+                <div class="flex flex-col items-center justify-center mt-12 text-center p-6">
+                    <div class="w-16 h-16 bg-zinc-900 rounded-3xl flex items-center justify-center mb-6 border border-zinc-800">
+                        <i data-lucide="share-2" class="text-zinc-400"></i>
                     </div>
-                    <h2 class="font-bold text-xl text-white mb-2 uppercase">Invite Engine</h2>
-                    <p class="text-[9px] text-zinc-500 mb-8 uppercase tracking-widest">Tracking-Schutz: Jeder Code ist ein Unikat.</p>
+                    <h2 class="font-bold text-xl text-white mb-2">Code generieren</h2>
+                    <p class="text-xs text-zinc-500 mb-8 uppercase tracking-widest leading-relaxed px-4">Erzeuge einen verschlüsselten Tunnel-Code, um Kontakte einzuladen.</p>
                     
-                    <div id="invite-box" class="hidden w-full">
-                        <div id="code-display" class="w-full bg-zinc-950 border border-zinc-900 p-6 rounded-3xl mb-4 text-[7px] text-zinc-600 break-all font-mono"></div>
-                        <button onclick="copyCode()" id="copy-btn" class="w-full bg-white text-black p-5 rounded-2xl font-bold uppercase text-xs">Kopieren</button>
-                        <button onclick="clearInvite()" class="w-full mt-2 p-4 text-zinc-600 text-[10px] uppercase font-bold">Löschen & Schließen</button>
+                    <div id="code-display-area" class="w-full">
+                        ${state.lastGeneratedCode ? `
+                            <div class="w-full bg-zinc-900 border border-zinc-800 p-6 rounded-2xl mb-4 text-[8px] text-zinc-400 break-all font-mono">
+                                ${state.lastGeneratedCode}
+                            </div>
+                            <button onclick="copyCode('${state.lastGeneratedCode}')" class="w-full bg-white text-black p-4 rounded-xl font-bold uppercase text-xs mb-3 transition-all active:scale-95">In Zwischenablage kopieren</button>
+                        ` : ''}
+                        <button onclick="generateNewInviteCode()" class="w-full bg-red-500/10 text-red-500 border border-red-500/20 p-4 rounded-xl font-bold uppercase text-xs hover:bg-red-500/20 active:scale-95 transition-all">
+                            ${state.lastGeneratedCode ? 'Neuen Code generieren' : 'CODE JETZT ERZEUGEN'}
+                        </button>
                     </div>
-
-                    <button id="gen-btn" onclick="genInvite(this)" class="w-full bg-red-500 text-white p-5 rounded-2xl font-bold uppercase text-xs">Neuen Code generieren</button>
                 </div>`;
+            lucide.createIcons();
         }
 
-        function genInvite(btn) {
+        function generateNewInviteCode() {
             const p = getActiveProfile();
-            const salt = Math.random().toString(36).substring(7); // Verhindert "Code bereits benutzt"
+            const salt = Math.random().toString(36).substring(7);
             const code = `SFX#${btoa(JSON.stringify({ n: p.name, q: p.queueId, k: p.pubKey, s: salt }))}`;
-            $('code-display').innerText = code;
-            $('invite-box').classList.remove('hidden');
-            btn.classList.add('hidden');
+            state.lastGeneratedCode = code;
+            save();
+            render();
         }
 
-        function clearInvite() {
-            $('invite-box').classList.add('hidden');
-            $('gen-btn').classList.remove('hidden');
-            $('code-display').innerText = "";
-        }
-
-        function copyCode() {
-            const txt = $('code-display').innerText;
+        function copyCode(txt) {
             const tmp = document.createElement('textarea'); document.body.appendChild(tmp); tmp.value = txt; tmp.select(); document.execCommand('copy'); document.body.removeChild(tmp);
-            $('copy-btn').innerText = 'KOPIERT!'; setTimeout(() => $('copy-btn').innerText = 'Kopieren', 2000);
+            // Custom Toast-like alert instead of window.alert
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = "KOPIERT!";
+            setTimeout(() => btn.innerText = originalText, 2000);
         }
 
         function validateInviteCode() {
@@ -418,27 +442,12 @@
             try {
                 const data = JSON.parse(atob(val.split('#')[1]));
                 const p = getActiveProfile();
-                if(p.contacts.some(c => c.pubKey === data.k)) { $('invite-modal').classList.add('hidden'); return; }
+                if(p.contacts.some(c => c.pubKey === data.k)) return;
                 const cid = 'C-' + Date.now();
                 p.contacts.push({ id: cid, name: data.n, pubKey: data.k, queueId: data.q });
-                p.messages[cid] = [{ msgId: 'sys-'+Date.now(), type: 'me', text: 'Tunnel aufgebaut.', time: Date.now(), read: true }];
+                p.messages[cid] = [{ msgId: 'sys-'+Date.now(), type: 'me', text: 'Tunnel aufgebaut.', time: Date.now() }];
                 save(); $('invite-modal').classList.add('hidden'); nav('chats');
             } catch(e) { alert("Code ungültig"); }
-        }
-
-        function deleteMessage(idx) {
-            if(!confirm("Nachricht löschen?")) return;
-            const p = getActiveProfile();
-            p.messages[state.activeChatId].splice(idx, 1);
-            save(); render();
-        }
-
-        function deleteFullChat(cid) {
-            if(!confirm("Gesamten Chat unwiderruflich löschen?")) return;
-            const p = getActiveProfile();
-            p.contacts = p.contacts.filter(c => c.id !== cid);
-            delete p.messages[cid];
-            save(); nav('chats'); toggleSettings(false);
         }
 
         function acceptReq(i) {
@@ -446,17 +455,16 @@
             const r = p.pendingRequests[i];
             const cid = 'C-' + Date.now();
             p.contacts.push({ id: cid, name: r.name, pubKey: r.pubKey, queueId: r.queueId });
-            p.messages[cid] = [{ msgId: 'sys-'+Date.now(), type: 'peer', text: r.firstMsg, time: Date.now(), read: true }];
+            p.messages[cid] = [{ msgId: 'sys-'+Date.now(), type: 'peer', text: r.firstMsg, time: Date.now() }];
             p.pendingRequests.splice(i, 1);
             save(); render();
         }
 
-        function toggleSettings(s) { $('settings-panel').classList.toggle('open', s); }
-        function save() { localStorage.setItem('shadowfx_v2_data', JSON.stringify(state)); }
-        function fullReset() { if(confirm("ALLES LÖSCHEN?")) { localStorage.clear(); location.reload(); } }
+        function save() { localStorage.setItem('shadowfx_pro_data', JSON.stringify(state)); }
+        function fullReset() { if(confirm("Vollständiger Reset? Alle Schlüssel und Nachrichten gehen verloren.")) { localStorage.clear(); location.reload(); } }
 
         window.onload = () => {
-            const saved = localStorage.getItem('shadowfx_v2_data');
+            const saved = localStorage.getItem('shadowfx_pro_data');
             if(saved) { try { state = JSON.parse(saved); bootstrap(); } catch(e) { localStorage.clear(); } }
             lucide.createIcons();
         };
