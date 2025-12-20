@@ -1,149 +1,391 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Messenger v1.0</title>
-<style>
-    * {box-sizing: border-box; margin:0; padding:0;}
-    body {font-family: Arial, sans-serif; display:flex; flex-direction:column; height:100vh; background:#dadbd3;}
-    
-    header {background:#075e54; color:white; padding:10px 16px; display:flex; flex-direction:column; gap:8px;}
-    .header-top {display:flex; justify-content:space-between; align-items:center;}
-    .header-title {font-weight:bold; font-size:18px;}
-    .header-version {font-size:12px; opacity:0.8;}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShadowFX Messenger</title>
+    <style>
+        :root {
+            --primary-red: #cc0000;
+            --dark-bg: #0a0a0a;
+            --darker-bg: #000000;
+            --input-bg: #1a1a1a;
+            --text-light: #e0e0e0;
+            --msg-me: #b30000;
+            --msg-peer: #262626;
+            --sidebar-width: 300px;
+        }
 
-    .config-grid {display:grid; grid-template-columns:1fr 1fr auto; gap:6px;}
-    .config-grid input {padding:6px; border-radius:4px; border:none;}
-    #connectBtn {background:#25d366; color:white; border:none; border-radius:4px; cursor:pointer;}
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            display: flex; 
+            height: 100vh; 
+            background: var(--darker-bg); 
+            color: var(--text-light);
+            overflow: hidden;
+        }
 
-    #chat {flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:6px; background-image:url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-repeat:repeat; background-size:200px;}
+        /* Sidebar */
+        #sidebar {
+            width: var(--sidebar-width);
+            background: var(--dark-bg);
+            border-right: 1px solid #222;
+            display: flex; 
+            flex-direction: column; 
+            z-index: 10;
+        }
 
-    .message {max-width:85%; padding:6px 10px; border-radius:12px; font-size:14px; line-height:1.3; word-wrap:break-word; box-shadow:0 1px 1px rgba(0,0,0,0.15);}
-    .msg-me {background:#dcf8c6; align-self:flex-end;}
-    .msg-peer {background:white; align-self:flex-start;}
-    .msg-info {align-self:center; font-size:12px; color:#555; background:rgba(255,243,199,0.9); padding:4px 8px; border-radius:6px;}
-    .msg-error {background:#fce4e4; color:#cc0000;}
+        .sidebar-header {
+            padding: 15px;
+            background: var(--darker-bg);
+            border-bottom: 2px solid var(--primary-red);
+        }
 
-    .sender-name {display:block; font-weight:bold; font-size:12px; color:#128c7e; margin-bottom:2px;}
+        .my-id-container { margin-bottom: 15px; }
+        .my-id-container label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        .my-id-container input { 
+            width: 100%; padding: 10px; background: #111; border: 1px solid #333; 
+            color: white; border-radius: 6px; margin-top: 5px; outline: none;
+        }
+        .my-id-container input:focus { border-color: var(--primary-red); }
 
-    .input-area {display:flex; padding:6px 12px; background:#ededed; align-items:flex-end; gap:6px; padding-bottom:env(safe-area-inset-bottom,6px);}
-    .input-container {flex:1; background:white; border-radius:25px; display:flex; padding:0 10px; align-items:center; min-height:36px;}
-    #msgInput {flex:1; border:none; outline:none; font-size:14px; background:transparent;}
-    #sendBtn {width:40px; height:40px; border-radius:50%; border:none; background:#075e54; color:white; display:flex; justify-content:center; align-items:center; cursor:pointer;}
-    #sendBtn:disabled {background:#aebac1;}
+        #connectBtn { 
+            width: 100%; margin-top: 10px; padding: 10px; border: none; border-radius: 6px; 
+            background: var(--primary-red); color: white; font-weight: bold; cursor: pointer;
+            transition: 0.2s;
+        }
+        #connectBtn.online { background: #440000; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
 
-    #alertOverlay {display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:100; align-items:center; justify-content:center; padding:12px;}
-    #alertBox {background:white; padding:16px; border-radius:10px; max-width:280px; text-align:center;}
-    .btn-ok {margin-top:12px; padding:8px 16px; width:100%; border:none; border-radius:20px; background:#075e54; color:white; font-weight:bold; cursor:pointer;}
-</style>
+        .add-contact-box { display: flex; gap: 5px; margin-top: 10px; }
+        .add-contact-box input { flex: 1; padding: 8px; background: #111; border: 1px solid #333; color: white; border-radius: 4px; }
+        .btn-plus { background: var(--primary-red); border: none; color: white; padding: 0 12px; border-radius: 4px; cursor: pointer; font-size: 20px; }
+
+        #contactList { flex: 1; overflow-y: auto; }
+        .contact-item { 
+            padding: 15px; border-bottom: 1px solid #151515; cursor: pointer; 
+            display: flex; justify-content: space-between; align-items: center; transition: 0.2s;
+        }
+        .contact-item:hover { background: #111; }
+        .contact-item.active { background: #1a1a1a; border-left: 4px solid var(--primary-red); }
+        .contact-name { font-weight: bold; font-size: 15px; }
+
+        .btn-del { color: #444; background: none; border: none; font-size: 20px; cursor: pointer; }
+        .btn-del:hover { color: var(--primary-red); }
+
+        /* Main Chat Area */
+        #mainChat { flex: 1; display: flex; flex-direction: column; position: relative; background: #050505; }
+        
+        header { 
+            padding: 12px 20px; background: var(--dark-bg); border-bottom: 1px solid #222;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .active-user-info { display: flex; flex-direction: column; }
+        .active-user-name { color: var(--primary-red); font-weight: bold; font-size: 18px; }
+        .status-dot { font-size: 10px; color: #666; }
+
+        #chat { 
+            flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px;
+            background-image: radial-gradient(circle at 2px 2px, #111 1px, transparent 0);
+            background-size: 24px 24px;
+        }
+
+        /* Bubble Styles */
+        .message { 
+            max-width: 75%; padding: 8px 12px 24px 12px; border-radius: 10px; font-size: 15px; 
+            line-height: 1.4; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+            min-width: 80px;
+        }
+        .msg-me { align-self: flex-end; background: var(--msg-me); border-top-right-radius: 2px; }
+        .msg-peer { align-self: flex-start; background: var(--msg-peer); border-top-left-radius: 2px; }
+        
+        .sender-header { 
+            display: block; font-weight: bold; font-size: 12px; margin-bottom: 3px;
+            color: #ff4d4d;
+        }
+        .msg-me .sender-header { color: #ff9999; }
+
+        .timestamp {
+            position: absolute;
+            bottom: 4px;
+            right: 8px;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .msg-info { align-self: center; font-size: 11px; color: #777; background: #1a1a1a; padding: 4px 12px; border-radius: 15px; }
+
+        /* Input Area */
+        .input-bar { padding: 10px 15px; background: var(--dark-bg); display: flex; align-items: center; gap: 10px; }
+        .input-wrap { flex: 1; background: var(--input-bg); border-radius: 25px; padding: 5px 15px; border: 1px solid #333; }
+        #msgInput { width: 100%; border: none; background: transparent; color: white; outline: none; height: 35px; font-size: 15px; }
+        
+        #sendBtn { 
+            width: 45px; height: 45px; border-radius: 50%; background: var(--primary-red); 
+            border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        #sendBtn:disabled { background: #333; cursor: default; }
+
+        .menu-btn { display: none; background: none; border: none; color: white; font-size: 24px; margin-right: 15px; }
+
+        @media (max-width: 700px) {
+            #sidebar { position: absolute; left: -100%; top: 0; bottom: 0; width: 85%; transition: 0.3s; }
+            #sidebar.open { left: 0; }
+            .menu-btn { display: block; }
+        }
+
+        #alertOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; }
+        #alertBox { background: #111; padding: 25px; border-radius: 15px; border: 1px solid var(--primary-red); text-align: center; width: 280px; }
+        .btn-ok { margin-top: 15px; padding: 10px; width: 100%; border: none; border-radius: 5px; background: var(--primary-red); color: white; font-weight: bold; cursor: pointer; }
+    </style>
 </head>
 <body>
 
-<header>
-    <div class="header-top">
-        <div class="header-title">Messenger</div>
-        <div class="header-version">v1.0</div>
+<aside id="sidebar">
+    <div class="sidebar-header">
+        <div class="my-id-container">
+            <label>Deine ID</label>
+            <input type="text" id="myId" placeholder="Nutzername..." onchange="saveMyId()">
+            <button id="connectBtn">System verbinden</button>
+        </div>
+        <div class="add-contact-box">
+            <input type="text" id="newContactId" placeholder="Ziel ID...">
+            <button class="btn-plus" onclick="addContact()">+</button>
+        </div>
     </div>
-    <div class="config-grid">
-        <input type="text" id="myId" placeholder="Meine ID">
-        <input type="text" id="peerId" placeholder="Empfänger">
-        <button id="connectBtn">Connect</button>
-    </div>
-</header>
+    <div id="contactList"></div>
+</aside>
 
-<div id="chat">
-    <div class="msg-info">Bitte verbinde dich zum Chat</div>
-</div>
+<main id="mainChat">
+    <header>
+        <div style="display:flex; align-items:center;">
+            <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+            <div class="active-user-info">
+                <span class="active-user-name" id="chatTitle">ShadowFX</span>
+                <span class="status-dot" id="wsStatus">Offline</span>
+            </div>
+        </div>
+        <div style="opacity: 0.3; font-size: 10px;">SECURE V1.2 - AUTO-PERSIST</div>
+    </header>
 
-<div class="input-area">
-    <div class="input-container">
-        <input type="text" id="msgInput" placeholder="Nachricht" disabled autocomplete="off">
+    <div id="chat">
+        <div class="msg-info">Wähle eine ID aus der Liste</div>
     </div>
-    <button id="sendBtn" disabled>&#9658;</button>
-</div>
+
+    <div class="input-bar">
+        <div class="input-wrap">
+            <input type="text" id="msgInput" placeholder="Nachricht..." disabled>
+        </div>
+        <button id="sendBtn" disabled onclick="handleSend()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+        </button>
+    </div>
+</main>
 
 <div id="alertOverlay">
     <div id="alertBox">
-        <p id="alertMsg"></p>
+        <p id="alertMsg" style="color: white;"></p>
         <button class="btn-ok" onclick="closeAlert()">OK</button>
     </div>
 </div>
 
 <script>
-let ws;
-const chatBox = document.getElementById("chat");
-const msgInput = document.getElementById("msgInput");
-const sendBtn = document.getElementById("sendBtn");
-const connectBtn = document.getElementById("connectBtn");
+    let ws;
+    let activePeer = null;
+    let contacts = JSON.parse(localStorage.getItem('sfx_contacts') || '[]');
+    let chatLog = JSON.parse(localStorage.getItem('sfx_log') || '{}');
 
-function showAlert(text){
-    document.getElementById("alertMsg").innerText = text;
-    document.getElementById("alertOverlay").style.display="flex";
-}
-function closeAlert(){
-    document.getElementById("alertOverlay").style.display="none";
-}
-function appendMessage(from,text,type){
-    const div = document.createElement("div");
-    if(type==="info" || type==="error"){
-        div.className = `msg-info ${type==="error"?"msg-error":""}`;
-        div.innerHTML=text;
-    }else{
-        div.className = `message ${type==="me"?"msg-me":"msg-peer"}`;
-        const nameSpan = type==="peer"?`<span class="sender-name">${from}</span>`:'';
-        div.innerHTML=`${nameSpan}${text}`;
-    }
-    chatBox.appendChild(div);
-    chatBox.scrollTop=chatBox.scrollHeight;
-}
+    const chatBox = document.getElementById("chat");
+    const msgInput = document.getElementById("msgInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const myIdInput = document.getElementById("myId");
 
-connectBtn.onclick = ()=>{
-    const myId = document.getElementById("myId").value.trim();
-    const peerId = document.getElementById("peerId").value.trim();
-    if(!myId || !peerId){ showAlert("Bitte gib beide IDs ein!"); return; }
-
-    ws = new WebSocket(`wss://unwintry-strapping-winford.ngrok-free.dev/ws?id=${myId}`);
-
-    ws.onopen=()=>{
-        appendMessage(null, `Verbunden als <b>${myId}</b>`, 'info');
-        msgInput.disabled=false; sendBtn.disabled=false;
-        connectBtn.style.backgroundColor="#128c7e"; connectBtn.innerText="Online";
-    };
-
-    ws.onmessage=(event)=>{
-        try{
-            const data=JSON.parse(event.data);
-            if(data.type==="join"){
-                appendMessage(null, `User ${data.user} ist beigetreten`, 'info');
-            } else if(data.from && data.message){
-                appendMessage(data.from, data.message, 'peer');
-            }
-        }catch(e){console.error(e);}
-    };
-
-    ws.onerror=(err)=>{appendMessage(null,"Verbindungsfehler","error");};
-    ws.onclose=()=>{
-        appendMessage(null,"Verbindung getrennt","info");
-        msgInput.disabled=true; sendBtn.disabled=true;
-        connectBtn.style.backgroundColor="#25d366"; connectBtn.innerText="Connect";
-    };
-
-    sendBtn.onclick = ()=>{
-        const message=msgInput.value.trim();
-        if(message){
-            ws.send(JSON.stringify({to:peerId,message}));
-            appendMessage("Du", message, 'me');
-            msgInput.value=""; msgInput.focus();
+    window.onload = () => {
+        const savedMyId = localStorage.getItem('sfx_myid');
+        const lastActivePeer = localStorage.getItem('sfx_last_active');
+        
+        if (savedMyId) {
+            myIdInput.value = savedMyId;
+            // Automatischer Reconnect beim Laden
+            startConnection(savedMyId);
+        }
+        
+        renderContacts();
+        
+        if (lastActivePeer && contacts.includes(lastActivePeer)) {
+            selectPeer(lastActivePeer);
         }
     };
 
-    msgInput.addEventListener("keypress",(e)=>{
-        if(e.key==="Enter"){ sendBtn.click(); }
-    });
-};
+    function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+    
+    function saveMyId() { 
+        const val = myIdInput.value.trim();
+        localStorage.setItem('sfx_myid', val); 
+        if (val) startConnection(val);
+    }
 
-window.addEventListener('resize',()=>{ chatBox.scrollTop=chatBox.scrollHeight; });
+    function addContact() {
+        const id = document.getElementById('newContactId').value.trim();
+        if(!id) return;
+        if(!contacts.includes(id)) {
+            contacts.push(id);
+            localStorage.setItem('sfx_contacts', JSON.stringify(contacts));
+            document.getElementById('newContactId').value = '';
+            renderContacts();
+        }
+    }
+
+    function removeContact(id, e) {
+        e.stopPropagation();
+        contacts = contacts.filter(c => c !== id);
+        localStorage.setItem('sfx_contacts', JSON.stringify(contacts));
+        if(activePeer === id) {
+            activePeer = null;
+            localStorage.removeItem('sfx_last_active');
+            chatBox.innerHTML = '<div class="msg-info">Chat beendet.</div>';
+            document.getElementById('chatTitle').innerText = "ShadowFX";
+        }
+        renderContacts();
+    }
+
+    function renderContacts() {
+        const list = document.getElementById('contactList');
+        list.innerHTML = '';
+        contacts.forEach(id => {
+            const div = document.createElement('div');
+            div.className = `contact-item ${activePeer === id ? 'active' : ''}`;
+            div.onclick = () => selectPeer(id);
+            div.innerHTML = `
+                <span class="contact-name">${id}</span>
+                <button class="btn-del" onclick="removeContact('${id}', event)">×</button>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    function selectPeer(id) {
+        activePeer = id;
+        localStorage.setItem('sfx_last_active', id);
+        document.getElementById('chatTitle').innerText = id;
+        renderContacts();
+        loadHistory();
+        if(window.innerWidth <= 700) {
+            document.getElementById('sidebar').classList.remove('open');
+        }
+        if(ws && ws.readyState === WebSocket.OPEN) {
+            msgInput.disabled = false;
+            sendBtn.disabled = false;
+        }
+        msgInput.focus();
+    }
+
+    function loadHistory() {
+        chatBox.innerHTML = '';
+        const history = chatLog[activePeer] || [];
+        history.forEach(m => appendUI(m.from, m.text, m.type, m.time));
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function getCurrentTime() {
+        const now = new Date();
+        return now.getHours().toString().padStart(2, '0') + ':' + 
+               now.getMinutes().toString().padStart(2, '0');
+    }
+
+    function appendUI(from, text, type, time) {
+        const div = document.createElement("div");
+        if(type === "info") {
+            div.className = "msg-info";
+            div.innerText = text;
+        } else {
+            div.className = `message ${type === "me" ? "msg-me" : "msg-peer"}`;
+            const header = `<span class="sender-header">${from}:</span>`;
+            const stamp = `<span class="timestamp">${time || getCurrentTime()}</span>`;
+            div.innerHTML = `${header}${text}${stamp}`;
+        }
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function saveToLog(peer, from, text, type, time) {
+        if(!chatLog[peer]) chatLog[peer] = [];
+        chatLog[peer].push({from, text, type, time});
+        localStorage.setItem('sfx_log', JSON.stringify(chatLog));
+    }
+
+    function startConnection(mid) {
+        if(ws) ws.close();
+        
+        ws = new WebSocket(`wss://unwintry-strapping-winford.ngrok-free.dev/ws?id=${mid}`);
+
+        ws.onopen = () => {
+            document.getElementById('wsStatus').innerText = "ONLINE";
+            document.getElementById('wsStatus').style.color = "#00ff00";
+            connectBtn.innerText = "System Aktiv";
+            connectBtn.classList.add("online");
+            if(activePeer) { 
+                msgInput.disabled = false; 
+                sendBtn.disabled = false; 
+            }
+        };
+
+        ws.onmessage = (e) => {
+            try {
+                const data = JSON.parse(e.data);
+                if(data.from && data.message) {
+                    if(!contacts.includes(data.from)) {
+                        contacts.push(data.from);
+                        localStorage.setItem('sfx_contacts', JSON.stringify(contacts));
+                        renderContacts();
+                    }
+                    
+                    const time = getCurrentTime();
+                    saveToLog(data.from, data.from, data.message, 'peer', time);
+                    if(activePeer === data.from) {
+                        appendUI(data.from, data.message, 'peer', time);
+                    }
+                }
+            } catch(err) {}
+        };
+
+        ws.onclose = () => {
+            document.getElementById('wsStatus').innerText = "DISCONNECTED - RETRYING...";
+            document.getElementById('wsStatus').style.color = "#ffaa00";
+            connectBtn.innerText = "Reconnecting...";
+            connectBtn.classList.remove("online");
+            msgInput.disabled = true;
+            sendBtn.disabled = true;
+            
+            // Auto-Reconnect nach 5 Sekunden, falls Tab noch offen
+            setTimeout(() => {
+                if(myIdInput.value.trim()) startConnection(myIdInput.value.trim());
+            }, 5000);
+        };
+    }
+
+    connectBtn.onclick = () => {
+        const mid = myIdInput.value.trim();
+        if(!mid) return showAlert("ID erforderlich!");
+        startConnection(mid);
+    };
+
+    function handleSend() {
+        const text = msgInput.value.trim();
+        if(text && activePeer && ws && ws.readyState === WebSocket.OPEN) {
+            const time = getCurrentTime();
+            ws.send(JSON.stringify({to: activePeer, message: text}));
+            appendUI("Ich", text, "me", time);
+            saveToLog(activePeer, "Ich", text, "me", time);
+            msgInput.value = "";
+            msgInput.focus();
+        }
+    }
+
+    msgInput.onkeypress = (e) => { if(e.key === "Enter") handleSend(); };
+    function showAlert(t) { document.getElementById("alertMsg").innerText = t; document.getElementById("alertOverlay").style.display = "flex"; }
+    function closeAlert() { document.getElementById("alertOverlay").style.display = "none"; }
 </script>
 
 </body>
