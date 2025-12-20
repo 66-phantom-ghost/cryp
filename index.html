@@ -3,123 +3,193 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ShadowFX | Dezentraler Messenger</title>
+<title>ShadowFX | Sicherer Messenger</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
 :root {
-    --bg-dark: #050505;
-    --panel-dark: #121212;
-    --accent: #10b981;
+  --bg-dark: #050505;
+  --panel-dark: #121212;
+  --accent: #10b981;
 }
-body, html { margin:0; padding:0; height:100%; font-family:'Inter', sans-serif; background-color:var(--bg-dark); color:#e5e7eb; }
-.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+body { margin:0; font-family:'Inter', sans-serif; background-color:var(--bg-dark); color:#e5e7eb; }
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
-#app-screen { display:flex; height:100vh; overflow:hidden; }
-#sidebar { width:300px; background-color:var(--panel-dark); display:flex; flex-direction:column; transition:transform 0.3s ease; }
-#sidebar.hidden-mobile { transform:translateX(-100%); position:absolute; z-index:50; height:100%; }
-#chat-window { flex:1; display:flex; flex-direction:column; background-color:var(--bg-dark); }
-#message-container { flex:1; overflow-y:auto; padding:1rem; }
-#input-area { display:flex; gap:0.5rem; padding:0.5rem; background:var(--panel-dark); border-top:1px solid #222; position:sticky; bottom:0; }
-#msg-input { flex:1; padding:0.5rem 1rem; border-radius:9999px; background:#222; border:none; color:#fff; outline:none; }
-#send-btn { padding:0.5rem 1rem; background:var(--accent); border:none; border-radius:9999px; color:#000; font-weight:bold; }
-.contact { padding:0.75rem 1rem; cursor:pointer; border-bottom:1px solid #222; }
-.contact.active { background:#222; }
-@media(max-width:768px){
-    #sidebar { position:absolute; z-index:50; height:100%; top:0; left:0; }
-}
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+.message-in { border-bottom-left-radius: 2px; }
+.message-out { border-bottom-right-radius: 2px; }
 </style>
 </head>
-<body>
+<body class="h-screen flex flex-col">
 
-<div id="setup-screen" class="fixed inset-0 flex items-center justify-center bg-[#050505] p-6 z-50">
-<div class="w-full max-w-sm text-center">
-<h1 class="text-3xl font-bold mb-2">ShadowFX</h1>
-<input type="text" id="username-input" placeholder="Anzeigename wählen" class="w-full bg-zinc-900 rounded-full p-4 mb-4 outline-none">
-<button onclick="createProfile()" class="w-full bg-emerald-600 text-black py-3 rounded-full font-bold">Profil erstellen</button>
-</div>
-</div>
-
-<div id="app-screen" class="hidden">
-
-<!-- Sidebar -->
-<div id="sidebar" class="hidden-mobile">
-<div class="p-4 border-b border-zinc-900 flex justify-between items-center">
-<h2 class="font-bold">Chats</h2>
-<button onclick="toggleSidebar()" class="md:hidden">☰</button>
-</div>
-<div id="contact-list" class="flex-1 overflow-y-auto custom-scrollbar"></div>
+<!-- Setup Screen -->
+<div id="setup-screen" class="fixed inset-0 flex items-center justify-center bg-[#050505] p-6">
+  <div class="w-full max-w-sm text-center">
+    <h1 class="text-3xl font-bold mb-4">ShadowFX</h1>
+    <p class="text-zinc-500 mb-6">Dezentral & verschlüsselt</p>
+    <input type="text" id="username" placeholder="Name wählen" class="w-full mb-4 p-4 rounded-xl bg-zinc-900 border border-zinc-800 text-white">
+    <button id="create-account" class="w-full py-4 bg-emerald-600 rounded-xl font-bold hover:bg-emerald-500 transition-all">Account erstellen</button>
+  </div>
 </div>
 
-<!-- Chat Window -->
-<div id="chat-window">
-<div id="chat-header" class="p-4 border-b border-zinc-900 flex justify-between items-center">
-<div id="chat-name">Kein Chat ausgewählt</div>
-<div>
-<button onclick="openAddContact()">+</button>
-</div>
-</div>
-<div id="message-container"></div>
-<div id="input-area">
-<input type="text" id="msg-input" placeholder="Nachricht...">
-<button id="send-btn" onclick="sendMsg()">Senden</button>
-</div>
+<!-- App Screen -->
+<div id="app" class="hidden flex-1 flex overflow-hidden">
+  <!-- Sidebar -->
+  <div class="w-80 border-r border-zinc-900 flex flex-col bg-[#080808]">
+    <div class="p-4 flex justify-between items-center">
+      <h2 class="font-bold text-lg">Chats</h2>
+      <button onclick="openAddContact()" class="bg-emerald-600 p-2 rounded-xl hover:bg-emerald-500">+</button>
+    </div>
+    <div id="contact-list" class="flex-1 overflow-y-auto custom-scrollbar p-2"></div>
+    <div class="p-4 border-t border-zinc-900">
+      <div class="flex items-center gap-2">
+        <div id="status-dot" class="w-2 h-2 rounded-full bg-red-500"></div>
+        <span id="status-text" class="text-[10px] text-zinc-500 font-bold">Getrennt</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Window -->
+  <div class="flex-1 flex flex-col">
+    <div id="no-chat" class="flex-1 flex flex-col items-center justify-center text-zinc-600">
+      <p>Wähle einen Kontakt</p>
+    </div>
+    <div id="chat-window" class="hidden flex-1 flex flex-col">
+      <div id="chat-header" class="flex items-center gap-4 p-4 border-b border-zinc-900">
+        <button onclick="backToList()" class="md:hidden">←</button>
+        <div id="chat-name" class="font-bold">Kontakt</div>
+        <div id="chat-id" class="text-[10px] text-emerald-500 font-mono">ID: ...</div>
+      </div>
+      <div id="messages" class="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-2"></div>
+      <div class="p-4 bg-[#121212] flex gap-2">
+        <input type="text" id="msg-input" placeholder="Nachricht..." class="flex-1 p-2 rounded-xl bg-zinc-900 text-white outline-none">
+        <button onclick="sendMsg()" class="bg-emerald-600 p-2 rounded-xl hover:bg-emerald-500">Senden</button>
+      </div>
+    </div>
+  </div>
 </div>
 
+<!-- Add Contact Modal -->
+<div id="add-contact-modal" class="hidden fixed inset-0 flex items-center justify-center bg-black/70">
+  <div class="bg-zinc-900 p-6 rounded-xl w-full max-w-sm">
+    <h2 class="font-bold text-lg mb-4">Kontakt hinzufügen</h2>
+    <input type="text" id="contact-id" placeholder="ID des Kontakts" class="w-full p-3 rounded-xl bg-black mb-4 text-white">
+    <input type="text" id="contact-name" placeholder="Name" class="w-full p-3 rounded-xl bg-black mb-6 text-white">
+    <div class="flex gap-2">
+      <button onclick="closeAddContact()" class="flex-1 bg-zinc-800 py-3 rounded-xl">Abbrechen</button>
+      <button onclick="saveContact()" class="flex-1 bg-emerald-600 py-3 rounded-xl">Speichern</button>
+    </div>
+  </div>
 </div>
 
 <script>
-const WS_URL = 'wss://unwintry-strapping-winford.ngrok-free.dev';
-let ws, myId, myName, keyPair, activeContact=null, contacts = JSON.parse(localStorage.getItem('sfx_contacts')||'[]');
+let ws, myId, myName, keyPair;
+let contacts = JSON.parse(localStorage.getItem('sfx_contacts')||'[]');
+let activeContact = null;
 
-async function exportKey(key){ const exported=await crypto.subtle.exportKey(key.type==='private'?'pkcs8':'spki',key); return btoa(String.fromCharCode(...new Uint8Array(exported))); }
-async function importKey(base64,type){ const bin=Uint8Array.from(atob(base64),c=>c.charCodeAt(0)); return crypto.subtle.importKey(type==='private'?'pkcs8':'spki',bin,{name:"RSA-OAEP",hash:"SHA-256"},true,type==='private'?["decrypt"]:["encrypt"]); }
+// --- Crypto helper ---
+async function exportKey(key){const exported=await crypto.subtle.exportKey(key.type==='private'?'pkcs8':'spki',key);return btoa(String.fromCharCode(...new Uint8Array(exported)));}
+async function importKey(b64,type){const bin=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));return crypto.subtle.importKey(type==='private'?'pkcs8':'spki',bin,{name:"RSA-OAEP",hash:"SHA-256"},true,type==='private'?["decrypt"]:["encrypt"]);}
 
-async function init(){
-myId=localStorage.getItem('sfx_uid'); myName=localStorage.getItem('sfx_name'); const pubB64=localStorage.getItem('sfx_pub'); const privB64=localStorage.getItem('sfx_priv');
-if(!myId || !pubB64){ document.getElementById('setup-screen').classList.remove('hidden'); }
-else{ keyPair={publicKey:await importKey(pubB64,'public'), privateKey:await importKey(privB64,'private')}; startApp(); }
+// --- Setup / Account ---
+document.getElementById('create-account').onclick=async ()=>{
+  const name=document.getElementById('username').value.trim();
+  if(!name){alert('Name wählen');return;}
+  myName=name;
+  myId='sfx-'+Math.random().toString(36).substr(2,9);
+  keyPair=await crypto.subtle.generateKey({name:"RSA-OAEP",modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:"SHA-256"},true,["encrypt","decrypt"]);
+  localStorage.setItem('sfx_uid',myId);
+  localStorage.setItem('sfx_name',myName);
+  localStorage.setItem('sfx_pub',await exportKey(keyPair.publicKey));
+  localStorage.setItem('sfx_priv',await exportKey(keyPair.privateKey));
+  document.getElementById('setup-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('myIdDisplay')?.innerText=myId;
+  connectWS();
+  renderContacts();
 }
 
-async function createProfile(){
-const name=document.getElementById('username-input').value.trim();
-if(!name) return;
-myName=name; myId='sfx-'+Math.random().toString(36).substr(2,9);
-keyPair=await crypto.subtle.generateKey({name:"RSA-OAEP",modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:"SHA-256"},true,["encrypt","decrypt"]);
-localStorage.setItem('sfx_uid',myId); localStorage.setItem('sfx_name',myName); localStorage.setItem('sfx_pub',await exportKey(keyPair.publicKey)); localStorage.setItem('sfx_priv',await exportKey(keyPair.privateKey));
-document.getElementById('setup-screen').classList.add('hidden'); startApp();
+// --- Contacts ---
+function openAddContact(){document.getElementById('add-contact-modal').classList.remove('hidden');}
+function closeAddContact(){document.getElementById('add-contact-modal').classList.add('hidden');}
+function saveContact(){
+  const id=document.getElementById('contact-id').value.trim();
+  const name=document.getElementById('contact-name').value.trim();
+  if(!id||!name)return;
+  contacts.push({id,name,publicKey:''});
+  localStorage.setItem('sfx_contacts',JSON.stringify(contacts));
+  renderContacts();
+  closeAddContact();
+}
+function renderContacts(){
+  const list=document.getElementById('contact-list');list.innerHTML='';
+  contacts.forEach(c=>{
+    const div=document.createElement('div');
+    div.className='p-3 rounded-xl hover:bg-zinc-800 cursor-pointer';
+    div.innerText=c.name;
+    div.onclick=()=>selectContact(c);
+    list.appendChild(div);
+  });
 }
 
-function startApp(){ document.getElementById('app-screen').classList.remove('hidden'); renderContacts(); connectWS(); }
+// --- Chat ---
+function selectContact(c){
+  activeContact=c;
+  document.getElementById('no-chat').classList.add('hidden');
+  document.getElementById('chat-window').classList.remove('hidden');
+  document.getElementById('chat-name').innerText=c.name;
+  document.getElementById('chat-id').innerText='ID: '+c.id;
+  renderMessages();
+}
+function renderMessages(){
+  if(!activeContact)return;
+  const container=document.getElementById('messages');
+  const chatLog=JSON.parse(localStorage.getItem('chat_'+activeContact.id)||'[]');
+  container.innerHTML='';
+  chatLog.forEach(m=>{
+    const div=document.createElement('div');
+    div.className='p-2 rounded-xl max-w-[70%] '+(m.type==='sent'?'bg-emerald-600 self-end':'bg-zinc-800 self-start');
+    div.innerText=m.text;
+    container.appendChild(div);
+  });
+  container.scrollTop=container.scrollHeight;
+}
+async function sendMsg(){
+  const input=document.getElementById('msg-input');
+  const text=input.value.trim();
+  if(!text||!activeContact)return;
+  const targetKey=await importKey(activeContact.publicKey||'', 'public').catch(()=>null);
+  let encrypted=text;
+  if(targetKey){
+    const enc= new TextEncoder();
+    const buffer=await crypto.subtle.encrypt({name:"RSA-OAEP"},targetKey,enc.encode(text));
+    encrypted=btoa(String.fromCharCode(...new Uint8Array(buffer)));
+  }
+  ws?.send(JSON.stringify({type:'message',to:activeContact.id,text:encrypted,from:myId}));
+  saveMessage(activeContact.id,text,'sent');
+  renderMessages();
+  input.value='';
+}
+function saveMessage(chatId,text,type){
+  const log=JSON.parse(localStorage.getItem('chat_'+chatId)||'[]');
+  log.push({text,type,time:Date.now()});
+  localStorage.setItem('chat_'+chatId,JSON.stringify(log));
+}
 
-function connectWS(){ ws=new WebSocket(WS_URL);
-ws.onopen=()=>{ ws.send(JSON.stringify({type:'register',userId:myId})); }
-ws.onmessage=async e=>{ const msg=JSON.parse(e.data); if(msg.type==='message'){ handleIncomingMessage(msg); } }
-ws.onclose=()=>{ setTimeout(connectWS,5000); } }
-
-async function handleIncomingMessage(msg){ const contact=contacts.find(c=>c.id===msg.from); if(!contact) return;
-try{ const buffer=Uint8Array.from(atob(msg.text),c=>c.charCodeAt(0)).buffer;
-const dec=new TextDecoder(); const text=dec.decode(await crypto.subtle.decrypt({name:"RSA-OAEP"},keyPair.privateKey,buffer)); saveMessage(msg.from,text,'received'); if(activeContact && activeContact.id===msg.from) renderMessages(); } catch(e){ console.error(e); } }
-
-function renderContacts(){ const list=document.getElementById('contact-list'); list.innerHTML=''; contacts.forEach(c=>{ const div=document.createElement('div'); div.className='contact'; if(activeContact?.id===c.id) div.classList.add('active'); div.textContent=c.name; div.onclick=()=>selectContact(c); list.appendChild(div); }); }
-
-function selectContact(c){ activeContact=c; document.getElementById('chat-name').textContent=c.name; renderContacts(); renderMessages(); }
-
-function renderMessages(){ if(!activeContact) return; const container=document.getElementById('message-container'); const chatLog=JSON.parse(localStorage.getItem('chat_'+activeContact.id)||'[]'); container.innerHTML=''; chatLog.forEach(m=>{ const div=document.createElement('div'); div.className=m.type==='sent'?'text-right':'text-left'; div.textContent=m.text; container.appendChild(div); }); container.scrollTop=container.scrollHeight; }
-
-async function sendMsg(){ const input=document.getElementById('msg-input'); const text=input.value.trim(); if(!text || !activeContact) return;
-const enc=new TextEncoder(); const encrypted=await crypto.subtle.encrypt({name:"RSA-OAEP"},keyPair.publicKey,enc.encode(text));
-const b64=btoa(String.fromCharCode(...new Uint8Array(encrypted)));
-ws.send(JSON.stringify({type:'message',to:activeContact.id,text:b64,from:myId}));
-saveMessage(activeContact.id,text,'sent'); input.value=''; renderMessages(); }
-
-function saveMessage(chatId,text,type){ const chatLog=JSON.parse(localStorage.getItem('chat_'+chatId)||'[]'); chatLog.push({text,type,time:Date.now()}); localStorage.setItem('chat_'+chatId,JSON.stringify(chatLog)); }
-
-function openAddContact(){ const id=prompt('ID des Empfängers:'); const name=prompt('Name für Kontakt:'); if(!id||!name) return; contacts.push({id,name,publicKey:''}); localStorage.setItem('sfx_contacts',JSON.stringify(contacts)); renderContacts(); }
-
-function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('hidden-mobile'); }
-
-init();
+// --- WebSocket ---
+function connectWS(){
+  ws=new WebSocket('wss://unwintry-strapping-winford.ngrok-free.dev');
+  ws.onopen=()=>{document.getElementById('status-dot').className='w-2 h-2 rounded-full bg-emerald-500';document.getElementById('status-text').innerText='Bereit';ws.send(JSON.stringify({type:'register',userId:myId}));}
+  ws.onclose=()=>{document.getElementById('status-dot').className='w-2 h-2 rounded-full bg-red-500';document.getElementById('status-text').innerText='Getrennt';setTimeout(connectWS,5000);}
+  ws.onmessage=async e=>{const msg=JSON.parse(e.data);if(msg.type==='message'){handleIncoming(msg);}}
+}
+async function handleIncoming(msg){
+  const contact=contacts.find(c=>c.id===msg.from);if(!contact)return;
+  let text=msg.text;
+  try{const buf=Uint8Array.from(atob(msg.text),c=>c.charCodeAt(0)).buffer;text=new TextDecoder().decode(await crypto.subtle.decrypt({name:"RSA-OAEP"},keyPair.privateKey,buf));}catch{}
+  saveMessage(msg.from,text,'received');
+  if(activeContact?.id===msg.from)renderMessages();
+}
+function backToList(){activeContact=null;document.getElementById('no-chat').classList.remove('hidden');document.getElementById('chat-window').classList.add('hidden');}
 </script>
 
 </body>
