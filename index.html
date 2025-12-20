@@ -1,178 +1,161 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ShadowFX Messenger</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#202c33">
-
-<style>
-:root{
-  --bg:#0b141a;--header:#202c33;--panel:#111b21;--input:#2a3942;
-  --text:#e9edef;--text-muted:#8696a0;--green:#00a884;--bubble-out:#005c4b;--bubble-in:#202c33;
-}
-body,html{margin:0;padding:0;height:100%;font-family:'Segoe UI',Helvetica,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;}
-#version{position:absolute;top:5px;left:50%;transform:translateX(-50%);color:var(--green);font-weight:bold;font-size:14px;z-index:1000;}
-#loginContainer{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:var(--panel);padding:20px;}
-.login-card{background:var(--header);padding:40px;border-radius:8px;box-shadow:0 17px 50px rgba(0,0,0,.19);width:100%;max-width:400px;text-align:center;}
-#loginContainer input,#loginContainer button{width:100%;padding:12px;margin:10px 0;border-radius:8px;border:none;font-size:16px;outline:none;}
-#loginContainer input{background:var(--input);color:var(--text);}
-#loginContainer button{background:var(--green);color:#000;font-weight:600;cursor:pointer;}
-#chatContainer{display:none;flex-direction:column;height:100vh;}
-#chatHeader{background:var(--header);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;}
-.user-info{display:flex;align-items:center;gap:12px;}
-.avatar{width:40px;height:40px;background:#6a7175;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;}
-#chat{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
-#messageList{display:flex;flex-direction:column;padding:20px;gap:4px;}
-.message{max-width:65%;padding:8px;border-radius:8px;font-size:14px;}
-.sent{background:var(--bubble-out);align-self:flex-end;border-top-right-radius:0;}
-.received{background:var(--bubble-in);align-self:flex-start;border-top-left-radius:0;}
-.system-msg{align-self:center;background:#182229;color:#8696a0;font-size:12px;padding:4px 12px;border-radius:6px;margin:10px 0;}
-#inputArea{background:var(--header);padding:10px 16px;display:flex;align-items:center;gap:15px;}
-#message{flex:1;background:var(--input);border:none;padding:10px;border-radius:8px;color:var(--text);outline:none;}
-button#sendBtn{background:none;border:none;color:var(--text-muted);cursor:pointer;}
-button#sendBtn.active{color:var(--green);}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShadowFX | Dezentraler Messenger</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-dark: #050505;
+            --panel-dark: #121212;
+            --accent: #10b981;
+        }
+        body {
+            background-color: var(--bg-dark);
+            color: #e5e7eb;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
+        .message-in { border-bottom-left-radius: 2px; }
+        .message-out { border-bottom-right-radius: 2px; }
+    </style>
 </head>
-<body>
-<div id="version">v1.4</div>
+<body class="h-screen overflow-hidden">
 
-<div id="loginContainer">
-  <div class="login-card">
-    <h2>ShadowFX Messenger</h2>
-    <div id="accountInfo">
-      <button id="createAccountBtn">Account erstellen</button>
-      <p id="accountIdDisplay"></p>
+    <!-- Startbildschirm / Profil erstellen -->
+    <div id="setup-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-[#050505] p-6">
+        <div class="w-full max-w-sm text-center">
+            <div class="mb-8 flex justify-center">
+                <div class="w-20 h-20 bg-emerald-500/10 rounded-3xl flex items-center justify-center text-emerald-500 shadow-2xl shadow-emerald-500/10">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                </div>
+            </div>
+            <h1 class="text-3xl font-bold mb-2">ShadowFX</h1>
+            <p class="text-zinc-500 mb-8 text-sm">Dezentral. Verschlüsselt. Keine Cloud.</p>
+            <input type="text" id="username-input" placeholder="Anzeigename wählen" class="w-full bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mb-4 outline-none focus:border-emerald-500 transition-all text-center">
+            <button onclick="createProfile()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-emerald-900/20">
+                Profil lokal erstellen
+            </button>
+        </div>
     </div>
-    <input type="text" id="targetIdInput" placeholder="Empfänger ID">
-    <button id="loginBtn">Chat Beitreten</button>
-    <p id="loginFeedback"></p>
-  </div>
-</div>
 
-<div id="chatContainer">
-  <div id="chatHeader">
-    <div class="user-info">
-      <div class="avatar">U</div>
-      <div>
-        <div id="targetNameDisplay" style="font-weight:500;">Chat</div>
-        <div style="font-size:12px;color:#8696a0;">online</div>
-      </div>
+    <!-- Hauptanwendung -->
+    <div id="app-screen" class="flex h-screen opacity-0 transition-opacity duration-500">
+        <!-- Sidebar -->
+        <div id="sidebar" class="w-full md:w-80 border-r border-zinc-900 flex flex-col bg-[#080808]">
+            <div class="p-6 flex items-center justify-between">
+                <h2 class="text-xl font-bold tracking-tight">Chats</h2>
+                <div class="flex gap-2">
+                    <button onclick="toggleSettings()" class="p-2 hover:bg-zinc-900 rounded-xl text-zinc-500">⚙️</button>
+                    <button onclick="openAddContact()" class="p-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-500 shadow-md">➕</button>
+                </div>
+            </div>
+            <div id="contact-list" class="flex-1 overflow-y-auto px-3 custom-scrollbar"></div>
+            <div class="p-4 border-t border-zinc-900 bg-[#050505]">
+                <div class="flex items-center gap-3">
+                    <div id="status-dot" class="w-2 h-2 rounded-full bg-red-500"></div>
+                    <span id="status-text" class="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Getrennt</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Fenster -->
+        <div id="chat-window" class="flex-1 flex flex-col bg-[#050505]">
+            <div id="no-chat" class="flex-1 flex flex-col items-center justify-center text-zinc-600 space-y-4">
+                <div class="w-24 h-24 border-2 border-dashed border-zinc-800 rounded-full flex items-center justify-center opacity-20">
+                    💬
+                </div>
+                <p>Wähle einen sicheren Kanal</p>
+            </div>
+
+            <div id="active-chat" class="hidden flex-1 flex flex-col">
+                <div class="p-4 border-b border-zinc-900 flex items-center gap-4">
+                    <button onclick="backToList()" class="md:hidden p-2 text-zinc-400">⬅️</button>
+                    <div id="chat-avatar" class="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center font-bold text-emerald-500">?</div>
+                    <div>
+                        <div id="chat-name" class="font-bold">Unbekannt</div>
+                        <div class="text-[10px] text-emerald-500 font-mono" id="chat-id-small">ID: ...</div>
+                    </div>
+                </div>
+
+                <div id="message-container" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"></div>
+
+                <div class="p-4">
+                    <div class="max-w-4xl mx-auto flex items-center gap-3 bg-zinc-900 p-2 pl-4 rounded-2xl border border-zinc-800 focus-within:border-emerald-500/50 transition-all">
+                        <input type="text" id="msg-input" placeholder="Nachricht..." class="flex-1 bg-transparent outline-none py-2 text-sm">
+                        <button onclick="sendMsg()" class="p-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-900/20">➡️</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    <button onclick="location.reload()">✕</button>
-  </div>
 
-  <div id="chat">
-    <div id="messageList"></div>
-  </div>
+    <!-- Modals -->
+    <div id="modal-container" class="hidden fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-6">
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="hidden w-full max-w-md bg-zinc-900 rounded-3xl p-6 border border-zinc-800">
+            <h2 class="text-xl font-bold mb-6">Deine Identität</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] uppercase text-zinc-500 font-bold mb-2 block tracking-widest">Deine ID (Teilen zum Chatten)</label>
+                    <div class="flex items-center gap-2 bg-black p-4 rounded-2xl border border-zinc-800">
+                        <code id="my-id-display" class="text-emerald-500 text-xs truncate flex-1 font-mono">...</code>
+                        <button onclick="copyMyId()" class="text-zinc-500 hover:text-white">📋</button>
+                    </div>
+                </div>
+                <button onclick="logout()" class="w-full text-red-500 bg-red-500/10 py-4 rounded-2xl font-bold hover:bg-red-500/20">Daten löschen</button>
+                <button onclick="closeModals()" class="w-full bg-zinc-800 py-4 rounded-2xl font-bold">Schließen</button>
+            </div>
+        </div>
 
-  <div id="inputArea">
-    <input type="text" id="message" placeholder="Nachricht schreiben" autocomplete="off">
-    <button id="sendBtn">Senden</button>
-  </div>
-</div>
+        <!-- Add Contact Modal -->
+        <div id="add-modal" class="hidden w-full max-w-sm bg-zinc-900 rounded-3xl p-6 border border-zinc-800">
+            <h2 class="text-xl font-bold mb-4">Neuer Kanal</h2>
+            <input type="text" id="target-id-input" placeholder="ID des Empfängers" class="w-full bg-black border border-zinc-800 rounded-2xl p-4 mb-4 outline-none focus:border-emerald-500 transition-all font-mono text-xs">
+            <input type="text" id="target-name-input" placeholder="Name für Kontakt" class="w-full bg-black border border-zinc-800 rounded-2xl p-4 mb-6 outline-none focus:border-emerald-500 transition-all">
+            <div class="flex gap-3">
+                <button onclick="closeModals()" class="flex-1 bg-zinc-800 py-4 rounded-2xl font-bold">Abbruch</button>
+                <button onclick="saveNewContact()" class="flex-1 bg-emerald-600 py-4 rounded-2xl font-bold">Speichern</button>
+            </div>
+        </div>
+    </div>
 
-<script>
-const SERVER_URL='wss://unwintry-strapping-winford.ngrok-free.dev';
-let ws,targetId='';
-const msgList=document.getElementById('messageList');
-const msgInput=document.getElementById('message');
-const sendBtn=document.getElementById('sendBtn');
+    <!-- Script -->
+    <script>
+        const WS_URL='wss://unwintry-strapping-winford.ngrok-free.dev';
+        let ws,myId,myName,keyPair;
+        let activeContact=null;
+        let contacts=JSON.parse(localStorage.getItem('sfx_contacts')||'[]');
 
-let userId=localStorage.getItem('shadowfxUserId')||'';
-let keyPair={publicKey:null,privateKey:null};
+        async function exportKey(key){const exported=await crypto.subtle.exportKey(key.type==='private'?'pkcs8':'spki',key);return btoa(String.fromCharCode(...new Uint8Array(exported)));}
+        async function importKey(base64,type){const bin=Uint8Array.from(atob(base64),c=>c.charCodeAt(0));return crypto.subtle.importKey(type==='private'?'pkcs8':'spki',bin,{name:"RSA-OAEP",hash:"SHA-256"},true,type==='private'?["decrypt"]:["encrypt"]);}
+        async function init(){myId=localStorage.getItem('sfx_uid');myName=localStorage.getItem('sfx_name');const pubB64=localStorage.getItem('sfx_pub');const privB64=localStorage.getItem('sfx_priv');if(!myId||!pubB64||!privB64){document.getElementById('setup-screen').classList.remove('hidden');}else{keyPair={publicKey:await importKey(pubB64,'public'),privateKey:await importKey(privB64,'private')};startApp();}}
+        async function createProfile(){const nameInput=document.getElementById('username-input').value.trim();if(!nameInput)return;myName=nameInput;myId='sfx-'+Math.random().toString(36).substr(2,9);keyPair=await crypto.subtle.generateKey({name:"RSA-OAEP",modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:"SHA-256"},true,["encrypt","decrypt"]);localStorage.setItem('sfx_uid',myId);localStorage.setItem('sfx_name',myName);localStorage.setItem('sfx_pub',await exportKey(keyPair.publicKey));localStorage.setItem('sfx_priv',await exportKey(keyPair.privateKey));document.getElementById('setup-screen').classList.add('hidden');startApp();}
 
-// Export / Import Keys
-async function exportKey(key){const exported=await crypto.subtle.exportKey(key.type==='private'?'pkcs8':'spki',key);return btoa(String.fromCharCode(...new Uint8Array(exported)));}
-async function importPublicKey(base64){const bin=Uint8Array.from(atob(base64),c=>c.charCodeAt(0));return crypto.subtle.importKey('spki',bin,{name:"RSA-OAEP",hash:"SHA-256"},true,["encrypt"]);}
-async function importPrivateKey(base64){const bin=Uint8Array.from(atob(base64),c=>c.charCodeAt(0));return crypto.subtle.importKey('pkcs8',bin,{name:"RSA-OAEP",hash:"SHA-256"},true,["decrypt"]);}
+        function startApp(){document.getElementById('app-screen').classList.remove('opacity-0');document.getElementById('my-id-display').textContent=myId;renderContacts();connectWS();}
+        function connectWS(){ws=new WebSocket(WS_URL);ws.onopen=()=>{ws.send(JSON.stringify({type:'register',userId:myId}));document.getElementById('status-dot').className='w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]';document.getElementById('status-text').textContent='Bereit';};ws.onclose=()=>{document.getElementById('status-dot').className='w-2 h-2 rounded-full bg-red-500';document.getElementById('status-text').textContent='Getrennt';setTimeout(connectWS,5000);};ws.onmessage=async e=>{const msg=JSON.parse(e.data);if(msg.type==='message'){handleIncomingMessage(msg);}}}
 
-// Chat local
-function saveChat(targetId,msgs){localStorage.setItem('chat_'+targetId,JSON.stringify(msgs));}
-function loadChat(targetId){return JSON.parse(localStorage.getItem('chat_'+targetId)||'[]');}
+        async function handleIncomingMessage(msg){const contact=contacts.find(c=>c.id===msg.from);if(!contact)return;try{const buffer=Uint8Array.from(atob(msg.text),c=>c.charCodeAt(0)).buffer;const dec=new TextDecoder();const text=dec.decode(await crypto.subtle.decrypt({name:"RSA-OAEP"},keyPair.privateKey,buffer));saveMessage(msg.from,text,'received');if(activeContact&&activeContact.id===msg.from)renderMessages();}catch(e){console.error("Entschlüsselung fehlgeschlagen",e);}}
 
-// Messages
-function addMessage(text,type='system'){const div=document.createElement('div');const time=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});if(type==='system'){div.className='system-msg';div.textContent=text;}else{div.className=`message ${type}`;div.textContent=text;}msgList.appendChild(div);document.getElementById('chat').scrollTo({top:document.getElementById('chat').scrollHeight,behavior:'smooth'});}
+        function saveMessage(chatId,text,type){const chatLog=JSON.parse(localStorage.getItem('chat_'+chatId)||'[]');chatLog.push({text,type,time:Date.now()});localStorage.setItem('chat_'+chatId,JSON.stringify(chatLog));}
 
-// Generate / Load Keys
-async function generateKeys(){
-  keyPair = await window.crypto.subtle.generateKey(
-    {name:"RSA-OAEP",modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:"SHA-256"},
-    true,
-    ["encrypt","decrypt"]
-  );
-  localStorage.setItem('shadowfxPublic',await exportKey(keyPair.publicKey));
-  localStorage.setItem('shadowfxPrivate',await exportKey(keyPair.privateKey));
-}
+        function renderContacts(){const list=document.getElementById('contact-list');list.innerHTML='';contacts.forEach(c=>{const div=document.createElement('div');div.className=`flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition-all ${activeContact?.id===c.id?'bg-zinc-900':'hover:bg-zinc-900/50'}`;div.onclick=()=>selectContact(c);div.innerHTML=`<div class="w-12 h-12 bg-zinc-800 rounded-full flex items-center justify-center font-bold text-emerald-500 uppercase">${c.name[0]}</div><div class="flex-1 truncate"><div class="font-bold text-sm">${c.name}</div><div class="text-[10px] text-zinc-600 font-mono">${c.id}</div></div>`;list.appendChild(div);});}
+        function selectContact(c){activeContact=c;document.getElementById('no-chat').classList.add('hidden');document.getElementById('active-chat').classList.remove('hidden');document.getElementById('chat-name').textContent=c.name;document.getElementById('chat-id-small').textContent='ID: '+c.id;document.getElementById('chat-avatar').textContent=c.name[0];renderContacts();renderMessages();}
+        function renderMessages(){if(!activeContact)return;const container=document.getElementById('message-container');const chatLog=JSON.parse(localStorage.getItem('chat_'+activeContact.id)||'[]');container.innerHTML='';chatLog.forEach(m=>{const div=document.createElement('div');div.className=`flex ${m.type==='sent'?'justify-end':'justify-start'}`;div.innerHTML=`<div class="max-w-[80%] p-3 px-4 rounded-2xl text-sm ${m.type==='sent'?'bg-emerald-600 text-white message-out':'bg-zinc-900 text-zinc-200 message-in'}">${m.text}</div>`;container.appendChild(div);});container.scrollTop=container.scrollHeight;}
+        async function sendMsg(){const input=document.getElementById('msg-input');const text=input.value.trim();if(!text||!activeContact)return;try{const targetKey=await importKey(activeContact.publicKey,'public');const enc=new TextEncoder();const encrypted=await crypto.subtle.encrypt({name:"RSA-OAEP"},targetKey,enc.encode(text));const b64=btoa(String.fromCharCode(...new Uint8Array(encrypted)));ws.send(JSON.stringify({type:'message',to:activeContact.id,text:b64,from:myId}));saveMessage(activeContact.id,text,'sent');input.value='';renderMessages();}catch(e){console.error("Senden fehlgeschlagen",e);}}
 
-async function loadKeys(){
-  const pub=localStorage.getItem('shadowfxPublic');
-  const priv=localStorage.getItem('shadowfxPrivate');
-  if(pub && priv){keyPair.publicKey=await importPublicKey(pub);keyPair.privateKey=await importPrivateKey(priv);}
-  else await generateKeys();
-}
-
-// Account erstellen
-document.getElementById('createAccountBtn').onclick=async()=>{
-  if(!userId){userId='user-'+Math.random().toString(36).substr(2,9);localStorage.setItem('shadowfxUserId',userId);}
-  document.getElementById('accountIdDisplay').textContent='Deine ID: '+userId;
-  await generateKeys();
-};
-
-// Login
-document.getElementById('loginBtn').onclick=async()=>{
-  targetId=document.getElementById('targetIdInput').value.trim();
-  if(!userId){document.getElementById('loginFeedback').textContent='Bitte zuerst Account erstellen!';return;}
-  if(!targetId){document.getElementById('loginFeedback').textContent='Empfänger ID fehlt!';return;}
-
-  await loadKeys();
-
-  ws=new WebSocket(SERVER_URL);
-  ws.onopen=()=>{
-    ws.send(JSON.stringify({type:'register',userId}));
-    document.getElementById('loginContainer').style.display='none';
-    document.getElementById('chatContainer').style.display='flex';
-    document.getElementById('targetNameDisplay').textContent=targetId;
-    addMessage("Nachrichten sind Ende-zu-Ende verschlüsselt.");
-    // Load previous chat
-    loadChat(targetId).forEach(m=>addMessage(m.text,m.type));
-  };
-
-  ws.onmessage=async(event)=>{
-    const msg=JSON.parse(event.data);
-    if(msg.from===targetId){
-      const decrypted=await decryptMessage(new Uint8Array(msg.text).buffer);
-      addMessage(decrypted,'received');
-      const chat=loadChat(targetId);
-      chat.push({type:'received',text:decrypted});
-      saveChat(targetId,chat);
-    }
-  };
-};
-
-// Encrypt / Decrypt
-async function encryptMessage(msg){const enc=new TextEncoder();return crypto.subtle.encrypt({name:"RSA-OAEP"},keyPair.publicKey,enc.encode(msg));}
-async function decryptMessage(buffer){const dec=new TextDecoder();return dec.decode(await crypto.subtle.decrypt({name:"RSA-OAEP"},keyPair.privateKey,buffer));}
-
-// Send
-sendBtn.onclick=async()=>{
-  const text=msgInput.value.trim();if(!text)return;
-  const encryptedBuffer=await encryptMessage(text);
-  const encryptedArray=Array.from(new Uint8Array(encryptedBuffer));
-  ws.send(JSON.stringify({type:'message',to:targetId,text:encryptedArray}));
-  addMessage(text,'sent');
-  const chat=loadChat(targetId);
-  chat.push({type:'sent',text:text});
-  saveChat(targetId,chat);
-  msgInput.value='';
-};
-
-msgInput.oninput=()=>sendBtn.classList.toggle('active', msgInput.value.length>0);
-msgInput.onkeypress=e=>e.key==='Enter'&&sendBtn.click();
-
-// PWA Service Worker
-if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js'));}
-</script>
+        function openAddContact(){document.getElementById('modal-container').classList.remove('hidden');document.getElementById('add-modal').classList.remove('hidden');}
+        function toggleSettings(){document.getElementById('modal-container').classList.remove('hidden');document.getElementById('settings-modal').classList.remove('hidden');}
+        function closeModals(){document.getElementById('modal-container').classList.add('hidden');document.getElementById('add-modal').classList.add('hidden');document.getElementById('settings-modal').classList.add('hidden');}
+        function saveNewContact(){const id=document.getElementById('target-id-input').value.trim();const name=document.getElementById('target-name-input').value.trim();if(!id||!name)return;const parts=id.split(':');const uid=parts[0];const pub=parts[1]||"";contacts.push({id:uid,name:name,publicKey:pub});localStorage.setItem('sfx_contacts',JSON.stringify(contacts));renderContacts();closeModals();}
+        function copyMyId(){const pub=localStorage.getItem('sfx_pub');const fullId=`${myId}:${pub}`;navigator.clipboard.writeText(fullId);alert('ID kopiert!');}
+        function logout(){localStorage.clear();location.reload();}
+        init();
+    </script>
 </body>
 </html>
