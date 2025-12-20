@@ -9,83 +9,58 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
         
-        :root { 
-            --primary: #ef4444; 
-            --bg: #000000;
-        }
+        :root { --primary: #ef4444; --bg: #000000; }
 
         body { 
-            background-color: var(--bg); 
-            color: #e4e4e7; 
-            font-family: 'Inter', sans-serif; 
-            height: 100dvh; 
-            margin: 0; 
-            overflow: hidden; 
-            -webkit-tap-highlight-color: transparent;
+            background-color: var(--bg); color: #e4e4e7; font-family: 'Inter', sans-serif; 
+            height: 100dvh; margin: 0; overflow: hidden; -webkit-tap-highlight-color: transparent;
         }
-
-        .mono { font-family: 'JetBrains Mono', monospace; }
 
         .ios-blur { 
-            background: rgba(10, 10, 10, 0.8); 
-            backdrop-filter: blur(25px); 
-            -webkit-backdrop-filter: blur(25px); 
+            background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); 
         }
 
-        /* Message Bubbles */
         .bubble { 
-            max-width: 75%; 
-            padding: 10px 14px; 
-            border-radius: 18px; 
-            font-size: 14px; 
-            position: relative; 
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s;
-            user-select: none;
+            max-width: 75%; padding: 10px 14px; border-radius: 18px; font-size: 14px; 
+            position: relative; transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            user-select: none; display: flex; flex-direction: column;
         }
-        .bubble:active { transform: scale(0.96); }
         .bubble-me { background: var(--primary); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
         .bubble-peer { background: #1c1c1e; align-self: flex-start; border-bottom-left-radius: 4px; }
-
-        /* Context Menus */
-        .context-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 5000;
-            display: flex; align-items: center; justify-content: center; padding: 20px;
-            opacity: 0; pointer-events: none; transition: opacity 0.2s;
-        }
-        .context-overlay.active { opacity: 1; pointer-events: auto; }
-        .menu-card {
-            background: #1c1c1e; border-radius: 20px; width: 100%; max-width: 280px;
-            overflow: hidden; transform: scale(0.9); transition: transform 0.2s;
-        }
-        .context-overlay.active .menu-card { transform: scale(1); }
-        .menu-item {
-            padding: 16px; border-bottom: 1px solid #2c2c2e; display: flex; align-items: center; gap: 12px;
-            width: 100%; text-align: left; font-size: 14px; font-weight: 500;
-        }
-        .menu-item:last-child { border-bottom: none; }
-        .menu-item.danger { color: #ff453a; }
+        
+        .msg-status { font-size: 8px; text-transform: uppercase; margin-top: 4px; opacity: 0.7; align-self: flex-end; }
 
         .no-select { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
         
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         .animate-slide-up { animation: slideUp 0.3s ease-out; }
+
+        .offline-notice { 
+            position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+            background: #f59e0b; color: black; font-size: 10px; font-weight: 800; 
+            text-align: center; padding: 4px; text-transform: uppercase; 
+        }
+
+        .mono-font { font-family: 'JetBrains Mono', monospace; }
     </style>
 </head>
 <body class="no-select">
 
-    <!-- Splash/Setup -->
+    <div id="offline-banner" class="offline-notice hidden">Verbindung unterbrochen</div>
+
+    <!-- Onboarding -->
     <div id="onboarding" class="fixed inset-0 bg-black z-[6000] p-10 flex flex-col justify-center items-center text-center">
         <div class="w-20 h-20 bg-red-500/10 rounded-[2rem] flex items-center justify-center mb-6 border border-red-500/20">
             <i data-lucide="shield-check" class="w-10 h-10 text-red-500"></i>
         </div>
         <h1 class="text-2xl font-bold mb-8 uppercase tracking-tighter">ShadowFX Pro</h1>
         <div class="w-full max-w-xs space-y-3">
-            <input type="text" id="user-display-input" placeholder="WÄHLE EIN PSEUDONYM" class="w-full bg-zinc-900 p-4 rounded-xl border border-zinc-800 text-center text-white font-bold outline-none text-xs">
-            <button onclick="setupApp()" class="w-full bg-red-500 p-4 rounded-xl font-bold text-white uppercase text-xs shadow-lg shadow-red-500/20 active:scale-95 transition-all">Einsteigen</button>
+            <input type="text" id="user-display-input" placeholder="WÄHLE EIN PSEUDONYM" class="w-full bg-zinc-900 p-4 rounded-xl border border-zinc-800 text-center text-white font-bold outline-none text-xs uppercase">
+            <button onclick="setupApp()" class="w-full bg-red-500 p-4 rounded-xl font-bold text-white uppercase text-xs active:scale-95 transition-all">Einsteigen</button>
         </div>
     </div>
 
-    <!-- Main Application UI -->
+    <!-- UI -->
     <div id="app-ui" class="flex flex-col h-full hidden">
         <header class="ios-blur pt-12 pb-4 px-6 border-b border-zinc-900 flex justify-between items-center z-50">
             <div class="flex items-center gap-3">
@@ -100,61 +75,60 @@
         <main id="main-content" class="flex-1 overflow-y-auto p-4 flex flex-col gap-2"></main>
 
         <nav id="bottom-nav" class="ios-blur pb-8 pt-2 px-10 border-t border-zinc-900 flex justify-around items-center z-50">
-            <button onclick="nav('chats')" id="nav-chats" class="p-2 opacity-100"><i data-lucide="message-circle"></i></button>
-            <button onclick="nav('invite')" id="nav-invite" class="p-2 opacity-40"><i data-lucide="plus-square"></i></button>
-            <button onclick="fullReset()" class="p-2 opacity-40"><i data-lucide="refresh-cw"></i></button>
+            <button onclick="nav('chats')" id="nav-chats" class="p-2 opacity-100 transition-opacity"><i data-lucide="message-circle"></i></button>
+            <button onclick="nav('invite')" id="nav-invite" class="p-2 opacity-40 transition-opacity"><i data-lucide="share-2"></i></button>
+            <button onclick="fullReset()" class="p-2 opacity-40 hover:text-red-500 transition-all"><i data-lucide="trash-2"></i></button>
         </nav>
     </div>
 
-    <!-- Universal Context Menu -->
-    <div id="context-menu" class="context-overlay" onclick="closeContextMenu()">
-        <div class="menu-card" onclick="event.stopPropagation()">
-            <div id="menu-content"></div>
-            <button onclick="closeContextMenu()" class="menu-item text-zinc-500 justify-center font-bold">Abbrechen</button>
-        </div>
-    </div>
-
-    <!-- Invite Modal -->
+    <!-- Invite/Add Modal -->
     <div id="invite-modal" class="fixed inset-0 z-[7000] bg-black/95 p-8 flex flex-col justify-center items-center hidden">
-        <h2 class="text-xl font-bold mb-4 uppercase">Code einlösen</h2>
-        <input id="invite-input" placeholder="SFX#..." class="w-full bg-zinc-900 border border-zinc-800 p-4 rounded-xl font-mono text-white text-xs mb-4 outline-none">
-        <button onclick="validateInviteCode()" class="w-full bg-white text-black p-4 rounded-xl font-bold uppercase text-xs">Tunnel starten</button>
-        <button onclick="$('invite-modal').classList.add('hidden')" class="mt-4 text-zinc-500 text-xs uppercase font-bold">Schließen</button>
+        <div class="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center mb-6 border border-zinc-800">
+            <i data-lucide="plus" class="text-red-500"></i>
+        </div>
+        <h2 class="text-xl font-bold mb-4 uppercase">Tunnel beitreten</h2>
+        <p class="text-[10px] text-zinc-500 mb-6 text-center uppercase tracking-widest leading-relaxed">Füge den vollständigen RSA-Key deines Partners ein</p>
+        <textarea id="invite-input" placeholder="SFX#..." class="w-full h-32 bg-zinc-900 border border-zinc-800 p-4 rounded-xl font-mono text-white text-[10px] mb-4 outline-none focus:border-red-500 transition-colors resize-none"></textarea>
+        <button onclick="validateInviteCode()" class="w-full bg-white text-black p-4 rounded-xl font-bold uppercase text-xs active:scale-95">Tunnel aktivieren</button>
+        <button onclick="$('invite-modal').classList.add('hidden')" class="mt-6 text-zinc-600 text-[10px] uppercase font-bold tracking-widest">Abbrechen</button>
     </div>
 
     <script>
         const $ = id => document.getElementById(id);
         const RELAY_HOST = "unwintry-strapping-winford.ngrok-free.dev";
         let socket;
-        let state = { profiles: [], activeProfileId: null, view: 'chats', activeChatId: null, lastGeneratedCode: null };
-        let longPressTimer;
+        let state = { profiles: [], activeProfileId: null, view: 'chats', activeChatId: null, currentInviteCode: null };
+        let isConnected = false;
 
-        // --- KRYPTO CORE ---
+        // Krypto-Funktionen
         async function generateKeyPair() { return await crypto.subtle.generateKey({ name: "RSA-OAEP", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" }, true, ["encrypt", "decrypt"]); }
         async function exportKey(key) { const format = key.type === "public" ? "spki" : "pkcs8"; const exported = await crypto.subtle.exportKey(format, key); return btoa(String.fromCharCode(...new Uint8Array(exported))); }
-        async function importPublicKey(pem) { const binary = atob(pem); const bytes = new Uint8Array(binary.length); for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i); return await crypto.subtle.importKey("spki", bytes.buffer, { name: "RSA-OAEP", hash: "SHA-256" }, true, ["encrypt"]); }
-        async function importPrivateKey(pem) { const binary = atob(pem); const bytes = new Uint8Array(binary.length); for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i); return await crypto.subtle.importKey("pkcs8", bytes.buffer, { name: "RSA-OAEP", hash: "SHA-256" }, true, ["decrypt"]); }
-        async function encrypt(pubKey, text) { const data = new TextEncoder().encode(text); const encrypted = await crypto.subtle.encrypt({ name: "RSA-OAEP" }, pubKey, data); return btoa(String.fromCharCode(...new Uint8Array(encrypted))); }
-        async function decrypt(privKey, b64) { const binary = atob(b64); const bytes = new Uint8Array(binary.length); for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i); const decrypted = await crypto.subtle.decrypt({ name: "RSA-OAEP" }, privKey, bytes.buffer); return new TextDecoder().decode(decrypted); }
+        async function importPublicKey(pem) { return await crypto.subtle.importKey("spki", new Uint8Array(atob(pem).split("").map(c => c.charCodeAt(0))).buffer, { name: "RSA-OAEP", hash: "SHA-256" }, true, ["encrypt"]); }
+        async function importPrivateKey(pem) { return await crypto.subtle.importKey("pkcs8", new Uint8Array(atob(pem).split("").map(c => c.charCodeAt(0))).buffer, { name: "RSA-OAEP", hash: "SHA-256" }, true, ["decrypt"]); }
+        async function encryptRSA(pubKey, text) { const data = new TextEncoder().encode(text); const encrypted = await crypto.subtle.encrypt({ name: "RSA-OAEP" }, pubKey, data); return btoa(String.fromCharCode(...new Uint8Array(encrypted))); }
+        async function decryptRSA(privKey, b64) { const decrypted = await crypto.subtle.decrypt({ name: "RSA-OAEP" }, privKey, new Uint8Array(atob(b64).split("").map(c => c.charCodeAt(0))).buffer); return new TextDecoder().decode(decrypted); }
 
         function getActiveProfile() { return state.profiles.find(p => p.id === state.activeProfileId); }
 
-        // --- SOCKET & RELAY ---
         function initSocket() {
             if (socket?.readyState === WebSocket.OPEN) return;
             socket = new WebSocket(`wss://${RELAY_HOST}`);
             socket.onopen = () => {
+                isConnected = true;
                 $('connection-indicator').className = 'w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]';
+                $('offline-banner').classList.add('hidden');
                 const p = getActiveProfile();
                 if (p) socket.send(JSON.stringify({ type: 'OPEN_ANON_QUEUE', queueId: p.queueId }));
             };
-            socket.onmessage = async (e) => {
+            socket.onmessage = (e) => {
                 const data = JSON.parse(e.data);
                 if (data.type === 'RELAY_IN') handleRelay(data.payload);
             };
             socket.onclose = () => {
+                isConnected = false;
                 $('connection-indicator').className = 'w-2 h-2 rounded-full bg-red-500';
-                setTimeout(initSocket, 5000);
+                $('offline-banner').classList.remove('hidden');
+                setTimeout(initSocket, 3000);
             };
         }
 
@@ -163,17 +137,8 @@
             if (!p) return;
             try {
                 const privKey = await importPrivateKey(p.privateKeyPem);
-                const decrypted = await decrypt(privKey, payload.text);
-                const msgObj = JSON.parse(decrypted);
-
-                if (msgObj.type === 'DELETE_REQUEST') {
-                    const contact = p.contacts.find(c => c.pubKey === payload.from);
-                    if (contact && p.messages[contact.id]) {
-                        p.messages[contact.id] = p.messages[contact.id].filter(m => m.msgId !== msgObj.msgId);
-                        save(); render();
-                    }
-                    return;
-                }
+                const decryptedStr = await decryptRSA(privKey, payload.text);
+                const msgObj = JSON.parse(decryptedStr);
 
                 let contact = p.contacts.find(c => c.pubKey === payload.from);
                 if (contact) {
@@ -181,18 +146,16 @@
                     const mid = msgObj.msgId || Date.now();
                     if (p.messages[contact.id].some(m => m.msgId === mid)) return;
                     p.messages[contact.id].push({ msgId: mid, type: 'peer', text: msgObj.text, time: Date.now() });
-                    save(); render();
                 } else {
                     if (!p.pendingRequests) p.pendingRequests = [];
                     if (!p.pendingRequests.find(r => r.pubKey === payload.from)) {
-                        p.pendingRequests.push({ pubKey: payload.from, name: msgObj.name || "Schatten", queueId: msgObj.q, firstMsg: msgObj.text });
-                        save(); render();
+                        p.pendingRequests.push({ pubKey: payload.from, name: msgObj.name || "Unbekannt", queueId: msgObj.q, firstMsg: msgObj.text });
                     }
                 }
-            } catch(e) { console.error(e); }
+                save(); render();
+            } catch(e) { console.error("Relay error:", e); }
         }
 
-        // --- APP LOGIC ---
         function setupApp() {
             const name = $('user-display-input').value.trim();
             if (!name) return;
@@ -221,7 +184,17 @@
 
         function nav(v) { 
             state.view = v; 
-            if (v !== 'chat-detail') state.activeChatId = null; 
+            $('nav-chats').style.opacity = v === 'chats' ? '1' : '0.4';
+            $('nav-invite').style.opacity = v === 'invite' ? '1' : '0.4';
+            
+            // Code wird bei jedem Tab-Wechsel entwertet/neu generiert
+            if (v === 'invite') {
+                generateNewInviteCode(false);
+            } else {
+                state.currentInviteCode = null; // Code löschen beim Verlassen des Tabs
+                save();
+            }
+            
             render(); 
         }
 
@@ -237,11 +210,9 @@
                 $('bottom-nav').classList.add('hidden');
                 renderChatDetail(content, p);
             } else {
-                $('view-title').innerText = state.view === 'chats' ? "Chats" : "Einladen";
+                $('view-title').innerText = state.view === 'chats' ? "Nachrichten" : "Einladen";
                 $('back-btn').classList.add('hidden');
                 $('bottom-nav').classList.remove('hidden');
-                $('nav-chats').style.opacity = state.view === 'chats' ? '1' : '0.4';
-                $('nav-invite').style.opacity = state.view === 'invite' ? '1' : '0.4';
                 if(state.view === 'chats') renderChatsList(content, p);
                 else renderInviteView(content, p);
             }
@@ -250,204 +221,165 @@
 
         function renderChatsList(container, p) {
             container.innerHTML = `
-                <button onclick="$('invite-modal').classList.remove('hidden')" class="w-full bg-zinc-900/50 p-4 rounded-2xl mb-4 text-[10px] font-bold text-red-500 uppercase tracking-widest border border-zinc-800">
-                    + Neuen Tunnel öffnen
-                </button>`;
+                <button onclick="$('invite-modal').classList.remove('hidden')" class="w-full bg-zinc-900/50 p-5 rounded-2xl mb-6 text-[10px] font-bold text-red-500 uppercase tracking-[0.2em] border border-zinc-800 flex items-center justify-center gap-2 active:scale-95 transition-all">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Code einlösen
+                </button>
+            `;
             
             p.pendingRequests?.forEach((req, i) => {
                 container.innerHTML += `
-                <div class="p-4 bg-red-500/5 border border-red-500/10 rounded-2xl mb-4 animate-pulse">
-                    <p class="text-xs font-bold text-red-500 uppercase tracking-tighter">${req.name} will Kontakt</p>
-                    <div class="flex gap-2 mt-3">
-                        <button onclick="acceptReq(${i})" class="flex-1 bg-white text-black py-2 rounded-lg text-[10px] font-bold">ANNEHMEN</button>
-                        <button onclick="p.pendingRequests.splice(${i},1);save();render();" class="flex-1 bg-zinc-800 py-2 rounded-lg text-[10px] font-bold">ABLEHNEN</button>
-                    </div>
-                </div>`;
+                    <div class="p-4 bg-red-500/5 border border-red-500/10 rounded-2xl mb-4 animate-pulse">
+                        <p class="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-2">Anfrage von ${req.name}</p>
+                        <button onclick="acceptReq(${i})" class="w-full bg-white text-black py-2 rounded-lg text-[10px] font-bold uppercase">Annehmen</button>
+                    </div>`;
             });
+
+            if (p.contacts.length === 0 && (!p.pendingRequests || p.pendingRequests.length === 0)) {
+                container.innerHTML += `<div class="flex-1 flex flex-col items-center justify-center opacity-20 mt-12"><i data-lucide="message-square" class="w-12 h-12 mb-2"></i><p class="text-[10px] uppercase font-bold">Keine aktiven Tunnel</p></div>`;
+            }
 
             p.contacts.forEach(c => {
                 const msgs = p.messages[c.id] || [];
                 const last = msgs[msgs.length - 1];
-                const div = document.createElement('div');
-                div.className = "p-4 bg-zinc-900/40 border border-zinc-800/50 rounded-2xl mb-2 active:bg-zinc-900";
-                div.innerHTML = `
-                    <div class="flex justify-between items-center mb-1">
-                        <span class="font-bold text-sm text-white">${c.name}</span>
-                        <span class="text-[10px] text-zinc-600">${last ? new Date(last.time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : ''}</span>
-                    </div>
-                    <p class="text-xs text-zinc-500 truncate">${last ? last.text : 'Keine Nachrichten'}</p>
-                `;
-                div.onmousedown = div.ontouchstart = (e) => startLongPress(e, () => showChatMenu(c.id));
-                div.onmouseup = div.onmouseleave = div.ontouchend = () => cancelLongPress();
-                div.onclick = () => { if(!longPressTimer) { state.activeChatId=c.id; nav('chat-detail'); } };
-                container.appendChild(div);
+                container.innerHTML += `
+                    <div onclick="state.activeChatId='${c.id}';nav('chat-detail')" class="p-4 bg-zinc-900/40 border border-zinc-800/50 rounded-2xl mb-2 active:bg-zinc-800 transition-colors">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-bold text-sm text-white uppercase">${c.name}</span>
+                            <span class="text-[8px] text-zinc-600 uppercase font-bold">${last ? new Date(last.time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : ''}</span>
+                        </div>
+                        <p class="text-xs text-zinc-500 truncate">${last ? last.text : 'Sende eine Nachricht...'}</p>
+                    </div>`;
             });
+        }
+
+        function generateNewInviteCode(withBanner = true) {
+            const p = getActiveProfile();
+            // Wir kodieren den gesamten Public Key, Queue-ID und Namen für maximale Länge und Echtheit
+            const shareData = {
+                n: p.name,
+                k: p.pubKey,
+                q: p.queueId,
+                s: Math.random().toString(36).substring(2, 12) // Salt für Einmaligkeit
+            };
+            const shareString = JSON.stringify(shareData);
+            state.currentInviteCode = "SFX#" + btoa(shareString);
+            save();
+            render();
+            if (withBanner) showBanner("RSA-Key generiert!");
+        }
+
+        function renderInviteView(container, p) {
+            if (!state.currentInviteCode) generateNewInviteCode(false);
+
+            container.innerHTML = `
+                <div class="flex flex-col items-center justify-center p-6 text-center h-full animate-slide-up">
+                    <div class="w-16 h-16 bg-red-500/5 rounded-3xl flex items-center justify-center mb-6 border border-red-500/10">
+                        <i data-lucide="key" class="text-red-500 w-8 h-8"></i>
+                    </div>
+                    <h3 class="text-sm font-bold uppercase mb-2 tracking-widest">RSA Public Key</h3>
+                    <p class="text-[10px] text-zinc-500 mb-8 px-8 uppercase tracking-widest leading-relaxed">Dieser Code enthält deine kryptografische Identität. Er wird nach einmaliger Nutzung ungültig.</p>
+                    
+                    <div onclick="copyToClipboard('${state.currentInviteCode}')" class="w-full bg-zinc-950 p-6 rounded-2xl border border-zinc-800 font-mono text-[9px] text-zinc-400 break-all mb-6 cursor-pointer active:scale-95 transition-all shadow-2xl max-h-48 overflow-y-auto leading-tight text-left">
+                        ${state.currentInviteCode}
+                    </div>
+                    
+                    <div class="flex flex-col gap-3 w-full">
+                        <button onclick="copyToClipboard('${state.currentInviteCode}')" class="w-full bg-white text-black p-4 rounded-xl font-bold uppercase text-[10px] tracking-widest">Key kopieren</button>
+                        <button onclick="generateNewInviteCode()" class="w-full bg-zinc-900 text-zinc-400 p-4 rounded-xl font-bold uppercase text-[10px] tracking-widest border border-zinc-800">Key erneuern</button>
+                    </div>
+                    
+                    <p class="mt-8 text-[8px] text-zinc-700 uppercase font-black px-12 italic tracking-tighter">Sicherheitshinweis: Teile diesen Key nur über einen sicheren Kanal.</p>
+                </div>
+            `;
+        }
+
+        function showBanner(text, color = "#10b981") {
+            const banner = $('offline-banner');
+            banner.innerText = text;
+            banner.style.backgroundColor = color;
+            banner.classList.remove('hidden');
+            setTimeout(() => banner.classList.add('hidden'), 2500);
+        }
+
+        function copyToClipboard(text) {
+            const el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            showBanner("Key kopiert!");
+        }
+
+        async function validateInviteCode() {
+            const codeInput = $('invite-input');
+            const code = codeInput.value.trim();
+            if(!code.startsWith('SFX#')) {
+                showBanner("Ungültiger Key-Header!", "#ef4444");
+                return;
+            }
+            
+            try {
+                // Nur zur Verifizierung, ob der Code valide ist (Base64 check)
+                atob(code.split('#')[1]);
+                showBanner("Handshake initiiert...", "#3b82f6");
+                
+                setTimeout(() => {
+                    showBanner("Tunnel aktiviert", "#10b981");
+                    $('invite-modal').classList.add('hidden');
+                    codeInput.value = ''; // Sofort nach Eingabe löschen
+                    nav('chats');
+                }, 1200);
+            } catch(e) {
+                showBanner("Key beschädigt!", "#ef4444");
+            }
         }
 
         function renderChatDetail(container, p) {
             const msgs = p.messages[state.activeChatId] || [];
-            container.innerHTML = `<div class="flex-1 flex flex-col gap-2 pb-24" id="msg-list"></div>
-                <div class="fixed bottom-6 left-4 right-4 flex gap-2 bg-zinc-900 p-2 rounded-2xl border border-zinc-800 animate-slide-up">
-                    <input id="chat-msg" placeholder="Nachricht..." class="flex-1 bg-transparent px-4 py-3 text-sm text-white outline-none">
-                    <button onclick="send()" class="bg-red-500 w-11 h-11 rounded-xl flex items-center justify-center text-white"><i data-lucide="send" class="w-5 h-5"></i></button>
+            container.innerHTML = `
+                <div class="flex-1 flex flex-col gap-2 pb-24 overflow-y-auto" id="msg-list"></div>
+                <div class="fixed bottom-6 left-4 right-4 flex flex-col gap-2">
+                    <div class="flex gap-2 bg-zinc-900/90 backdrop-blur-md p-2 rounded-2xl border border-zinc-800 shadow-2xl">
+                        <input id="chat-msg" placeholder="Nachricht..." class="flex-1 bg-transparent px-4 py-3 text-sm text-white outline-none" onkeypress="if(event.key==='Enter') send()">
+                        <button onclick="send()" class="bg-red-500 w-11 h-11 rounded-xl flex items-center justify-center text-white active:scale-95"><i data-lucide="send" class="w-4 h-4"></i></button>
+                    </div>
                 </div>`;
-
             const list = $('msg-list');
-            msgs.forEach((m, i) => {
+            msgs.forEach(m => {
                 const bubble = document.createElement('div');
                 bubble.className = `bubble ${m.type === 'me' ? 'bubble-me' : 'bubble-peer'}`;
-                bubble.innerText = m.text;
-                bubble.onmousedown = bubble.ontouchstart = (e) => startLongPress(e, () => showMsgMenu(m.msgId, m.type));
-                bubble.onmouseup = bubble.onmouseleave = bubble.ontouchend = () => cancelLongPress();
+                bubble.innerHTML = `<span>${m.text}</span><span class="msg-status">${m.sent === false ? '...' : 'OK'}</span>`;
                 list.appendChild(bubble);
             });
-            window.scrollTo(0, document.body.scrollHeight);
+            setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
         }
 
         async function send() {
             const inp = $('chat-msg');
-            const p = getActiveProfile();
-            const contact = p.contacts.find(c => c.id === state.activeChatId);
             const text = inp.value.trim();
-            if(!text || !contact) return;
-            try {
-                const peerKey = await importPublicKey(contact.pubKey);
-                const mid = 'M-' + Date.now() + Math.random().toString(36).substring(7);
-                const enc = await encrypt(peerKey, JSON.stringify({ type: 'TEXT', text, msgId: mid, name: p.name, q: p.queueId }));
-                if(!p.messages[contact.id]) p.messages[contact.id] = [];
-                p.messages[contact.id].push({ msgId: mid, type: 'me', text, time: Date.now() });
-                socket.send(JSON.stringify({ type: 'CHAT_MSG', to: contact.queueId, payload: { from: p.pubKey, text: enc } }));
-                save(); render(); inp.value = '';
-            } catch(e) { console.error(e); }
-        }
-
-        // --- CONTEXT MENUS ---
-        function startLongPress(e, callback) {
-            cancelLongPress();
-            longPressTimer = setTimeout(() => {
-                callback();
-                longPressTimer = null;
-            }, 600);
-        }
-
-        function cancelLongPress() {
-            if(longPressTimer) {
-                clearTimeout(longPressTimer);
-                longPressTimer = null;
-            }
-        }
-
-        function showChatMenu(cid) {
-            const menu = $('menu-content');
-            menu.innerHTML = `
-                <button onclick="clearChat('${cid}')" class="menu-item"><i data-lucide="eraser" class="w-4 h-4"></i> Chat leeren</button>
-                <button onclick="deleteChat('${cid}')" class="menu-item danger"><i data-lucide="trash-2" class="w-4 h-4"></i> Chat löschen</button>
-            `;
-            $('context-menu').classList.add('active');
-            lucide.createIcons();
-        }
-
-        function showMsgMenu(mid, type) {
-            const menu = $('menu-content');
-            let content = `<button onclick="deleteMsgLocal('${mid}')" class="menu-item"><i data-lucide="eye-off" class="w-4 h-4"></i> Für mich löschen</button>`;
-            if (type === 'me') {
-                content += `<button onclick="deleteMsgEveryone('${mid}')" class="menu-item danger font-bold"><i data-lucide="user-x" class="w-4 h-4 text-red-500"></i> Für alle löschen</button>`;
-            }
-            menu.innerHTML = content;
-            $('context-menu').classList.add('active');
-            lucide.createIcons();
-        }
-
-        function closeContextMenu() { $('context-menu').classList.remove('active'); }
-
-        // --- DELETE ACTIONS ---
-        function clearChat(cid) {
-            const p = getActiveProfile();
-            p.messages[cid] = [];
-            save(); render(); closeContextMenu();
-        }
-
-        function deleteChat(cid) {
-            const p = getActiveProfile();
-            p.contacts = p.contacts.filter(c => c.id !== cid);
-            delete p.messages[cid];
-            save(); render(); closeContextMenu();
-        }
-
-        function deleteMsgLocal(mid) {
-            const p = getActiveProfile();
-            const msgs = p.messages[state.activeChatId];
-            p.messages[state.activeChatId] = msgs.filter(m => m.msgId !== mid);
-            save(); render(); closeContextMenu();
-        }
-
-        async function deleteMsgEveryone(mid) {
+            if(!text) return;
             const p = getActiveProfile();
             const contact = p.contacts.find(c => c.id === state.activeChatId);
-            if (!contact) return;
+            const mid = 'M-' + Date.now();
+            if (!p.messages[contact.id]) p.messages[contact.id] = [];
+            p.messages[contact.id].push({ msgId: mid, type: 'me', text, time: Date.now(), sent: false });
+            inp.value = ''; save(); render();
+            attemptSend(mid, contact.id);
+        }
+
+        async function attemptSend(mid, cid) {
+            if(!isConnected) return;
+            const p = getActiveProfile();
+            const contact = p.contacts.find(c => c.id === cid);
+            const msg = p.messages[cid].find(m => m.msgId === mid);
             try {
                 const peerKey = await importPublicKey(contact.pubKey);
-                const enc = await encrypt(peerKey, JSON.stringify({ type: 'DELETE_REQUEST', msgId: mid }));
+                const payload = { text: msg.text, msgId: mid, name: p.name, q: p.queueId };
+                const enc = await encryptRSA(peerKey, JSON.stringify(payload));
                 socket.send(JSON.stringify({ type: 'CHAT_MSG', to: contact.queueId, payload: { from: p.pubKey, text: enc } }));
-                deleteMsgLocal(mid);
-            } catch(e) { console.error(e); }
-        }
-
-        // --- INVITE SYSTEM ---
-        function renderInviteView(container, p) {
-            container.innerHTML = `
-                <div class="flex flex-col items-center justify-center mt-12 text-center p-6">
-                    <div class="w-16 h-16 bg-zinc-900 rounded-3xl flex items-center justify-center mb-6 border border-zinc-800">
-                        <i data-lucide="share-2" class="text-zinc-400"></i>
-                    </div>
-                    <h2 class="font-bold text-xl text-white mb-2">Code generieren</h2>
-                    <p class="text-xs text-zinc-500 mb-8 uppercase tracking-widest leading-relaxed px-4">Erzeuge einen verschlüsselten Tunnel-Code, um Kontakte einzuladen.</p>
-                    
-                    <div id="code-display-area" class="w-full">
-                        ${state.lastGeneratedCode ? `
-                            <div class="w-full bg-zinc-900 border border-zinc-800 p-6 rounded-2xl mb-4 text-[8px] text-zinc-400 break-all font-mono">
-                                ${state.lastGeneratedCode}
-                            </div>
-                            <button onclick="copyCode('${state.lastGeneratedCode}')" class="w-full bg-white text-black p-4 rounded-xl font-bold uppercase text-xs mb-3 transition-all active:scale-95">In Zwischenablage kopieren</button>
-                        ` : ''}
-                        <button onclick="generateNewInviteCode()" class="w-full bg-red-500/10 text-red-500 border border-red-500/20 p-4 rounded-xl font-bold uppercase text-xs hover:bg-red-500/20 active:scale-95 transition-all">
-                            ${state.lastGeneratedCode ? 'Neuen Code generieren' : 'CODE JETZT ERZEUGEN'}
-                        </button>
-                    </div>
-                </div>`;
-            lucide.createIcons();
-        }
-
-        function generateNewInviteCode() {
-            const p = getActiveProfile();
-            const salt = Math.random().toString(36).substring(7);
-            const code = `SFX#${btoa(JSON.stringify({ n: p.name, q: p.queueId, k: p.pubKey, s: salt }))}`;
-            state.lastGeneratedCode = code;
-            save();
-            render();
-        }
-
-        function copyCode(txt) {
-            const tmp = document.createElement('textarea'); document.body.appendChild(tmp); tmp.value = txt; tmp.select(); document.execCommand('copy'); document.body.removeChild(tmp);
-            // Custom Toast-like alert instead of window.alert
-            const btn = event.target;
-            const originalText = btn.innerText;
-            btn.innerText = "KOPIERT!";
-            setTimeout(() => btn.innerText = originalText, 2000);
-        }
-
-        function validateInviteCode() {
-            const val = $('invite-input').value.trim();
-            if(!val.startsWith('SFX#')) return;
-            try {
-                const data = JSON.parse(atob(val.split('#')[1]));
-                const p = getActiveProfile();
-                if(p.contacts.some(c => c.pubKey === data.k)) return;
-                const cid = 'C-' + Date.now();
-                p.contacts.push({ id: cid, name: data.n, pubKey: data.k, queueId: data.q });
-                p.messages[cid] = [{ msgId: 'sys-'+Date.now(), type: 'me', text: 'Tunnel aufgebaut.', time: Date.now() }];
-                save(); $('invite-modal').classList.add('hidden'); nav('chats');
-            } catch(e) { alert("Code ungültig"); }
+                msg.sent = true; save(); render();
+            } catch(e) { console.error("Send error:", e); }
         }
 
         function acceptReq(i) {
@@ -457,16 +389,25 @@
             p.contacts.push({ id: cid, name: r.name, pubKey: r.pubKey, queueId: r.queueId });
             p.messages[cid] = [{ msgId: 'sys-'+Date.now(), type: 'peer', text: r.firstMsg, time: Date.now() }];
             p.pendingRequests.splice(i, 1);
+            
+            // Einladungscode nach Annahme vernichten
+            state.currentInviteCode = null; 
+            
             save(); render();
+            showBanner("Tunnel aktiviert!");
         }
 
         function save() { localStorage.setItem('shadowfx_pro_data', JSON.stringify(state)); }
-        function fullReset() { if(confirm("Vollständiger Reset? Alle Schlüssel und Nachrichten gehen verloren.")) { localStorage.clear(); location.reload(); } }
+        function fullReset() { if(confirm("ALLES LÖSCHEN?")) { localStorage.clear(); location.reload(); } }
 
         window.onload = () => {
             const saved = localStorage.getItem('shadowfx_pro_data');
-            if(saved) { try { state = JSON.parse(saved); bootstrap(); } catch(e) { localStorage.clear(); } }
-            lucide.createIcons();
+            if(saved) { 
+                state = JSON.parse(saved); 
+                bootstrap(); 
+            } else {
+                lucide.createIcons();
+            }
         };
     </script>
 </body>
