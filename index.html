@@ -8,188 +8,164 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
-        
         :root { --primary: #ef4444; --bg: #000000; }
-
         body { 
             background-color: var(--bg); color: #e4e4e7; font-family: 'Inter', sans-serif; 
             height: 100dvh; margin: 0; overflow: hidden; -webkit-tap-highlight-color: transparent;
         }
-
-        .ios-blur { 
-            background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); 
-        }
-
-        .bubble { 
-            max-width: 80%; padding: 12px 16px; border-radius: 20px; font-size: 14px; 
-            position: relative; transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            user-select: text; display: flex; flex-direction: column;
-        }
+        .ios-blur { background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); }
+        .bubble { max-width: 75%; padding: 10px 14px; border-radius: 18px; font-size: 14px; position: relative; transition: transform 0.2s; display: flex; flex-direction: column; }
         .bubble-me { background: var(--primary); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
-        .bubble-peer { background: #1c1c1e; color: #e4e4e7; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #27272a; }
-        
-        .msg-status { font-size: 9px; text-transform: uppercase; margin-top: 4px; opacity: 0.6; align-self: flex-end; font-weight: 700; }
-
+        .bubble-peer { background: #1c1c1e; align-self: flex-start; border-bottom-left-radius: 4px; }
         .no-select { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-        
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .offline-notice { position: fixed; top: 0; left: 0; right: 0; z-index: 9999; background: #ef4444; color: white; font-size: 10px; font-weight: 800; text-align: center; padding: 6px; text-transform: uppercase; letter-spacing: 0.1em; transition: all 0.3s ease; }
         .animate-slide-up { animation: slideUp 0.3s ease-out; }
-
-        .offline-notice { 
-            position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
-            background: #f59e0b; color: black; font-size: 10px; font-weight: 800; 
-            text-align: center; padding: 4px; text-transform: uppercase; 
-        }
-
-        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body class="no-select">
 
-    <div id="offline-banner" class="offline-notice hidden">Verbindung unterbrochen</div>
+    <div id="offline-banner" class="offline-notice hidden">Relay-Verbindung unterbrochen – Reconnect...</div>
 
-    <!-- Onboarding -->
+    <!-- Onboarding / Login -->
     <div id="onboarding" class="fixed inset-0 bg-black z-[6000] p-10 flex flex-col justify-center items-center text-center">
-        <div class="w-20 h-20 bg-red-500/10 rounded-[2.5rem] flex items-center justify-center mb-8 border border-red-500/20 shadow-[0_0_30px_rgba(239,68,68,0.1)]">
+        <div class="w-20 h-20 bg-red-500/10 rounded-[2rem] flex items-center justify-center mb-6 border border-red-500/20">
             <i data-lucide="shield-check" class="w-10 h-10 text-red-500"></i>
         </div>
-        <h1 class="text-2xl font-bold mb-2 uppercase tracking-tighter">ShadowFX Pro</h1>
-        <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-10">End-to-End Encrypted Handshake</p>
-        <div class="w-full max-w-xs space-y-4">
-            <input type="text" id="user-display-input" placeholder="WÄHLE EIN PSEUDONYM" class="w-full bg-zinc-900/50 p-4 rounded-2xl border border-zinc-800 text-center text-white font-bold outline-none text-xs uppercase tracking-widest focus:border-red-500/50 transition-all">
-            <button onclick="setupApp()" class="w-full bg-red-600 p-4 rounded-2xl font-black text-white uppercase text-[10px] tracking-[0.2em] active:scale-95 transition-all shadow-lg shadow-red-900/20">Initialisieren</button>
+        <h1 class="text-2xl font-bold mb-8 uppercase tracking-tighter text-white">ShadowFX Pro</h1>
+        <div class="w-full max-w-xs space-y-3">
+            <input type="text" id="user-display-input" placeholder="PSEUDONYM" class="w-full bg-zinc-900 p-4 rounded-xl border border-zinc-800 text-center text-white font-bold outline-none text-xs uppercase">
+            <button onclick="setupApp()" class="w-full bg-red-500 p-4 rounded-xl font-bold text-white uppercase text-xs active:scale-95 transition-all">Einsteigen</button>
         </div>
     </div>
 
-    <!-- UI Main App -->
+    <!-- Main UI -->
     <div id="app-ui" class="flex flex-col h-full hidden">
-        <header class="ios-blur pt-14 pb-4 px-6 border-b border-zinc-900 flex justify-between items-center z-50">
+        <header class="ios-blur pt-12 pb-4 px-6 border-b border-zinc-900 flex justify-between items-center z-50">
             <div class="flex items-center gap-3">
-                <button id="back-btn" onclick="nav('chats')" class="hidden w-10 h-10 flex items-center justify-center bg-zinc-900/50 rounded-xl border border-zinc-800 active:scale-90 transition-all">
-                    <i data-lucide="chevron-left" class="w-5 h-5"></i>
-                </button>
-                <div>
-                    <h1 id="view-title" class="font-bold text-lg uppercase tracking-tighter text-white">ShadowFX</h1>
-                    <div class="flex items-center gap-1.5">
-                        <div id="connection-dot" class="w-1.5 h-1.5 rounded-full bg-zinc-700"></div>
-                        <span id="connection-text" class="text-[8px] text-zinc-500 font-bold uppercase tracking-widest">Verbindung...</span>
-                    </div>
-                </div>
+                <button id="back-btn" onclick="nav('chats')" class="hidden w-8 h-8 flex items-center justify-center text-white"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+                <h1 id="view-title" class="font-bold text-xl uppercase tracking-tighter text-white">Chats</h1>
             </div>
-            <div class="w-10 h-10 bg-zinc-900/50 rounded-xl border border-zinc-800 flex items-center justify-center">
-                <i data-lucide="ghost" class="w-5 h-5 text-zinc-600"></i>
-            </div>
+            <div id="connection-indicator" class="w-2 h-2 rounded-full bg-zinc-700 transition-colors duration-500"></div>
         </header>
-
-        <main id="main-content" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3"></main>
-
-        <nav id="bottom-nav" class="ios-blur pb-10 pt-3 px-10 border-t border-zinc-900 flex justify-around items-center z-50">
-            <button onclick="nav('chats')" id="nav-chats" class="p-3 opacity-100 transition-all"><i data-lucide="message-square"></i></button>
-            <button onclick="nav('invite')" id="nav-invite" class="p-3 opacity-40 transition-all"><i data-lucide="user-plus"></i></button>
-            <button onclick="fullReset()" class="p-3 opacity-40 text-zinc-700 hover:text-red-500 transition-all"><i data-lucide="power"></i></button>
+        <main id="main-content" class="flex-1 overflow-y-auto p-4 flex flex-col gap-2"></main>
+        
+        <!-- Tab Bar -->
+        <nav id="bottom-nav" class="ios-blur pb-8 pt-2 px-10 border-t border-zinc-900 flex justify-around items-center z-50">
+            <button onclick="nav('chats')" id="nav-chats" class="p-2 text-white"><i data-lucide="message-circle"></i></button>
+            <button onclick="nav('invite')" id="nav-invite" class="p-2 text-zinc-600"><i data-lucide="share-2"></i></button>
+            <button onclick="fullReset()" class="p-2 text-zinc-600"><i data-lucide="trash-2"></i></button>
         </nav>
     </div>
 
-    <!-- Invite Verification Modal -->
-    <div id="confirm-modal" class="fixed inset-0 z-[7000] bg-black/95 p-8 flex flex-col justify-center items-center hidden animate-slide-up">
-        <div class="w-20 h-20 bg-emerald-500/10 rounded-[2.5rem] flex items-center justify-center mb-6 border border-emerald-500/20">
-            <i data-lucide="user-check" class="text-emerald-500 w-10 h-10"></i>
-        </div>
-        <h2 class="text-xl font-bold mb-2 uppercase text-white">Partner gefunden</h2>
-        <div id="partner-info" class="w-full bg-zinc-900 border border-zinc-800 p-6 rounded-3xl mb-8 text-center">
-            <p id="partner-name" class="text-2xl font-black text-white uppercase tracking-tighter mb-1">---</p>
-            <p id="partner-key" class="text-[7px] text-zinc-600 font-mono break-all opacity-50 uppercase"></p>
-        </div>
-        <p class="text-[10px] text-zinc-500 mb-8 text-center uppercase tracking-widest leading-relaxed">Sende eine Handshake-Anfrage.<br>Nachricht wird beim Partner erst nach Bestätigung sichtbar.</p>
-        <button onclick="sendHandshakeRequest()" class="w-full bg-emerald-600 text-white p-5 rounded-2xl font-black uppercase text-[10px] tracking-widest active:scale-95 shadow-lg shadow-emerald-900/20">Anfrage senden</button>
-        <button onclick="$('confirm-modal').classList.add('hidden')" class="mt-6 text-zinc-600 text-[10px] uppercase font-bold tracking-widest">Abbrechen</button>
-    </div>
-
-    <!-- Add Contact Modal (Code Eingabe) -->
-    <div id="add-modal" class="fixed inset-0 z-[7000] bg-black/98 p-8 flex flex-col justify-center items-center hidden">
-        <div class="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center mb-6 border border-zinc-800">
-            <i data-lucide="plus" class="text-red-500"></i>
-        </div>
-        <h2 class="text-xl font-bold mb-4 uppercase">Identität einlösen</h2>
-        <textarea id="invite-input" placeholder="SX_ZK#..." class="w-full h-32 bg-zinc-900 border border-zinc-800 p-5 rounded-2xl font-mono text-zinc-500 text-[9px] mb-6 outline-none focus:border-red-500 transition-colors resize-none leading-tight"></textarea>
-        <button onclick="processCode()" class="w-full bg-white text-black p-5 rounded-2xl font-black uppercase text-[10px] tracking-widest active:scale-95">Code prüfen</button>
-        <button onclick="$('add-modal').classList.add('hidden')" class="mt-6 text-zinc-600 text-[10px] uppercase font-bold tracking-widest">Abbrechen</button>
+    <!-- Join Modal -->
+    <div id="invite-modal" class="fixed inset-0 z-[7000] bg-black/95 p-8 flex flex-col justify-center items-center hidden">
+        <h2 class="text-xl font-bold mb-4 uppercase text-white">Tunnel beitreten</h2>
+        <textarea id="invite-input" placeholder="SFX#..." class="w-full h-32 bg-zinc-900 border border-zinc-800 p-4 rounded-xl font-mono text-white text-[10px] mb-4 outline-none resize-none"></textarea>
+        <button onclick="processInviteCode()" class="w-full bg-white text-black p-4 rounded-xl font-bold uppercase text-xs">Aktivieren</button>
+        <button onclick="$('invite-modal').classList.add('hidden')" class="mt-6 text-zinc-600 text-[10px] uppercase font-bold">Abbrechen</button>
     </div>
 
     <script>
         const $ = id => document.getElementById(id);
-        const RELAY_HOST = "unwintry-strapping-winford.ngrok-free.dev";
-        let socket;
-        let state = { profiles: [], activeProfileId: null, view: 'chats', activeChatId: null, currentInviteCode: null };
-        let isConnected = false;
-        let pendingPartner = null;
+        
+        // Nutzt die Adresse aus deinem Go/React-Setup
+        const RELAY_HOST = "unwintry-strapping-winford.ngrok-free.dev"; 
+        
+        let socket, isConnected = false;
+        let state = { profiles: [], activeProfileId: null, view: 'chats', activeChatId: null, generatedCode: null };
 
-        // --- Core Functions ---
+        // Kryptographie Helfer
+        async function generateKeyPair() { return await crypto.subtle.generateKey({ name: "RSA-OAEP", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" }, true, ["encrypt", "decrypt"]); }
+        async function exportKey(key) { const format = key.type === "public" ? "spki" : "pkcs8"; const exported = await crypto.subtle.exportKey(format, key); return btoa(String.fromCharCode(...new Uint8Array(exported))); }
+        async function importPublicKey(pem) { return await crypto.subtle.importKey("spki", new Uint8Array(atob(pem).split("").map(c => c.charCodeAt(0))).buffer, { name: "RSA-OAEP", hash: "SHA-256" }, true, ["encrypt"]); }
+        async function importPrivateKey(pem) { return await crypto.subtle.importKey("pkcs8", new Uint8Array(atob(pem).split("").map(c => c.charCodeAt(0))).buffer, { name: "RSA-OAEP", hash: "SHA-256" }, true, ["decrypt"]); }
+        async function encryptRSA(pubKey, text) { const data = new TextEncoder().encode(text); const encrypted = await crypto.subtle.encrypt({ name: "RSA-OAEP" }, pubKey, data); return btoa(String.fromCharCode(...new Uint8Array(encrypted))); }
+        async function decryptRSA(privKey, b64) { const decrypted = await crypto.subtle.decrypt({ name: "RSA-OAEP" }, privKey, new Uint8Array(atob(b64).split("").map(c => c.charCodeAt(0))).buffer); return new TextDecoder().decode(decrypted); }
+
         function getActiveProfile() { return state.profiles.find(p => p.id === state.activeProfileId); }
 
         function initSocket() {
-            if (socket?.readyState === WebSocket.OPEN) return;
+            if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) return;
+            
+            console.log("Versuche Verbindung zu:", RELAY_HOST);
             socket = new WebSocket(`wss://${RELAY_HOST}`);
+            
             socket.onopen = () => {
                 isConnected = true;
-                $('connection-dot').className = 'w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]';
-                $('connection-text').innerText = "Verschlüsselt";
+                $('connection-indicator').className = 'w-2 h-2 rounded-full bg-emerald-500';
                 $('offline-banner').classList.add('hidden');
                 const p = getActiveProfile();
-                if (p) socket.send(JSON.stringify({ type: 'OPEN_ANON_QUEUE', queueId: p.pubKey }));
+                if (p) {
+                    socket.send(JSON.stringify({ type: 'OPEN_ANON_QUEUE', queueId: p.queueId }));
+                    console.log("Queue geöffnet:", p.queueId);
+                }
             };
-            socket.onmessage = (e) => {
-                const data = JSON.parse(e.data);
-                if (data.type === 'RELAY_IN') handleIncoming(data.payload);
+            
+            socket.onmessage = async (e) => {
+                try {
+                    const data = JSON.parse(e.data);
+                    if (data.type === 'RELAY_IN') handleRelay(data.payload);
+                } catch(err) { console.error("Message parse error", err); }
             };
-            socket.onclose = () => {
-                isConnected = false;
-                $('connection-dot').className = 'w-1.5 h-1.5 rounded-full bg-red-600';
-                $('connection-text').innerText = "Offline";
-                $('offline-banner').classList.remove('hidden');
-                setTimeout(initSocket, 3000);
+            
+            socket.onclose = () => { 
+                isConnected = false; 
+                $('connection-indicator').className = 'w-2 h-2 rounded-full bg-red-500'; 
+                if (getActiveProfile()) {
+                    $('offline-banner').classList.remove('hidden');
+                }
+                setTimeout(initSocket, 5000); 
+            };
+
+            socket.onerror = (err) => {
+                console.error("WebSocket Error:", err);
             };
         }
 
-        function handleIncoming(payload) {
+        async function handleRelay(payload) {
             const p = getActiveProfile();
             if (!p) return;
+            try {
+                const privKey = await importPrivateKey(p.privateKeyPem);
+                const decryptedStr = await decryptRSA(privKey, payload.text);
+                const msgObj = JSON.parse(decryptedStr);
 
-            const contact = p.contacts.find(c => c.pubKey === payload.from);
-            if (contact) {
-                if (!p.messages[contact.id]) p.messages[contact.id] = [];
-                p.messages[contact.id].push({ type: 'peer', text: payload.text, time: Date.now() });
-                if (state.activeChatId === contact.id && state.view === 'chat-detail') render();
-            } else {
-                try {
-                    const reqData = JSON.parse(payload.text);
-                    if (reqData.type === 'HANDSHAKE') {
-                        if (!p.pendingRequests.find(r => r.pubKey === payload.from)) {
-                            p.pendingRequests.push({
-                                pubKey: payload.from,
-                                name: reqData.name,
-                                firstMsg: reqData.msg,
-                                time: Date.now()
-                            });
-                            showBanner("Neue Kontaktanfrage!");
-                        }
+                if (msgObj.type === 'ACCEPT_HANDSHAKE') {
+                    if (!p.contacts.find(c => c.pubKey === payload.from)) {
+                        p.contacts.push({ id: 'C-'+Date.now(), name: msgObj.name, pubKey: payload.from, queueId: msgObj.q });
+                        save(); render();
                     }
-                } catch(e) {}
-            }
-            save(); render();
+                    return;
+                }
+
+                let contact = p.contacts.find(c => c.pubKey === payload.from);
+                if (contact) {
+                    if (!p.messages[contact.id]) p.messages[contact.id] = [];
+                    p.messages[contact.id].push({ type: 'peer', text: msgObj.text, time: Date.now() });
+                } else {
+                    if (!p.pendingRequests.find(r => r.pubKey === payload.from)) {
+                        p.pendingRequests.push({ pubKey: payload.from, name: msgObj.name, queueId: msgObj.q, firstMsg: msgObj.text || "Anfrage erhalten" });
+                    }
+                }
+                save(); render();
+            } catch(e) { console.error("Entschlüsselung fehlgeschlagen", e); }
         }
 
         function setupApp() {
             const name = $('user-display-input').value.trim();
             if (!name) return;
-            const p = {
-                id: 'P-' + Date.now(), name,
-                pubKey: 'ZK-' + Math.random().toString(36).substring(2, 12).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase(),
-                contacts: [], pendingRequests: [], messages: {}
-            };
-            state.profiles = [p];
-            state.activeProfileId = p.id;
-            save(); bootstrap();
+            generateKeyPair().then(async keys => {
+                const p = {
+                    id: 'P-' + Date.now(), name,
+                    queueId: 'Q-' + Math.random().toString(36).substring(2, 12).toUpperCase(),
+                    pubKey: await exportKey(keys.publicKey),
+                    privateKeyPem: await exportKey(keys.privateKey),
+                    contacts: [], pendingRequests: [], messages: {}
+                };
+                state.profiles = [p]; state.activeProfileId = p.id;
+                save(); bootstrap();
+            });
         }
 
         function bootstrap() {
@@ -197,243 +173,156 @@
             if(!p) return;
             $('onboarding').classList.add('hidden');
             $('app-ui').classList.remove('hidden');
-            initSocket();
-            render();
+            initSocket(); render();
         }
 
         function nav(v) { 
             state.view = v; 
-            $('nav-chats').style.opacity = v === 'chats' ? '1' : '0.4';
-            $('nav-invite').style.opacity = v === 'invite' ? '1' : '0.4';
-            
-            // Wenn man den Einladungs-Tab verlässt, wird der aktuelle Code gelöscht
-            if (v !== 'invite') {
-                state.currentInviteCode = null;
-                save();
-            }
+            if (v !== 'invite') state.generatedCode = null; 
+            $('nav-chats').className = v === 'chats' ? 'p-2 text-white' : 'p-2 text-zinc-600';
+            $('nav-invite').className = v === 'invite' ? 'p-2 text-white' : 'p-2 text-zinc-600';
             render(); 
+        }
+
+        function generateInvite() {
+            const p = getActiveProfile();
+            const shareData = btoa(JSON.stringify({ n: p.name, k: p.pubKey, q: p.queueId }));
+            state.generatedCode = `SFX#${shareData}`;
+            render();
+        }
+
+        async function processInviteCode() {
+            const code = $('invite-input').value.trim();
+            if (!code.startsWith('SFX#')) return;
+            try {
+                const data = JSON.parse(atob(code.split('#')[1]));
+                const p = getActiveProfile();
+                const payload = { name: p.name, q: p.queueId, text: "Tunnel-Anfrage" };
+                const peerKey = await importPublicKey(data.k);
+                const enc = await encryptRSA(peerKey, JSON.stringify(payload));
+                socket.send(JSON.stringify({ type: 'CHAT_MSG', to: data.q, payload: { from: p.pubKey, text: enc } }));
+                $('invite-modal').classList.add('hidden');
+                $('invite-input').value = '';
+                showBanner("Anfrage gesendet!");
+            } catch(e) { showBanner("Fehler beim Code", "#ef4444"); }
+        }
+
+        async function acceptReq(index) {
+            const p = getActiveProfile();
+            const req = p.pendingRequests[index];
+            const cid = 'C-' + Date.now();
+            
+            p.contacts.push({ id: cid, name: req.name, pubKey: req.pubKey, queueId: req.queueId });
+            p.messages[cid] = [{ type: 'peer', text: req.firstMsg, time: Date.now() }];
+            p.pendingRequests.splice(index, 1);
+
+            const peerKey = await importPublicKey(req.pubKey);
+            const handshake = { type: 'ACCEPT_HANDSHAKE', name: p.name, q: p.queueId };
+            const enc = await encryptRSA(peerKey, JSON.stringify(handshake));
+            socket.send(JSON.stringify({ type: 'CHAT_MSG', to: req.queueId, payload: { from: p.pubKey, text: enc } }));
+
+            save(); render();
         }
 
         function render() {
             const p = getActiveProfile();
             const content = $('main-content');
             if(!p) return;
-
-            if (state.view === 'chat-detail') {
-                const c = p.contacts.find(c => c.id === state.activeChatId);
-                $('view-title').innerText = c ? c.name : "Chat";
+            
+            $('back-btn').classList.add('hidden');
+            $('bottom-nav').classList.remove('hidden');
+            $('view-title').innerText = state.view === 'chats' ? 'Chats' : (state.view === 'invite' ? 'Einladen' : 'Chat');
+            
+            if (state.view === 'chats') {
+                content.innerHTML = `<button onclick="$('invite-modal').classList.remove('hidden')" class="w-full bg-zinc-900 p-4 rounded-xl mb-4 text-[10px] font-bold text-red-500 uppercase border border-zinc-800">Key einlösen</button>`;
+                p.pendingRequests.forEach((r, i) => {
+                    content.innerHTML += `<div class="p-4 bg-red-500/10 border border-red-500/30 rounded-xl mb-2 flex justify-between items-center"><span class="text-xs font-bold text-white">${r.name} will chatten</span><button onclick="acceptReq(${i})" class="bg-white text-black px-3 py-1 rounded-lg text-[10px] font-bold">ANNEHMEN</button></div>`;
+                });
+                p.contacts.forEach(c => {
+                    content.innerHTML += `<div onclick="state.activeChatId='${c.id}';state.view='chat-detail';render()" class="p-4 bg-zinc-900 rounded-xl mb-2 flex justify-between items-center active:scale-[0.98] transition-transform"><span class="font-bold text-sm text-white">${c.name}</span><i data-lucide="chevron-right" class="w-4 h-4 opacity-20"></i></div>`;
+                });
+            } else if (state.view === 'invite') {
+                if (!state.generatedCode) {
+                    content.innerHTML = `
+                        <div class="flex-1 flex flex-col items-center justify-center p-6 text-center h-full">
+                            <div class="w-16 h-16 bg-red-500/5 border border-red-500/20 rounded-3xl flex items-center justify-center mb-6">
+                                <i data-lucide="key" class="text-red-500 w-8 h-8"></i>
+                            </div>
+                            <h2 class="text-white font-bold mb-2 uppercase text-sm">Tunnel-Key</h2>
+                            <p class="text-[10px] text-zinc-500 mb-8 uppercase leading-relaxed tracking-widest">
+                                Generiere einen einmaligen Tunnel-Key,<br>um eine Verbindung zu starten.
+                            </p>
+                            <button onclick="generateInvite()" class="w-full bg-red-500 text-white p-4 rounded-xl font-bold text-xs uppercase shadow-lg shadow-red-500/20">Tunnel-Key generieren</button>
+                        </div>
+                    `;
+                } else {
+                    content.innerHTML = `
+                        <div class="p-6 text-center animate-slide-up">
+                            <p class="text-[10px] text-zinc-500 mb-4 uppercase tracking-widest text-zinc-400">Dein RSA Tunnel Key</p>
+                            <div class="bg-zinc-900 p-4 rounded-xl font-mono text-[9px] break-all mb-4 text-zinc-300 border border-zinc-800 select-all leading-relaxed">
+                                ${state.generatedCode}
+                            </div>
+                            <button onclick="copy('${state.generatedCode}')" class="w-full bg-white text-black p-4 rounded-xl font-bold text-xs uppercase mb-4 active:bg-zinc-200">Key Kopieren</button>
+                            <button onclick="state.generatedCode=null;render()" class="text-zinc-600 text-[10px] font-bold uppercase hover:text-zinc-400">Verwerfen</button>
+                        </div>
+                    `;
+                }
+            } else if (state.view === 'chat-detail') {
                 $('back-btn').classList.remove('hidden');
                 $('bottom-nav').classList.add('hidden');
-                renderChatDetail(content, p);
-            } else {
-                $('view-title').innerText = state.view === 'chats' ? "Nachrichten" : "Einladen";
-                $('back-btn').classList.add('hidden');
-                $('bottom-nav').classList.remove('hidden');
-                if(state.view === 'chats') renderChatsList(content, p);
-                else renderInviteView(content, p);
+                const c = p.contacts.find(c => c.id === state.activeChatId);
+                const msgs = p.messages[c.id] || [];
+                $('view-title').innerText = c.name;
+                content.innerHTML = `<div class="flex-1 overflow-y-auto flex flex-col gap-2 pb-20" id="chat-box"></div><div class="fixed bottom-4 left-4 right-4 flex gap-2"><input id="msg-in" class="flex-1 bg-zinc-900 p-4 rounded-xl outline-none text-white border border-zinc-800" placeholder="Nachricht..."><button onclick="sendMessage()" class="bg-red-500 px-6 rounded-xl font-bold text-white"><i data-lucide="send" class="w-5 h-5"></i></button></div>`;
+                const box = $('chat-box');
+                msgs.forEach(m => {
+                    box.innerHTML += `<div class="bubble ${m.type==='me'?'bubble-me':'bubble-peer'} animate-slide-up">${m.text}</div>`;
+                });
+                box.scrollTop = box.scrollHeight;
             }
             lucide.createIcons();
         }
 
-        function generateNewInvite() {
-            const p = getActiveProfile();
-            const data = { n: p.name, k: p.pubKey, s: Math.random().toString(36).substring(2, 12) };
-            state.currentInviteCode = "SX_ZK#" + btoa(JSON.stringify(data));
-            save();
-            render();
-            showBanner("Neuer Code generiert");
-        }
-
-        // --- Views ---
-        function renderChatsList(container, p) {
-            container.innerHTML = `
-                <button onclick="$('add-modal').classList.remove('hidden')" class="w-full bg-zinc-900/50 p-5 rounded-2xl mb-4 text-[10px] font-black text-red-500 uppercase tracking-[0.2em] border border-zinc-800 flex items-center justify-center gap-2 active:scale-95 transition-all">
-                    <i data-lucide="plus" class="w-4 h-4"></i> Code einlösen
-                </button>
-            `;
-            
-            p.pendingRequests?.forEach((req, i) => {
-                container.innerHTML += `
-                    <div class="p-5 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl mb-4 animate-pulse">
-                        <p class="text-[8px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
-                            <i data-lucide="zap" class="w-3 h-3"></i> Handshake Anfrage
-                        </p>
-                        <p class="text-sm font-bold text-white uppercase mb-1">${req.name}</p>
-                        <p class="text-[10px] text-zinc-500 mb-4 italic">"${req.firstMsg}"</p>
-                        <div class="flex gap-2">
-                            <button onclick="acceptReq(${i})" class="flex-1 bg-white text-black py-3 rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95">Annehmen</button>
-                            <button onclick="rejectReq(${i})" class="w-12 bg-zinc-900 text-zinc-600 py-3 rounded-xl flex items-center justify-center border border-zinc-800 active:scale-95"><i data-lucide="x" class="w-4 h-4"></i></button>
-                        </div>
-                    </div>`;
-            });
-
-            if (p.contacts.length === 0 && (!p.pendingRequests || p.pendingRequests.length === 0)) {
-                container.innerHTML += `<div class="flex-1 flex flex-col items-center justify-center opacity-10 mt-20"><i data-lucide="message-square" class="w-16 h-16 mb-4"></i><p class="text-[10px] uppercase font-black tracking-widest">Keine aktiven Tunnel</p></div>`;
-            }
-
-            p.contacts.forEach(c => {
-                const msgs = p.messages[c.id] || [];
-                const last = msgs[msgs.length - 1];
-                container.innerHTML += `
-                    <div onclick="state.activeChatId='${c.id}';nav('chat-detail')" class="p-5 bg-zinc-900/30 border border-zinc-900 rounded-2xl mb-2 active:bg-zinc-800/50 transition-all flex justify-between items-center group">
-                        <div class="flex-1 min-w-0">
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="font-bold text-sm text-white uppercase tracking-tight">${c.name}</span>
-                                <span class="text-[8px] text-zinc-600 uppercase font-black">${last ? new Date(last.time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : ''}</span>
-                            </div>
-                            <p class="text-xs text-zinc-600 truncate pr-4">${last ? last.text : 'Keine Nachrichten'}</p>
-                        </div>
-                        <i data-lucide="chevron-right" class="w-4 h-4 text-zinc-800 group-active:translate-x-1 transition-transform"></i>
-                    </div>`;
-            });
-        }
-
-        function renderInviteView(container, p) {
-            container.innerHTML = `
-                <div class="flex flex-col items-center justify-center p-6 text-center h-full animate-slide-up">
-                    <div class="w-20 h-20 bg-red-600/5 rounded-[2.5rem] flex items-center justify-center mb-8 border border-red-900/10">
-                        <i data-lucide="fingerprint" class="text-red-500 w-10 h-10"></i>
-                    </div>
-                    <h3 class="text-sm font-black uppercase mb-3 tracking-[0.2em] text-white">Einladung</h3>
-                    <p class="text-[10px] text-zinc-600 mb-10 px-8 uppercase tracking-widest leading-relaxed font-medium">Klicke unten, um einen einmaligen Code zu generieren. Er wird beim Verlassen dieses Bereichs vernichtet.</p>
-                    
-                    ${state.currentInviteCode ? `
-                        <div onclick="copyToClipboard('${state.currentInviteCode}')" class="w-full bg-zinc-950 p-6 rounded-3xl border border-emerald-500/20 font-mono text-[8px] text-emerald-500/80 break-all mb-8 cursor-pointer active:scale-95 transition-all shadow-2xl leading-tight text-left relative overflow-hidden">
-                            <div class="absolute top-0 right-0 p-2 opacity-50"><i data-lucide="copy" class="w-3 h-3 text-emerald-500"></i></div>
-                            ${state.currentInviteCode}
-                        </div>
-                        <button onclick="copyToClipboard('${state.currentInviteCode}')" class="w-full bg-white text-black p-5 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] active:scale-95 transition-all mb-4">Code kopieren</button>
-                    ` : `
-                        <div class="w-full bg-zinc-950/50 p-6 rounded-3xl border border-zinc-900 border-dashed text-[8px] text-zinc-800 uppercase font-black tracking-widest mb-8">
-                            Kein Code aktiv
-                        </div>
-                    `}
-                    
-                    <button onclick="generateNewInvite()" class="w-full ${state.currentInviteCode ? 'bg-zinc-900 text-zinc-400' : 'bg-red-600 text-white shadow-lg shadow-red-900/20'} p-5 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] active:scale-95 transition-all">
-                        ${state.currentInviteCode ? 'Code neu generieren' : 'Code generieren'}
-                    </button>
-                </div>
-            `;
-        }
-
-        function renderChatDetail(container, p) {
-            const msgs = p.messages[state.activeChatId] || [];
-            container.innerHTML = `
-                <div class="flex-1 flex flex-col gap-3 pb-32 overflow-y-auto" id="msg-list"></div>
-                <div class="fixed bottom-8 left-4 right-4 z-[100]">
-                    <div class="flex gap-2 bg-zinc-900/95 backdrop-blur-xl p-2.5 rounded-[2rem] border border-zinc-800 shadow-2xl">
-                        <input id="chat-msg" placeholder="Sichere Nachricht..." class="flex-1 bg-transparent px-5 py-3 text-sm text-white outline-none placeholder:text-zinc-700" onkeypress="if(event.key==='Enter') send()">
-                        <button onclick="send()" class="bg-red-600 w-12 h-12 rounded-full flex items-center justify-center text-white active:scale-90 shadow-lg shadow-red-900/20 transition-all"><i data-lucide="send" class="w-5 h-5"></i></button>
-                    </div>
-                </div>`;
-            const list = $('msg-list');
-            msgs.forEach(m => {
-                const bubble = document.createElement('div');
-                bubble.className = `bubble ${m.type === 'me' ? 'bubble-me' : 'bubble-peer'}`;
-                bubble.innerHTML = `<span>${m.text}</span><span class="msg-status">${new Date(m.time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span>`;
-                list.appendChild(bubble);
-            });
-            setTimeout(() => { container.scrollTop = container.scrollHeight; }, 100);
-        }
-
-        // --- Logic Functions ---
-        function processCode() {
-            const val = $('invite-input').value.trim();
-            if (!val.startsWith('SX_ZK#')) return showBanner("Ungültiger Code!", "#ef4444");
-            try {
-                const data = JSON.parse(atob(val.split('#')[1]));
-                pendingPartner = data;
-                $('partner-name').innerText = data.n;
-                $('partner-key').innerText = data.k;
-                $('add-modal').classList.add('hidden');
-                $('confirm-modal').classList.remove('hidden');
-                $('invite-input').value = ''; 
-            } catch(e) { showBanner("Code beschädigt!", "#ef4444"); }
-        }
-
-        function sendHandshakeRequest() {
-            if (!isConnected || !pendingPartner) return;
-            const p = getActiveProfile();
-            const payload = {
-                type: 'HANDSHAKE',
-                name: p.name,
-                msg: "Anfrage für sicheren Tunnel..."
-            };
-            socket.send(JSON.stringify({
-                type: 'CHAT_MSG',
-                to: pendingPartner.k,
-                payload: { from: p.pubKey, text: JSON.stringify(payload) }
-            }));
-            
-            $('confirm-modal').classList.add('hidden');
-            showBanner("Anfrage gesendet!", "#3b82f6");
-            nav('chats');
-            pendingPartner = null;
-        }
-
-        function acceptReq(idx) {
-            const p = getActiveProfile();
-            const req = p.pendingRequests[idx];
-            const cid = 'C-' + Date.now();
-            
-            p.contacts.push({ id: cid, name: req.name, pubKey: req.pubKey });
-            p.messages[cid] = [{ type: 'peer', text: req.firstMsg, time: req.time }];
-            p.pendingRequests.splice(idx, 1);
-            
-            save(); render();
-            showBanner("Tunnel aktiviert!");
-        }
-
-        function rejectReq(idx) {
-            const p = getActiveProfile();
-            p.pendingRequests.splice(idx, 1);
-            save(); render();
-        }
-
-        function send() {
-            const inp = $('chat-msg');
+        async function sendMessage() {
+            const inp = $('msg-in');
             const text = inp.value.trim();
-            if (!text || !isConnected) return;
+            if(!text || !isConnected) return;
             const p = getActiveProfile();
             const contact = p.contacts.find(c => c.id === state.activeChatId);
-            
-            if (!p.messages[contact.id]) p.messages[contact.id] = [];
             p.messages[contact.id].push({ type: 'me', text, time: Date.now() });
             
-            socket.send(JSON.stringify({
-                type: 'CHAT_MSG',
-                to: contact.pubKey,
-                payload: { from: p.pubKey, text }
-            }));
+            const peerKey = await importPublicKey(contact.pubKey);
+            const enc = await encryptRSA(peerKey, JSON.stringify({ text }));
+            socket.send(JSON.stringify({ type: 'CHAT_MSG', to: contact.queueId, payload: { from: p.pubKey, text: enc } }));
             
             inp.value = ''; save(); render();
         }
 
-        function showBanner(text, color = "#10b981") {
-            const banner = $('offline-banner');
-            banner.innerText = text;
-            banner.style.backgroundColor = color;
-            banner.classList.remove('hidden');
-            setTimeout(() => banner.classList.add('hidden'), 3000);
+        function showBanner(t, c="#10b981") { 
+            const b = $('offline-banner');
+            b.innerText = t; b.style.backgroundColor = c; 
+            b.classList.remove('hidden'); 
+            setTimeout(() => b.classList.add('hidden'), 2000); 
         }
 
-        function copyToClipboard(text) {
-            const el = document.createElement('textarea');
-            el.value = text;
-            document.body.appendChild(el);
-            el.select();
-            document.execCommand('copy');
-            document.body.removeChild(el);
-            showBanner("Code kopiert!");
+        function save() { localStorage.setItem('sfx_data', JSON.stringify(state)); }
+
+        function copy(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed"; textArea.style.opacity = "0";
+            document.body.appendChild(textArea);
+            textArea.select();
+            const success = document.execCommand('copy');
+            document.body.removeChild(textArea);
+            if (success) showBanner("Kopiert!");
         }
 
-        function save() { localStorage.setItem('shadowfx_v3_state', JSON.stringify(state)); }
-        function fullReset() { if(confirm("ALLE DATEN UND TUNNEL LÖSCHEN?")) { localStorage.clear(); location.reload(); } }
-
+        function fullReset() { if(confirm("ALLES LÖSCHEN?")) { localStorage.clear(); location.reload(); } }
+        
         window.onload = () => {
-            const saved = localStorage.getItem('shadowfx_v3_state');
+            const saved = localStorage.getItem('sfx_data');
             if(saved) { state = JSON.parse(saved); bootstrap(); }
-            else { lucide.createIcons(); }
         };
     </script>
 </body>
