@@ -3,504 +3,420 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ShadowFX Messenger v2.6 - Deep Customization</title>
+    <title>ShadowFX Messenger</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
         
-        :root {
-            --primary: #ff0000; /* Standard Hellrot */
-            --primary-dark: #7f1d1d;
-            --bg-dark: #000000; /* Standard Schwarz */
-            --accent: #f87171;
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #050505;
+            color: #e4e4e7;
         }
 
-        body { 
-            font-family: 'JetBrains+Mono', monospace; 
-            background-color: var(--bg-dark); 
-            color: var(--accent); 
-            transition: background-color 0.4s ease, color 0.4s ease;
-        }
-        
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--primary-dark); border-radius: 10px; }
-
-        /* Bubble Styles */
-        .bubble {
-            position: relative;
-            max-width: 85%;
-            padding: 10px 14px;
-            font-size: 0.85rem;
-            margin-bottom: 6px;
-            border: 1px solid transparent;
-        }
-
-        .bubble-me {
-            background-color: var(--primary-dark); 
-            color: #ffffff;
-            align-self: flex-end;
-            border-radius: 12px 0px 12px 12px;
-            border-color: var(--primary);
-        }
-
-        .bubble-peer {
-            background-color: rgba(255,255,255,0.05); 
-            color: var(--accent);
-            align-self: flex-start;
-            border-radius: 0px 12px 12px 12px;
-            border-color: rgba(255,255,255,0.1);
-        }
-
-        .chat-bg {
-            background-color: var(--bg-dark);
-            background-image: radial-gradient(var(--primary-dark) 0.5px, transparent 0.5px);
-            background-size: 30px 30px;
-            transition: background-image 0.5s ease;
-        }
-
-        .settings-panel {
-            transform: translateX(100%);
-            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .settings-panel.open {
-            transform: translateX(0);
-        }
-
-        input[type="file"] { display: none; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #18181b; border-radius: 10px; }
         
-        .color-dot {
-            width: 28px;
-            height: 28px;
-            border-radius: 6px;
-            cursor: pointer;
-            border: 2px solid rgba(255,255,255,0.1);
-            transition: transform 0.2s;
-        }
-        .color-dot:hover { transform: scale(1.1); }
-        .color-dot.active {
-            border-color: white;
-            box-shadow: 0 0 12px var(--primary);
-        }
+        textarea { scrollbar-width: none; }
+        textarea::-webkit-scrollbar { display: none; }
 
-        .bg-option {
-            height: 35px;
-            border-radius: 4px;
-            cursor: pointer;
-            border: 1px solid rgba(255,255,255,0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            font-weight: bold;
-        }
-        .bg-option.active { border-color: white; border-width: 2px; }
+        /* Animationen */
+        .fade-in { animation: fadeIn 0.2s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="h-screen overflow-hidden flex">
-
-    <div id="root" class="flex w-full h-full relative">
+<body class="h-screen overflow-hidden">
+    <div id="app" class="flex h-full w-full overflow-hidden select-none md:select-auto">
         <!-- Sidebar -->
-        <aside id="sidebar" class="fixed md:relative z-40 w-72 md:w-80 h-full bg-black border-r border-red-900/30 flex flex-col transition-transform -translate-x-full md:translate-x-0">
-            <div class="p-4 bg-[#050000] border-b border-red-900/50 space-y-4">
+        <aside id="sidebar" class="fixed md:relative z-50 w-full md:w-80 lg:w-96 h-full bg-[#0a0a0a] border-r border-zinc-900 flex flex-col transition-all duration-300 ease-in-out -translate-x-full md:translate-x-0">
+            <div class="p-4 md:p-6 bg-black border-b-2 border-red-700 space-y-4">
                 <div class="flex justify-between items-center">
-                    <span class="text-[10px] font-bold text-red-500 uppercase tracking-widest" id="sidebarBrand">Operator Terminal</span>
-                    <button id="closeSidebarBtn" class="text-red-500 md:hidden"><i data-lucide="x"></i></button>
+                    <span class="text-[10px] text-zinc-500 font-bold tracking-[0.2em] uppercase">ShadowFX Protocol v2</span>
+                    <button onclick="toggleSidebar()" class="md:hidden text-zinc-500 hover:text-white p-2">
+                        <i data-lucide="x"></i>
+                    </button>
                 </div>
                 
-                <div class="space-y-2">
-                    <input type="text" id="myName" placeholder="Name" class="w-full bg-black border border-red-900/50 p-2 rounded text-xs outline-none text-red-500 focus:border-red-500 transition-colors">
-                    <input type="text" id="myId" placeholder="ID (z.B. User123)" class="w-full bg-black border border-red-900/50 p-2 rounded text-xs outline-none text-red-500 focus:border-red-500 transition-colors">
+                <div class="grid grid-cols-1 gap-2">
+                    <input type="text" id="myName" oninput="saveProfile()" placeholder="Operator Name" class="w-full bg-zinc-950 border border-zinc-800 p-3 rounded-xl text-xs outline-none focus:border-red-600 transition-all">
+                    <input type="text" id="myId" oninput="saveProfile()" placeholder="System ID" class="w-full bg-zinc-950 border border-zinc-800 p-3 rounded-xl text-xs outline-none focus:border-red-600 transition-all">
                 </div>
                 
-                <button id="connBtn" class="w-full py-2 bg-red-600 hover:bg-red-500 text-black font-black rounded text-[10px] uppercase flex items-center justify-center gap-2 transition-all shadow-[0_4px_0_#990000]">
-                    <i data-lucide="power" class="w-4 h-4"></i> Verbindung Aufbauen
-                </button>
+                <div class="flex gap-2" id="connectionControls">
+                    <button id="connectBtn" onclick="toggleConnection()" class="flex-1 py-3 bg-red-700 hover:bg-red-600 rounded-xl text-[10px] font-bold uppercase flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-900/10 active:scale-95">
+                        <i data-lucide="power" class="w-4 h-4"></i> Uplink Starten
+                    </button>
+                </div>
 
-                <div class="flex gap-2 pt-2 border-t border-red-900/20">
-                    <input type="text" id="newContactId" placeholder="Ziel ID..." class="flex-1 bg-black border border-red-900/30 p-2 rounded text-xs outline-none text-red-400">
-                    <button id="addContactBtn" class="bg-red-900/20 p-2 rounded border border-red-900/50 hover:bg-red-900/40 text-red-500"><i data-lucide="user-plus" class="w-4 h-4"></i></button>
+                <div class="flex gap-2 pt-2 border-t border-zinc-900">
+                    <input type="text" id="newContactId" placeholder="Ziel-ID hinzufügen..." class="flex-1 bg-zinc-950 border border-zinc-800 p-3 rounded-xl text-xs outline-none focus:border-red-900">
+                    <button onclick="addContact()" class="bg-red-700 hover:bg-red-600 p-3 rounded-xl transition-all active:scale-95">
+                        <i data-lucide="plus"></i>
+                    </button>
                 </div>
             </div>
-            
-            <div id="contactList" class="flex-1 overflow-y-auto custom-scrollbar bg-black p-2 space-y-1">
-                <!-- Kontakte -->
+
+            <div id="contactList" class="flex-1 overflow-y-auto custom-scrollbar bg-[#080808]">
+                <!-- Kontakte werden hier gerendert -->
             </div>
         </aside>
 
         <!-- Main Chat Area -->
-        <main class="flex-1 flex flex-col relative chat-bg">
-            <header class="h-16 flex items-center justify-between px-6 bg-black border-b border-red-900/50 shrink-0 z-10 shadow-xl">
+        <main class="flex-1 flex flex-col relative h-full bg-[#050505]">
+            <header class="h-16 flex items-center justify-between px-4 md:px-6 bg-[#0a0a0a] border-b border-zinc-900 shrink-0 z-30">
                 <div class="flex items-center gap-4">
-                    <button id="menuBtn" class="md:hidden text-red-500"><i data-lucide="menu"></i></button>
-                    <div class="w-10 h-10 rounded bg-red-950 border border-red-600 flex items-center justify-center text-red-500 shadow-[0_0_15px_var(--primary-dark)]">
-                        <i data-lucide="terminal" class="w-6 h-6" id="headerIcon"></i>
-                    </div>
-                    <div>
-                        <h2 id="activePeerDisplay" class="text-red-500 font-bold text-sm tracking-widest uppercase">System Bereit</h2>
-                        <p id="statusDisplay" class="text-[10px] text-red-900 font-bold flex items-center gap-1.5">
-                            <span id="statusDot" class="w-1.5 h-1.5 rounded-full bg-zinc-800"></span>
-                            OFFLINE
-                        </p>
+                    <button onclick="toggleSidebar()" class="md:hidden text-zinc-400 p-2 active:bg-zinc-900 rounded-full">
+                        <i data-lucide="menu"></i>
+                    </button>
+                    <div class="flex flex-col">
+                        <h2 class="text-red-600 font-bold text-sm tracking-widest uppercase flex items-center gap-1">
+                            <i data-lucide="shield" class="w-4 h-4" id="e2eeIcon"></i> 
+                            <span id="activePeerName">Private Notizen</span>
+                        </h2>
                     </div>
                 </div>
-                <div class="flex items-center gap-4">
-                    <button id="settingsBtn" class="text-red-900 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-white/5"><i data-lucide="settings"></i></button>
-                </div>
+                
+                <button onclick="toggleE2EE()" id="e2eeToggle" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-bold border transition-all border-red-800 text-red-500 bg-red-950/20">
+                    <i data-lucide="lock" class="w-3 h-3"></i>
+                    <span class="hidden sm:inline">E2EE AKTIV</span>
+                    <span class="sm:hidden">E2EE</span>
+                </button>
             </header>
 
-            <!-- Chat Messages -->
-            <div id="chatLog" class="flex-1 overflow-y-auto px-4 md:px-12 py-8 flex flex-col gap-2 custom-scrollbar">
-                <div class="m-auto text-red-900/40 text-[10px] uppercase font-bold tracking-[0.4em] text-center">
-                    Verschlüsseltes Subnetz v2.6
+            <div id="chatArea" class="flex-1 overflow-y-auto p-3 md:p-6 lg:px-24 flex flex-col gap-1.5 bg-[#050505] custom-scrollbar">
+                <!-- Nachrichten werden hier gerendert -->
+            </div>
+
+            <!-- Image Preview -->
+            <div id="imagePreview" class="hidden absolute bottom-24 left-4 right-4 md:left-24 md:right-24 bg-zinc-900 border border-red-900/40 rounded-2xl p-3 shadow-2xl z-40 fade-in">
+                <div class="flex items-center gap-3">
+                    <div class="relative w-16 h-16 shrink-0">
+                        <img id="previewImg" src="" class="w-full h-full object-cover rounded-xl border border-zinc-800">
+                        <button onclick="clearImage()" class="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1.5">
+                            <i data-lucide="x" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                    <p class="text-[10px] text-zinc-500 uppercase font-bold tracking-tighter">Medienanhang bereit</p>
                 </div>
             </div>
 
-            <!-- Input Area -->
-            <div class="p-4 bg-black border-t border-red-900/50 shadow-2xl">
-                <div class="flex gap-3 max-w-5xl mx-auto items-center">
-                    <input type="file" id="imageInput" accept="image/*">
-                    <button id="imgBtn" class="text-red-900 hover:text-red-500 transition-colors"><i data-lucide="image" class="w-6 h-6"></i></button>
-
-                    <div id="recordingUI" class="flex-1 bg-red-950/20 border border-red-900/40 rounded px-4 py-2 hidden items-center justify-between">
-                        <span class="text-[10px] text-red-500 font-bold animate-pulse">AUDIO REC...</span>
-                        <button id="stopRecBtn" class="text-red-500 text-[10px] border border-red-500 px-3 py-1 rounded hover:bg-red-500 hover:text-black">SENDEN</button>
+            <!-- Input Bar -->
+            <div class="p-3 md:p-5 lg:px-24 bg-[#0a0a0a] border-t border-zinc-900 z-50">
+                <div class="flex gap-2 items-end">
+                    <button onclick="document.getElementById('fileInput').click()" class="text-zinc-500 hover:text-red-500 p-2.5 bg-zinc-900/30 rounded-xl transition-all mb-0.5">
+                        <i data-lucide="image"></i>
+                    </button>
+                    <input type="file" id="fileInput" onchange="handleFileSelect(event)" accept="image/*" class="hidden">
+                    
+                    <div class="flex-1 bg-zinc-950 rounded-2xl border border-zinc-800 px-4 py-1.5 flex items-center focus-within:border-red-900/40 transition-all">
+                        <textarea id="msgInput" rows="1" placeholder="Nachricht..." class="w-full bg-transparent py-1 text-sm md:text-base outline-none text-zinc-200 resize-none max-h-32"></textarea>
                     </div>
-
-                    <div id="standardUI" class="flex-1 flex gap-3 items-center">
-                        <div class="flex-1 bg-zinc-950/50 border border-red-900/30 rounded-lg px-4 flex items-center backdrop-blur-sm">
-                            <input type="text" id="msgInput" placeholder="System wählen..." disabled class="w-full bg-transparent py-3 text-sm outline-none text-red-500 placeholder:text-red-950">
-                        </div>
-                        <button id="micBtn" class="text-red-900 hover:text-red-500 transition-colors"><i data-lucide="mic" class="w-6 h-6"></i></button>
-                        <button id="sendBtn" class="bg-red-600 text-black w-12 h-12 flex items-center justify-center rounded shadow-lg hover:bg-red-400 disabled:opacity-30 active:scale-95 transition-transform">
-                            <i data-lucide="send" class="w-5 h-5"></i>
-                        </button>
-                    </div>
+                    
+                    <button onclick="handleSend()" id="sendBtn" class="bg-red-700 hover:bg-red-600 text-white w-11 h-11 flex items-center justify-center rounded-xl transition-all shadow-lg mb-0.5">
+                        <i data-lucide="send" class="w-5 h-5"></i>
+                    </button>
                 </div>
             </div>
         </main>
-
-        <!-- Settings Sidebar -->
-        <aside id="settingsPanel" class="settings-panel fixed top-0 right-0 w-72 md:w-80 h-full bg-black border-l border-red-900/50 z-50 p-6 flex flex-col gap-8 shadow-[-20px_0_50px_rgba(0,0,0,0.8)]">
-            <div class="flex justify-between items-center border-b border-red-900/20 pb-4">
-                <h3 class="text-red-500 font-bold uppercase text-xs tracking-[0.2em]">Konfiguration</h3>
-                <button id="closeSettingsBtn" class="text-red-900 hover:text-red-500"><i data-lucide="x"></i></button>
-            </div>
-
-            <!-- Primärfarben Section -->
-            <div class="space-y-4">
-                <label class="text-[10px] text-red-900 font-bold uppercase tracking-widest">Akzentfarbe</label>
-                <div class="grid grid-cols-5 gap-3">
-                    <div class="color-dot bg-red-600" data-color="#ff0000" data-dark="#7f1d1d"></div>
-                    <div class="color-dot bg-blue-600" data-color="#2563eb" data-dark="#1e3a8a"></div>
-                    <div class="color-dot bg-emerald-600" data-color="#10b981" data-dark="#064e3b"></div>
-                    <div class="color-dot bg-amber-500" data-color="#f59e0b" data-dark="#78350f"></div>
-                    <div class="color-dot bg-purple-600" data-color="#9333ea" data-dark="#581c87"></div>
-                </div>
-            </div>
-
-            <!-- Hintergrund Section -->
-            <div class="space-y-4">
-                <label class="text-[10px] text-red-900 font-bold uppercase tracking-widest">Hintergrund</label>
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-option bg-black text-white" data-bg="#000000">DEEP BLACK</div>
-                    <div class="bg-option bg-[#0a0a0a] text-zinc-500" data-bg="#0a0a0a">DARK GRAY</div>
-                    <div class="bg-option bg-[#00050a] text-blue-900" data-bg="#00050a">NAVY NIGHT</div>
-                    <div class="bg-option bg-[#050005] text-purple-900" data-bg="#050005">VOID PURPLE</div>
-                </div>
-            </div>
-
-            <!-- UI Helligkeit -->
-            <div class="space-y-4">
-                <div class="flex justify-between">
-                    <label class="text-[10px] text-red-900 font-bold uppercase tracking-widest">Text-Intensität</label>
-                    <span id="brightnessVal" class="text-[10px] text-red-500">100%</span>
-                </div>
-                <input type="range" id="brightnessRange" min="50" max="100" value="100" class="w-full accent-red-600 h-1 bg-zinc-900 rounded-lg appearance-none cursor-pointer">
-            </div>
-
-            <div class="mt-auto space-y-4">
-                 <button id="resetTheme" class="w-full py-2 border border-red-900/30 text-[9px] text-red-900 uppercase hover:text-red-500 hover:border-red-500 transition-all font-bold">Standard wiederherstellen</button>
-                 <div class="p-4 border border-red-900/10 rounded bg-red-950/5 text-[9px] text-red-900/50 leading-relaxed italic text-center">
-                    Daten werden in der lokalen Browser-Registry persistiert.
-                </div>
-            </div>
-        </aside>
     </div>
 
     <script>
-        // --- State Management ---
-        const LOCAL_PEER = "Private Notizen";
-        const DEFAULTS = { primary: "#ff0000", dark: "#7f1d1d", background: "#000000", brightness: 100 };
-        
-        let config = JSON.parse(localStorage.getItem('sfx_config_v26') || JSON.stringify(DEFAULTS));
-        let myId = localStorage.getItem('sfx_myid') || '';
-        let myName = localStorage.getItem('sfx_myname') || '';
-        let contacts = JSON.parse(localStorage.getItem('sfx_contacts') || '[]');
-        let chatLog = JSON.parse(localStorage.getItem('sfx_log') || '{}');
-        let activePeer = null;
-        let wsStatus = 'OFFLINE';
-        let ws = null;
-
-        if (!contacts.includes(LOCAL_PEER)) contacts.unshift(LOCAL_PEER);
-
-        const dom = {
-            root: document.documentElement,
-            myId: document.getElementById('myId'),
-            myName: document.getElementById('myName'),
-            connBtn: document.getElementById('connBtn'),
-            contactList: document.getElementById('contactList'),
-            chatLog: document.getElementById('chatLog'),
-            msgInput: document.getElementById('msgInput'),
-            sendBtn: document.getElementById('sendBtn'),
-            micBtn: document.getElementById('micBtn'),
-            imgBtn: document.getElementById('imgBtn'),
-            imageInput: document.getElementById('imageInput'),
-            statusDisplay: document.getElementById('statusDisplay'),
-            statusDot: document.getElementById('statusDot'),
-            activePeerDisplay: document.getElementById('activePeerDisplay'),
-            newContactId: document.getElementById('newContactId'),
-            addContactBtn: document.getElementById('addContactBtn'),
-            settingsBtn: document.getElementById('settingsBtn'),
-            settingsPanel: document.getElementById('settingsPanel'),
-            closeSettingsBtn: document.getElementById('closeSettingsBtn'),
-            brightnessRange: document.getElementById('brightnessRange'),
-            brightnessVal: document.getElementById('brightnessVal'),
-            sidebar: document.getElementById('sidebar'),
-            menuBtn: document.getElementById('menuBtn'),
-            closeSidebarBtn: document.getElementById('closeSidebarBtn'),
-            resetTheme: document.getElementById('resetTheme')
+        // --- State ---
+        let state = {
+            myId: localStorage.getItem('sfx_myid') || '',
+            myName: localStorage.getItem('sfx_myname') || 'Operator',
+            contacts: JSON.parse(localStorage.getItem('sfx_contacts') || '["Private Notizen"]'),
+            chatLog: JSON.parse(localStorage.getItem('sfx_log') || '{}'),
+            activePeer: localStorage.getItem('sfx_last_active') || 'Private Notizen',
+            wsStatus: 'OFFLINE',
+            e2eeEnabled: true,
+            pendingImage: null,
+            sidebarOpen: false
         };
 
-        // --- Customization Logic ---
-        function applyConfig() {
-            dom.root.style.setProperty('--primary', config.primary);
-            dom.root.style.setProperty('--primary-dark', config.dark);
-            dom.root.style.setProperty('--bg-dark', config.background);
-            
-            // Helligkeit berechnen für Akzent
-            const opacity = config.brightness / 100;
-            dom.root.style.setProperty('--accent', `${config.primary}${Math.floor(opacity * 255).toString(16).padStart(2, '0')}`);
-            
-            dom.brightnessVal.textContent = config.brightness + "%";
-            dom.brightnessRange.value = config.brightness;
+        let ws = null;
+        const SALT = "SFX-SALT-V2";
 
-            // UI Updates für aktive Selektoren
-            document.querySelectorAll('.color-dot').forEach(dot => {
-                dot.classList.toggle('active', dot.dataset.color === config.primary);
-            });
-            document.querySelectorAll('.bg-option').forEach(opt => {
-                opt.classList.toggle('active', opt.dataset.bg === config.background);
-            });
-
-            // Dynamic Styling (Tailwind Fallbacks)
-            const redTexts = document.querySelectorAll('.text-red-500, .text-red-600, .text-red-900');
-            redTexts.forEach(el => {
-                if (el.classList.contains('text-red-500') || el.classList.contains('text-red-600')) el.style.color = config.primary;
-                if (el.classList.contains('text-red-900')) el.style.color = config.dark;
-            });
-
-            const redBgs = document.querySelectorAll('.bg-red-600, .bg-red-950, .bg-red-700');
-            redBgs.forEach(el => {
-                if (el.classList.contains('bg-red-600') || el.classList.contains('bg-red-700')) el.style.backgroundColor = config.primary;
-                if (el.classList.contains('bg-red-950')) el.style.backgroundColor = config.dark;
-            });
-
-            const redBorders = document.querySelectorAll('.border-red-900, .border-red-600, .border-red-900\\/30, .border-red-900\\/50');
-            redBorders.forEach(el => {
-                el.style.borderColor = config.dark;
-            });
-            
-            localStorage.setItem('sfx_config_v26', JSON.stringify(config));
-        }
-
-        // --- Crypto & Comms (v3 protocol) ---
+        // --- Crypto ---
         async function getEncryptionKey(peerId) {
             const enc = new TextEncoder();
             const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(peerId.padEnd(16, '0').slice(0, 16)), { name: "PBKDF2" }, false, ["deriveBits", "deriveKey"]);
-            return crypto.subtle.deriveKey({ name: "PBKDF2", salt: enc.encode("SFX-SALT-V3"), iterations: 1000, hash: "SHA-256" }, keyMaterial, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+            return crypto.subtle.deriveKey({ name: "PBKDF2", salt: enc.encode(SALT), iterations: 1000, hash: "SHA-256" }, keyMaterial, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
         }
 
-        async function encrypt(data, peerId) {
+        async function encryptData(data, peerId) {
             try {
                 const key = await getEncryptionKey(peerId);
                 const iv = crypto.getRandomValues(new Uint8Array(12));
                 const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, data);
                 const combined = new Uint8Array(iv.length + encrypted.byteLength);
-                combined.set(iv); combined.set(new Uint8Array(encrypted), iv.length);
-                let binary = ''; combined.forEach(b => binary += String.fromCharCode(b));
-                return "SFXv3:" + btoa(binary);
+                combined.set(iv);
+                combined.set(new Uint8Array(encrypted), iv.length);
+                return "SFXv2:" + btoa(String.fromCharCode.apply(null, combined));
             } catch (e) { return null; }
         }
 
-        async function decrypt(encodedData, peerId) {
-            if (!encodedData || !encodedData.startsWith("SFXv3:")) return { data: encodedData, encrypted: false };
+        async function decryptData(encodedData, peerId) {
+            if (!encodedData || !encodedData.startsWith("SFXv2:")) return { data: encodedData, encrypted: false };
             try {
-                const binaryString = atob(encodedData.replace("SFXv3:", ""));
-                const combined = new Uint8Array(binaryString.length);
-                for (let i = 0; i < binaryString.length; i++) combined[i] = binaryString.charCodeAt(i);
-                const iv = combined.slice(0, 12); const data = combined.slice(12);
+                const binary = atob(encodedData.replace("SFXv2:", ""));
+                const combined = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) combined[i] = binary.charCodeAt(i);
+                const iv = combined.slice(0, 12);
+                const data = combined.slice(12);
                 const key = await getEncryptionKey(peerId);
                 const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, data);
                 return { data: decrypted, encrypted: true };
-            } catch (e) { return { data: null, error: true }; }
+            } catch (e) { return { data: "[DECRYPT ERROR]", error: true, encrypted: true }; }
+        }
+
+        // --- Logic ---
+        function toggleSidebar() {
+            state.sidebarOpen = !state.sidebarOpen;
+            document.getElementById('sidebar').classList.toggle('-translate-x-full', !state.sidebarOpen);
+        }
+
+        function saveProfile() {
+            state.myName = document.getElementById('myName').value;
+            state.myId = document.getElementById('myId').value;
+            localStorage.setItem('sfx_myid', state.myId);
+            localStorage.setItem('sfx_myname', state.myName);
+        }
+
+        function toggleE2EE() {
+            state.e2eeEnabled = !state.e2eeEnabled;
+            const btn = document.getElementById('e2eeToggle');
+            const icon = document.getElementById('e2eeIcon');
+            if (state.e2eeEnabled) {
+                btn.className = "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-bold border border-red-800 text-red-500 bg-red-950/20";
+                btn.innerHTML = `<i data-lucide="lock" class="w-3 h-3"></i><span class="hidden sm:inline">E2EE AKTIV</span>`;
+                icon.className = "text-red-600 w-4 h-4";
+            } else {
+                btn.className = "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-bold border border-zinc-800 text-zinc-500 bg-zinc-900";
+                btn.innerHTML = `<i data-lucide="unlock" class="w-3 h-3"></i><span class="hidden sm:inline">RAW TRANSMISSION</span>`;
+                icon.className = "text-zinc-700 w-4 h-4";
+            }
+            lucide.createIcons();
+        }
+
+        function toggleConnection() {
+            if (state.wsStatus === 'ONLINE') {
+                if (ws) ws.close();
+            } else {
+                if (!state.myId) return alert("System-ID erforderlich.");
+                connect();
+            }
         }
 
         function connect() {
-            if (!myId) return;
-            if (ws) disconnect();
-            wsStatus = 'SYNCING...'; updateUI();
-            ws = new WebSocket(`wss://unwintry-strapping-winford.ngrok-free.dev/ws?id=${myId}`);
-            ws.onopen = () => { wsStatus = 'ONLINE'; updateUI(); };
+            state.wsStatus = 'CONNECTING...';
+            updateUI();
+            
+            ws = new WebSocket(`wss://unwintry-strapping-winford.ngrok-free.dev/ws?id=${state.myId}`);
+            
+            ws.onopen = () => {
+                state.wsStatus = 'ONLINE';
+                updateUI();
+            };
+            
             ws.onmessage = async (e) => {
-                try {
-                    const data = JSON.parse(e.data);
-                    if (data.from && data.message) {
-                        const { data: decrypted, encrypted } = await decrypt(data.message, myId);
-                        let msgObj = { type: 'peer', time: getCurrentTime(), encrypted };
-                        if (decrypted instanceof ArrayBuffer) {
-                            const blob = new Blob([decrypted]);
-                            if (data.mediaType === 'image') msgObj.imageUrl = URL.createObjectURL(blob), msgObj.isImage = true;
-                            else msgObj.audioUrl = URL.createObjectURL(blob), msgObj.isAudio = true;
-                        } else {
-                            msgObj.text = typeof decrypted === 'string' ? decrypted : new TextDecoder().decode(decrypted);
-                        }
-                        saveMessage(data.from, msgObj);
-                        if (!contacts.includes(data.from)) { contacts.push(data.from); saveContacts(); renderContacts(); }
+                const data = JSON.parse(e.data);
+                if (data.from && data.message) {
+                    const { data: result, encrypted } = await decryptData(data.message, state.myId);
+                    let text = (result instanceof ArrayBuffer) ? new TextDecoder().decode(result) : result;
+                    
+                    let msgObj = { 
+                        type: 'peer', 
+                        time: getCurrentTime(), 
+                        text: text,
+                        encrypted: encrypted 
+                    };
+
+                    if (data.mediaType === 'image') {
+                        msgObj.isImage = true;
+                        msgObj.imageUrl = `data:image/png;base64,${result}`;
+                        msgObj.text = data.caption || "";
                     }
-                } catch(err) {}
+
+                    if (!state.chatLog[data.from]) state.chatLog[data.from] = [];
+                    state.chatLog[data.from].push(msgObj);
+                    if (!state.contacts.includes(data.from)) state.contacts.push(data.from);
+                    
+                    saveAndRender();
+                }
             };
-            ws.onclose = () => { wsStatus = 'OFFLINE'; updateUI(); };
-            ws.onerror = () => { wsStatus = 'ERROR'; updateUI(); };
+            
+            ws.onclose = () => {
+                state.wsStatus = 'OFFLINE';
+                updateUI();
+            };
         }
 
-        function disconnect() { if (ws) ws.close(); wsStatus = 'OFFLINE'; updateUI(); }
-
-        async function handleSend(payloadRaw, mediaType = 'text') {
-            if (!activePeer) return;
-            const time = getCurrentTime();
-            const isLocal = activePeer === LOCAL_PEER;
-            let msgObj = { type: 'me', time, encrypted: true };
-            if (mediaType === 'text') msgObj.text = payloadRaw;
-            else if (mediaType === 'image') msgObj.imageUrl = URL.createObjectURL(new Blob([payloadRaw])), msgObj.isImage = true;
-            else if (mediaType === 'audio') msgObj.audioUrl = URL.createObjectURL(new Blob([payloadRaw])), msgObj.isAudio = true;
-
-            if (!isLocal) {
-                if (wsStatus !== 'ONLINE') return;
-                const dataToEncrypt = (typeof payloadRaw === 'string') ? new TextEncoder().encode(payloadRaw) : new Uint8Array(payloadRaw);
-                const encryptedPayload = await encrypt(dataToEncrypt, activePeer);
-                ws.send(JSON.stringify({ to: activePeer, message: encryptedPayload, mediaType }));
+        function addContact() {
+            const input = document.getElementById('newContactId');
+            const id = input.value.trim();
+            if (id && !state.contacts.includes(id)) {
+                state.contacts.push(id);
+                input.value = '';
+                saveAndRender();
             }
-            saveMessage(activePeer, msgObj);
         }
 
-        // --- Core Functions ---
-        function saveMessage(id, msg) {
-            if (!chatLog[id]) chatLog[id] = [];
-            chatLog[id].push(msg);
-            localStorage.setItem('sfx_log', JSON.stringify(chatLog));
-            if (id === activePeer) renderChat();
+        async function handleSend() {
+            const input = document.getElementById('msgInput');
+            const text = input.value.trim();
+            if ((!text && !state.pendingImage) || !state.activePeer) return;
+
+            let msgObj = { type: 'me', time: getCurrentTime(), text: text, encrypted: state.e2eeEnabled };
+            
+            if (state.activePeer === 'Private Notizen') {
+                if (state.pendingImage) {
+                    msgObj.isImage = true;
+                    msgObj.imageUrl = state.pendingImage.url;
+                }
+                if (!state.chatLog[state.activePeer]) state.chatLog[state.activePeer] = [];
+                state.chatLog[state.activePeer].push(msgObj);
+                clearInput();
+                saveAndRender();
+                return;
+            }
+
+            if (state.wsStatus !== 'ONLINE') return;
+
+            let payload;
+            let mediaType = 'text';
+
+            if (state.pendingImage) {
+                mediaType = 'image';
+                msgObj.isImage = true;
+                msgObj.imageUrl = state.pendingImage.url;
+                const buffer = state.pendingImage.buffer;
+                payload = state.e2eeEnabled ? await encryptData(buffer, state.activePeer) : btoa(String.fromCharCode.apply(null, new Uint8Array(buffer)));
+            } else {
+                payload = state.e2eeEnabled ? await encryptData(new TextEncoder().encode(text), state.activePeer) : text;
+            }
+
+            ws.send(JSON.stringify({ to: state.activePeer, message: payload, mediaType, caption: text }));
+            
+            if (!state.chatLog[state.activePeer]) state.chatLog[state.activePeer] = [];
+            state.chatLog[state.activePeer].push(msgObj);
+            
+            clearInput();
+            saveAndRender();
         }
 
-        function renderContacts() {
-            dom.contactList.innerHTML = '';
-            contacts.forEach(id => {
-                const isLocal = id === LOCAL_PEER;
-                const div = document.createElement('div');
-                div.className = `p-3 rounded mb-1 cursor-pointer border flex justify-between items-center transition-all ${activePeer === id ? 'bg-white/5 border-white/20 shadow-lg' : 'bg-zinc-950/20 border-transparent hover:bg-white/5'}`;
-                div.onclick = () => { activePeer = id; renderChat(); updateUI(); dom.sidebar.classList.add('-translate-x-full'); };
-                div.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <i data-lucide="${isLocal ? 'bookmark' : 'user'}" class="w-4 h-4"></i>
-                        <span class="text-xs font-bold ${activePeer === id ? 'text-white' : 'text-zinc-500'}">${id}</span>
-                    </div>
-                `;
-                dom.contactList.appendChild(div);
-            });
-            lucide.createIcons();
-            applyConfig();
-        }
-
-        function renderChat() {
-            if (!activePeer) return;
-            dom.activePeerDisplay.textContent = activePeer;
-            dom.chatLog.innerHTML = '';
-            const logs = chatLog[activePeer] || [];
-            logs.forEach(msg => {
-                const div = document.createElement('div');
-                div.className = `bubble ${msg.type === 'me' ? 'bubble-me' : 'bubble-peer'}`;
-                let content = msg.isImage ? `<img src="${msg.imageUrl}" class="rounded max-w-full">` : (msg.isAudio ? `<audio src="${msg.audioUrl}" controls class="h-8 w-44 invert"></audio>` : `<div class="break-words">${msg.text}</div>`);
-                div.innerHTML = `${content}<div class="text-[7px] mt-1 opacity-40 text-right uppercase font-black tracking-tighter">${msg.time} ${msg.encrypted ? '• SSL' : ''}</div>`;
-                dom.chatLog.appendChild(div);
-            });
-            dom.chatLog.scrollTop = dom.chatLog.scrollHeight;
-            lucide.createIcons();
-        }
-
-        function updateUI() {
-            dom.statusDot.className = `w-1.5 h-1.5 rounded-full ${wsStatus === 'ONLINE' ? 'bg-green-500 shadow-[0_0_8px_#10b981]' : 'bg-zinc-800'}`;
-            dom.statusDisplay.childNodes[2].textContent = wsStatus;
-            dom.msgInput.disabled = (wsStatus !== 'ONLINE' && activePeer !== LOCAL_PEER) || !activePeer;
-            dom.msgInput.placeholder = activePeer ? "Nachricht an " + activePeer : "System wählen...";
-        }
-
-        // --- Event Listeners ---
-        dom.settingsBtn.onclick = () => dom.settingsPanel.classList.add('open');
-        dom.closeSettingsBtn.onclick = () => dom.settingsPanel.classList.remove('open');
-        
-        document.querySelectorAll('.color-dot').forEach(dot => {
-            dot.onclick = () => {
-                config.primary = dot.dataset.color;
-                config.dark = dot.dataset.dark;
-                applyConfig();
-            };
-        });
-
-        document.querySelectorAll('.bg-option').forEach(opt => {
-            opt.onclick = () => {
-                config.background = opt.dataset.bg;
-                applyConfig();
-            };
-        });
-
-        dom.brightnessRange.oninput = (e) => {
-            config.brightness = parseInt(e.target.value);
-            applyConfig();
-        };
-
-        dom.resetTheme.onclick = () => {
-            config = {...DEFAULTS};
-            applyConfig();
-        };
-
-        dom.sendBtn.onclick = () => { if(dom.msgInput.value.trim()) { handleSend(dom.msgInput.value.trim()); dom.msgInput.value = ''; } };
-        dom.msgInput.onkeydown = e => { if(e.key === 'Enter') dom.sendBtn.click(); };
-        dom.menuBtn.onclick = () => dom.sidebar.classList.remove('-translate-x-full');
-        dom.closeSidebarBtn.onclick = () => dom.sidebar.classList.add('-translate-x-full');
-        dom.addContactBtn.onclick = () => { const id = dom.newContactId.value.trim(); if(id && !contacts.includes(id)) { contacts.push(id); saveContacts(); renderContacts(); dom.newContactId.value = ''; } };
-        dom.myId.onchange = e => { myId = e.target.value; localStorage.setItem('sfx_myid', myId); };
-        dom.myName.onchange = e => { myName = e.target.value; localStorage.setItem('sfx_myname', myName); };
-        dom.connBtn.onclick = () => wsStatus === 'OFFLINE' ? connect() : disconnect();
-
-        dom.imgBtn.onclick = () => dom.imageInput.click();
-        dom.imageInput.onchange = (e) => {
+        function handleFileSelect(e) {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = () => handleSend(reader.result, 'image');
+            reader.onload = () => {
+                state.pendingImage = { url: URL.createObjectURL(file), buffer: reader.result };
+                document.getElementById('previewImg').src = state.pendingImage.url;
+                document.getElementById('imagePreview').classList.remove('hidden');
+            };
             reader.readAsArrayBuffer(file);
+        }
+
+        function clearImage() {
+            state.pendingImage = null;
+            document.getElementById('imagePreview').classList.add('hidden');
+        }
+
+        function clearInput() {
+            document.getElementById('msgInput').value = '';
+            document.getElementById('msgInput').style.height = 'auto';
+            clearImage();
+        }
+
+        function getCurrentTime() {
+            const d = new Date();
+            return d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
+        }
+
+        function saveAndRender() {
+            localStorage.setItem('sfx_contacts', JSON.stringify(state.contacts));
+            localStorage.setItem('sfx_log', JSON.stringify(state.chatLog));
+            localStorage.setItem('sfx_last_active', state.activePeer);
+            updateUI();
+        }
+
+        function updateUI() {
+            // Update Connection Button
+            const connBtn = document.getElementById('connectBtn');
+            if (state.wsStatus === 'ONLINE') {
+                connBtn.innerHTML = `<i data-lucide="power-off" class="w-4 h-4"></i> Trennen`;
+                connBtn.className = "flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-[10px] font-bold uppercase flex items-center justify-center gap-2 text-zinc-400";
+            } else {
+                connBtn.innerHTML = `<i data-lucide="power" class="w-4 h-4"></i> Uplink Starten`;
+                connBtn.className = "flex-1 py-3 bg-red-700 hover:bg-red-600 rounded-xl text-[10px] font-bold uppercase flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-900/10";
+            }
+
+            // Render Contacts
+            const list = document.getElementById('contactList');
+            list.innerHTML = state.contacts.map(id => `
+                <div onclick="setActive('${id}')" class="p-4 cursor-pointer border-b border-zinc-900/30 flex justify-between items-center transition-all group ${state.activePeer === id ? 'bg-zinc-900 border-l-4 border-l-red-600' : 'hover:bg-white/5'}">
+                    <div class="flex items-center gap-4 overflow-hidden">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${id === 'Private Notizen' ? 'bg-red-950 text-red-500' : 'bg-zinc-800 text-zinc-500'}">
+                            <i data-lucide="${id === 'Private Notizen' ? 'book' : 'zap'}" class="w-5 h-5"></i>
+                        </div>
+                        <div class="flex flex-col overflow-hidden">
+                            <span class="text-sm font-bold truncate ${state.activePeer === id ? 'text-red-500' : 'text-zinc-300'}">${id}</span>
+                            <span class="text-[9px] text-zinc-600 uppercase tracking-tighter">${id === 'Private Notizen' ? 'Lokaler Tresor' : 'Verschlüsselt'}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('activePeerName').innerText = state.activePeer;
+
+            // Render Messages
+            const chat = document.getElementById('chatArea');
+            const messages = state.chatLog[state.activePeer] || [];
+            if (messages.length > 0) {
+                chat.innerHTML = messages.map(msg => `
+                    <div class="flex flex-col ${msg.type === 'me' ? 'items-end' : 'items-start'}">
+                        <div class="max-w-[85%] md:max-w-[70%] lg:max-w-[55%] px-3 py-1.5 rounded-xl relative shadow-sm ${msg.type === 'me' ? 'bg-red-800 text-white rounded-tr-none' : 'bg-zinc-900 text-zinc-200 rounded-tl-none border border-zinc-800/50'}">
+                            ${msg.isImage ? `<div class="mb-1.5 rounded-lg overflow-hidden bg-black/40"><img src="${msg.imageUrl}" class="max-h-[40vh] w-full object-contain"></div>` : ''}
+                            ${msg.text ? `<p class="text-[13px] md:text-[14.5px] leading-snug whitespace-pre-wrap pr-8">${msg.text}</p>` : ''}
+                            <div class="absolute bottom-1 right-2 flex items-center gap-1 opacity-50 text-[8px] font-mono pointer-events-none">
+                                <span>${msg.time}</span>
+                                ${msg.type === 'me' ? '<i data-lucide="check-check" class="w-2.5 h-2.5 text-blue-400"></i>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('') + '<div id="anchor"></div>';
+                document.getElementById('anchor').scrollIntoView({ behavior: 'smooth' });
+            } else {
+                chat.innerHTML = `<div class="m-auto flex flex-col items-center gap-4 opacity-10 select-none grayscale"><i data-lucide="shield" class="w-16 h-16"></i><p class="text-[10px] uppercase tracking-[1em] text-center ml-[1em]">Secure Interface</p></div>`;
+            }
+
+            lucide.createIcons();
+        }
+
+        function setActive(id) {
+            state.activePeer = id;
+            if (window.innerWidth < 768) toggleSidebar();
+            updateUI();
+        }
+
+        // Init
+        window.onload = () => {
+            document.getElementById('myName').value = state.myName;
+            document.getElementById('myId').value = state.myId;
+            updateUI();
+            
+            // Auto-resize Textarea
+            const tx = document.getElementById('msgInput');
+            tx.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = this.scrollHeight + 'px';
+            });
+            tx.addEventListener('keydown', e => {
+                if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+            });
         };
-
-        function getCurrentTime() { const d = new Date(); return d.getHours().toString().padStart(2, '0') + ":" + d.getMinutes().toString().padStart(2, '0'); }
-        function saveContacts() { localStorage.setItem('sfx_contacts', JSON.stringify(contacts)); }
-
-        // Boot
-        dom.myId.value = myId;
-        dom.myName.value = myName;
-        applyConfig();
-        renderContacts();
-        updateUI();
     </script>
 </body>
 </html>
