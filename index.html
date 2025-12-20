@@ -36,7 +36,7 @@ button#sendBtn.active{color:var(--green);}
 </style>
 </head>
 <body>
-<div id="version">v1.3</div>
+<div id="version">v1.4</div>
 
 <div id="loginContainer">
   <div class="login-card">
@@ -83,63 +83,95 @@ const sendBtn=document.getElementById('sendBtn');
 let userId=localStorage.getItem('shadowfxUserId')||'';
 let keyPair={publicKey:null,privateKey:null};
 
+// Export / Import Keys
+async function exportKey(key){const exported=await crypto.subtle.exportKey(key.type==='private'?'pkcs8':'spki',key);return btoa(String.fromCharCode(...new Uint8Array(exported)));}
+async function importPublicKey(base64){const bin=Uint8Array.from(atob(base64),c=>c.charCodeAt(0));return crypto.subtle.importKey('spki',bin,{name:"RSA-OAEP",hash:"SHA-256"},true,["encrypt"]);}
+async function importPrivateKey(base64){const bin=Uint8Array.from(atob(base64),c=>c.charCodeAt(0));return crypto.subtle.importKey('pkcs8',bin,{name:"RSA-OAEP",hash:"SHA-256"},true,["decrypt"]);}
+
+// Chat local
+function saveChat(targetId,msgs){localStorage.setItem('chat_'+targetId,JSON.stringify(msgs));}
+function loadChat(targetId){return JSON.parse(localStorage.getItem('chat_'+targetId)||'[]');}
+
+// Messages
+function addMessage(text,type='system'){const div=document.createElement('div');const time=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});if(type==='system'){div.className='system-msg';div.textContent=text;}else{div.className=`message ${type}`;div.textContent=text;}msgList.appendChild(div);document.getElementById('chat').scrollTo({top:document.getElementById('chat').scrollHeight,behavior:'smooth'});}
+
+// Generate / Load Keys
 async function generateKeys(){
   keyPair = await window.crypto.subtle.generateKey(
     {name:"RSA-OAEP",modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:"SHA-256"},
     true,
     ["encrypt","decrypt"]
   );
+  localStorage.setItem('shadowfxPublic',await exportKey(keyPair.publicKey));
+  localStorage.setItem('shadowfxPrivate',await exportKey(keyPair.privateKey));
 }
 
-function saveUserId(id){localStorage.setItem('shadowfxUserId',id);userId=id;}
-function loadUserId(){return localStorage.getItem('shadowfxUserId');}
+async function loadKeys(){
+  const pub=localStorage.getItem('shadowfxPublic');
+  const priv=localStorage.getItem('shadowfxPrivate');
+  if(pub && priv){keyPair.publicKey=await importPublicKey(pub);keyPair.privateKey=await importPrivateKey(priv);}
+  else await generateKeys();
+}
 
+// Account erstellen
 document.getElementById('createAccountBtn').onclick=async()=>{
-  const id='user-'+Math.random().toString(36).substr(2,9);
-  saveUserId(id);
+  if(!userId){userId='user-'+Math.random().toString(36).substr(2,9);localStorage.setItem('shadowfxUserId',userId);}
+  document.getElementById('accountIdDisplay').textContent='Deine ID: '+userId;
   await generateKeys();
-  document.getElementById('accountIdDisplay').textContent='Deine ID: '+id;
 };
 
-document.getElementById('loginBtn').onclick=()=>{
+// Login
+document.getElementById('loginBtn').onclick=async()=>{
   targetId=document.getElementById('targetIdInput').value.trim();
   if(!userId){document.getElementById('loginFeedback').textContent='Bitte zuerst Account erstellen!';return;}
   if(!targetId){document.getElementById('loginFeedback').textContent='Empfänger ID fehlt!';return;}
 
-  ws=new WebSocket(SERVER_URL);
-  ws.onopen=()=>{ws.send(JSON.stringify({type:'register',userId}));document.getElementById('loginContainer').style.display='none';document.getElementById('chatContainer').style.display='flex';document.getElementById('targetNameDisplay').textContent=targetId;addMessage("Nachrichten sind Ende-zu-Ende verschlüsselt.");};
+  await loadKeys();
 
-  ws.onmessage=(event)=>{
+  ws=new WebSocket(SERVER_URL);
+  ws.onopen=()=>{
+    ws.send(JSON.stringify({type:'register',userId}));
+    document.getElementById('loginContainer').style.display='none';
+    document.getElementById('chatContainer').style.display='flex';
+    document.getElementById('targetNameDisplay').textContent=targetId;
+    addMessage("Nachrichten sind Ende-zu-Ende verschlüsselt.");
+    // Load previous chat
+    loadChat(targetId).forEach(m=>addMessage(m.text,m.type));
+  };
+
+  ws.onmessage=async(event)=>{
     const msg=JSON.parse(event.data);
     if(msg.from===targetId){
-      decryptMessage(msg.text).then(text=>addMessage(text,'received'));
+      const decrypted=await decryptMessage(new Uint8Array(msg.text).buffer);
+      addMessage(decrypted,'received');
+      const chat=loadChat(targetId);
+      chat.push({type:'received',text:decrypted});
+      saveChat(targetId,chat);
     }
   };
 };
 
-function addMessage(text,type='system'){const div=document.createElement('div');const time=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});if(type==='system'){div.className='system-msg';div.textContent=text;}else{div.className=`message ${type}`;div.textContent=text;}msgList.appendChild(div);document.getElementById('chat').scrollTo({top:document.getElementById('chat').scrollHeight,behavior:'smooth'});}
+// Encrypt / Decrypt
+async function encryptMessage(msg){const enc=new TextEncoder();return crypto.subtle.encrypt({name:"RSA-OAEP"},keyPair.publicKey,enc.encode(msg));}
+async function decryptMessage(buffer){const dec=new TextDecoder();return dec.decode(await crypto.subtle.decrypt({name:"RSA-OAEP"},keyPair.privateKey,buffer));}
 
-async function encryptMessage(msg){
-  const enc=new TextEncoder();
-  return window.crypto.subtle.encrypt({name:"RSA-OAEP"},keyPair.publicKey,enc.encode(msg));
-}
-async function decryptMessage(buffer){
-  const dec=new TextDecoder();
-  const decrypted=await window.crypto.subtle.decrypt({name:"RSA-OAEP"},keyPair.privateKey,buffer);
-  return dec.decode(decrypted);
-}
-
+// Send
 sendBtn.onclick=async()=>{
   const text=msgInput.value.trim();if(!text)return;
   const encryptedBuffer=await encryptMessage(text);
-  const encryptedArray=new Uint8Array(encryptedBuffer);
-  ws.send(JSON.stringify({type:'message',to:targetId,text:Array.from(encryptedArray)}));
-  addMessage(text,'sent');msgInput.value='';
+  const encryptedArray=Array.from(new Uint8Array(encryptedBuffer));
+  ws.send(JSON.stringify({type:'message',to:targetId,text:encryptedArray}));
+  addMessage(text,'sent');
+  const chat=loadChat(targetId);
+  chat.push({type:'sent',text:text});
+  saveChat(targetId,chat);
+  msgInput.value='';
 };
 
 msgInput.oninput=()=>sendBtn.classList.toggle('active', msgInput.value.length>0);
 msgInput.onkeypress=e=>e.key==='Enter'&&sendBtn.click();
 
+// PWA Service Worker
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js'));}
 </script>
 </body>
