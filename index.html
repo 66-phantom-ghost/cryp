@@ -1,412 +1,64 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ShadowFX | Live Secure Messenger</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Fira+Code&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-dark: #050505;
-            --panel-dark: #0d0d0d;
-            --accent: #10b981;
-        }
-        body { 
-            margin:0; 
-            font-family: 'Inter', sans-serif; 
-            background-color: var(--bg-dark); 
-            color: #e5e7eb; 
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .font-mono { font-family: 'Fira Code', monospace; }
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #333; }
-        
-        .fade-in { animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        .message-bubble { position: relative; max-width: 80%; }
-        .bg-dark-panel { background-color: var(--panel-dark); }
-    </style>
+<meta charset="UTF-8">
+<title>Mini-Messenger</title>
+<style>
+body { font-family: Arial, sans-serif; background: #f4f4f4; display:flex; flex-direction: column; align-items: center; padding: 20px;}
+#chat { width: 400px; height: 400px; border: 1px solid #ccc; background: #fff; overflow-y: scroll; padding: 10px; margin-bottom: 10px; }
+#message { width: 300px; }
+button { padding: 5px 10px; }
+.message { margin: 5px 0; }
+.sender { font-weight: bold; }
+</style>
 </head>
-<body class="bg-[#050505]">
+<body>
 
-<!-- Setup Screen -->
-<div id="setup-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-[#050505] p-6">
-    <div class="w-full max-w-sm text-center fade-in">
-        <div class="mb-8 inline-flex items-center justify-center w-20 h-20 bg-emerald-600/10 rounded-3xl border border-emerald-500/20 shadow-2xl shadow-emerald-500/10">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-        </div>
-        <h1 class="text-4xl font-bold mb-2 tracking-tight">ShadowFX</h1>
-        <p class="text-zinc-500 mb-10 text-sm">Sicherer WebSocket-Knoten: Online</p>
-        <div class="space-y-4">
-            <input type="text" id="username" placeholder="Benutzername" class="w-full p-4 rounded-2xl bg-zinc-900 border border-zinc-800 text-white focus:border-emerald-500/50 outline-none transition-all shadow-inner">
-            <button id="create-account" class="w-full py-4 bg-emerald-600 rounded-2xl font-bold hover:bg-emerald-500 active:scale-[0.98] transition-all shadow-lg shadow-emerald-900/20 text-white">
-                Account initialisieren
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- App Screen -->
-<div id="app" class="hidden flex-1 flex flex-col md:flex-row h-screen overflow-hidden">
-    <!-- Sidebar -->
-    <div id="sidebar" class="w-full md:w-85 border-r border-zinc-900 flex flex-col bg-[#080808]">
-        <div class="p-6 flex justify-between items-center border-b border-zinc-900/50">
-            <div>
-                <h2 class="font-bold text-xl text-white tracking-tight">ShadowFX</h2>
-                <div class="flex items-center gap-2 mt-1">
-                    <div id="status-dot" class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                    <span id="status-text" class="text-[10px] text-zinc-500 uppercase tracking-widest font-black">Verbinde...</span>
-                </div>
-            </div>
-            <button onclick="openAddContact()" class="bg-zinc-900 text-emerald-500 p-2.5 rounded-xl hover:bg-emerald-600 hover:text-white transition-all border border-zinc-800">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            </button>
-        </div>
-
-        <div class="p-4">
-            <div class="bg-zinc-900/40 p-4 rounded-2xl border border-zinc-800/60 shadow-inner">
-                <p class="text-[9px] text-zinc-500 uppercase font-black mb-2 tracking-wider">Deine Identität</p>
-                <div class="flex items-center justify-between gap-2">
-                    <p id="myIdDisplay" class="text-xs font-mono text-emerald-500 truncate select-all">Generiere...</p>
-                    <button onclick="copyMyId()" class="text-zinc-600 hover:text-white"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
-                </div>
-            </div>
-        </div>
-
-        <div id="contact-list" class="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
-            <!-- Dynamisch -->
-        </div>
-    </div>
-
-    <!-- Main Chat Container -->
-    <div id="chat-container" class="hidden md:flex flex-1 flex-col bg-[#050505]">
-        <div id="no-chat" class="flex-1 flex flex-col items-center justify-center text-zinc-600 fade-in p-12 text-center">
-            <div class="mb-6 opacity-10">
-                <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-            </div>
-            <h3 class="text-xl font-bold text-zinc-400">Kein aktiver Chat</h3>
-            <p class="text-sm mt-2 max-w-xs text-zinc-700">Wähle einen verschlüsselten Endpunkt aus deiner Liste aus.</p>
-        </div>
-
-        <div id="chat-window" class="hidden flex-1 flex flex-col">
-            <!-- Header -->
-            <div class="flex items-center gap-4 p-5 border-b border-zinc-900 bg-[#080808]/80 backdrop-blur-md">
-                <button onclick="backToList()" class="md:hidden p-2 text-zinc-400 hover:text-white">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-                </button>
-                <div class="flex-1">
-                    <div id="chat-name" class="font-bold text-white text-lg">Kontakt</div>
-                    <div id="chat-id" class="text-[10px] text-emerald-500 font-mono tracking-tighter opacity-80 uppercase">ID: ...</div>
-                </div>
-                <div class="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 rounded-full border border-emerald-500/20">
-                    <span class="text-[9px] text-emerald-500 font-bold uppercase">E2E Verschlüsselt</span>
-                </div>
-            </div>
-            
-            <!-- Messages Area -->
-            <div id="messages" class="flex-1 overflow-y-auto p-6 custom-scrollbar flex flex-col gap-4">
-                <!-- Messages render here -->
-            </div>
-
-            <!-- Input Area -->
-            <div class="p-6 bg-[#080808] border-t border-zinc-900">
-                <div class="flex gap-3 max-w-5xl mx-auto items-end">
-                    <div class="flex-1 bg-zinc-900 rounded-2xl border border-zinc-800 focus-within:border-emerald-500/50 transition-all p-1 shadow-inner">
-                        <textarea id="msg-input" rows="1" placeholder="Nachricht..." class="w-full bg-transparent p-3 text-white outline-none resize-none max-h-32 block"></textarea>
-                    </div>
-                    <button onclick="sendMsg()" class="bg-emerald-600 text-white h-[52px] px-8 rounded-2xl hover:bg-emerald-500 transition-all font-bold shadow-lg shadow-emerald-900/20 flex items-center justify-center">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Contact -->
-<div id="add-contact-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 fade-in">
-    <div class="bg-zinc-900 p-8 rounded-3xl w-full max-w-sm border border-zinc-800 shadow-2xl">
-        <h2 class="font-bold text-2xl mb-2">Partner hinzufügen</h2>
-        <p class="text-xs text-zinc-500 mb-8 uppercase tracking-widest font-bold">Neuer verschlüsselter Tunnel</p>
-        
-        <div class="space-y-5">
-            <div>
-                <label class="text-[10px] uppercase font-black text-zinc-600 ml-1 mb-1 block">Kennung (ID)</label>
-                <input type="text" id="contact-id" placeholder="sfx-xxxxxxxx" class="w-full p-4 rounded-xl bg-black border border-zinc-800 text-white focus:border-emerald-500 outline-none font-mono text-sm shadow-inner">
-            </div>
-            <div>
-                <label class="text-[10px] uppercase font-black text-zinc-600 ml-1 mb-1 block">Alias</label>
-                <input type="text" id="contact-name" placeholder="z.B. Zentrale" class="w-full p-4 rounded-xl bg-black border border-zinc-800 text-white focus:border-emerald-500 outline-none shadow-inner">
-            </div>
-        </div>
-        
-        <div class="flex gap-3 mt-8">
-            <button onclick="closeAddContact()" class="flex-1 bg-zinc-800 py-4 rounded-2xl hover:bg-zinc-700 transition-all font-bold text-zinc-300">Abbrechen</button>
-            <button onclick="saveContact()" class="flex-1 bg-emerald-600 py-4 rounded-2xl hover:bg-emerald-500 transition-all font-bold text-white">Bestätigen</button>
-        </div>
-    </div>
-</div>
+<h2>Mini-Messenger</h2>
+<div id="chat"></div>
+<input type="text" id="message" placeholder="Nachricht schreiben...">
+<button onclick="sendMessage()">Senden</button>
 
 <script>
-    const WS_URL = 'wss://unwintry-strapping-winford.ngrok-free.dev';
-    let ws, myId, myName, keyPair;
-    let contacts = JSON.parse(localStorage.getItem('sfx_contacts_v2') || '[]');
-    let activeContact = null;
+const username = prompt("Dein Name:") || "User";
+const ws = new WebSocket("wss://unwintry-strapping-winford.ngrok-free.dev/ws?id=" + username);
 
-    // Crypto Helpers
-    async function exportKey(key) {
-        const exported = await crypto.subtle.exportKey(key.type === 'private' ? 'pkcs8' : 'spki', key);
-        return btoa(String.fromCharCode(...new Uint8Array(exported)));
-    }
+const chat = document.getElementById("chat");
+const input = document.getElementById("message");
 
-    async function importKey(b64, type) {
-        if (!b64) return null;
-        const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-        return crypto.subtle.importKey(
-            type === 'private' ? 'pkcs8' : 'spki', 
-            bin, 
-            { name: "RSA-OAEP", hash: "SHA-256" }, 
-            true, 
-            type === 'private' ? ["decrypt"] : ["encrypt"]
-        );
-    }
+// Lokaler Speicher für Nachrichten
+let messages = JSON.parse(localStorage.getItem("messages") || "[]");
+messages.forEach(msg => addMessage(msg.sender, msg.text));
 
-    window.onload = async () => {
-        const storedId = localStorage.getItem('sfx_uid');
-        if (storedId) {
-            myId = storedId;
-            myName = localStorage.getItem('sfx_name');
-            const privB64 = localStorage.getItem('sfx_priv');
-            const pubB64 = localStorage.getItem('sfx_pub');
-            
-            if (privB64 && pubB64) {
-                const privKey = await importKey(privB64, 'private');
-                const pubKey = await importKey(pubB64, 'public');
-                keyPair = { privateKey: privKey, publicKey: pubKey };
-            }
+// WebSocket-Nachrichten empfangen
+ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    addMessage(msg.sender, msg.text);
+    messages.push(msg);
+    localStorage.setItem("messages", JSON.stringify(messages));
+};
 
-            document.getElementById('setup-screen').classList.add('hidden');
-            document.getElementById('app').classList.remove('hidden');
-            document.getElementById('myIdDisplay').innerText = myId;
-            renderContacts();
-            connectWS();
-        }
-    };
+// Nachricht senden
+function sendMessage() {
+    const text = input.value.trim();
+    if(!text) return;
+    const msg = { sender: username, text };
+    ws.send(JSON.stringify(msg));
+    addMessage(username, text);
+    messages.push(msg);
+    localStorage.setItem("messages", JSON.stringify(messages));
+    input.value = "";
+}
 
-    document.getElementById('create-account').onclick = async () => {
-        const nameInput = document.getElementById('username');
-        const name = nameInput.value.trim();
-        if (!name) {
-            nameInput.classList.add('border-red-500');
-            return;
-        }
-
-        myName = name;
-        myId = 'sfx-' + Math.random().toString(36).substr(2, 8);
-        
-        // Generate Keys
-        keyPair = await crypto.subtle.generateKey(
-            { name: "RSA-OAEP", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
-            true,
-            ["encrypt", "decrypt"]
-        );
-
-        localStorage.setItem('sfx_uid', myId);
-        localStorage.setItem('sfx_name', myName);
-        localStorage.setItem('sfx_pub', await exportKey(keyPair.publicKey));
-        localStorage.setItem('sfx_priv', await exportKey(keyPair.privateKey));
-
-        document.getElementById('setup-screen').classList.add('hidden');
-        document.getElementById('app').classList.remove('hidden');
-        document.getElementById('myIdDisplay').innerText = myId;
-        
-        connectWS();
-        renderContacts();
-    };
-
-    function connectWS() {
-        if (ws) ws.close();
-        ws = new WebSocket(WS_URL);
-
-        ws.onopen = () => {
-            document.getElementById('status-dot').className = 'w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]';
-            document.getElementById('status-text').innerText = 'Online';
-            ws.send(JSON.stringify({ type: 'register', userId: myId }));
-        };
-
-        ws.onclose = () => {
-            document.getElementById('status-dot').className = 'w-2 h-2 rounded-full bg-red-500';
-            document.getElementById('status-text').innerText = 'Offline';
-            setTimeout(connectWS, 4000);
-        };
-
-        ws.onmessage = async (e) => {
-            try {
-                const data = JSON.parse(e.data);
-                if (data.type === 'message') {
-                    handleIncoming(data);
-                }
-            } catch (err) { console.error("Msg Error", err); }
-        };
-    }
-
-    async function handleIncoming(msg) {
-        const contact = contacts.find(c => c.id === msg.from);
-        let text = "Verschlüsselte Nachricht";
-        
-        try {
-            const buf = Uint8Array.from(atob(msg.text), c => c.charCodeAt(0)).buffer;
-            const decrypted = await crypto.subtle.decrypt({ name: "RSA-OAEP" }, keyPair.privateKey, buf);
-            text = new TextDecoder().decode(decrypted);
-        } catch (e) {
-            text = msg.text; // Fallback to raw if not encrypted correctly
-        }
-
-        if (!contact) {
-            // Auto-add unknown for demo? For security better ignored or prompted.
-            return;
-        }
-
-        saveMessage(msg.from, text, 'received');
-        if (activeContact && activeContact.id === msg.from) renderMessages();
-    }
-
-    function openAddContact() { document.getElementById('add-contact-modal').classList.remove('hidden'); }
-    function closeAddContact() { document.getElementById('add-contact-modal').classList.add('hidden'); }
-
-    function saveContact() {
-        const id = document.getElementById('contact-id').value.trim();
-        const name = document.getElementById('contact-name').value.trim();
-        if (!id || !name) return;
-        
-        if (contacts.some(c => c.id === id)) return;
-        
-        contacts.push({ id, name, publicKey: '' });
-        localStorage.setItem('sfx_contacts_v2', JSON.stringify(contacts));
-        renderContacts();
-        closeAddContact();
-    }
-
-    function renderContacts() {
-        const list = document.getElementById('contact-list');
-        list.innerHTML = '';
-        contacts.forEach(c => {
-            const active = activeContact?.id === c.id;
-            const item = document.createElement('div');
-            item.className = `p-4 rounded-2xl cursor-pointer transition-all flex items-center gap-4 ${active ? 'bg-emerald-600/10 border border-emerald-500/30' : 'hover:bg-zinc-900 border border-transparent'}`;
-            item.innerHTML = `
-                <div class="w-11 h-11 rounded-2xl bg-zinc-800 flex items-center justify-center font-black text-emerald-500 shadow-lg">${c.name[0].toUpperCase()}</div>
-                <div class="flex-1 min-w-0">
-                    <div class="font-bold text-white truncate">${c.name}</div>
-                    <div class="text-[9px] text-zinc-600 font-mono truncate">${c.id}</div>
-                </div>
-            `;
-            item.onclick = () => selectContact(c);
-            list.appendChild(item);
-        });
-    }
-
-    function selectContact(c) {
-        activeContact = c;
-        document.getElementById('sidebar').classList.add('hidden', 'md:flex');
-        document.getElementById('chat-container').classList.remove('hidden');
-        document.getElementById('no-chat').classList.add('hidden');
-        document.getElementById('chat-window').classList.remove('hidden');
-        document.getElementById('chat-name').innerText = c.name;
-        document.getElementById('chat-id').innerText = 'ID: ' + c.id;
-        renderContacts();
-        renderMessages();
-    }
-
-    function renderMessages() {
-        if (!activeContact) return;
-        const container = document.getElementById('messages');
-        const log = JSON.parse(localStorage.getItem('chat_' + activeContact.id) || '[]');
-        container.innerHTML = '';
-
-        log.forEach(m => {
-            const isMe = m.type === 'sent';
-            const wrap = document.createElement('div');
-            wrap.className = `flex ${isMe ? 'justify-end' : 'justify-start'}`;
-            wrap.innerHTML = `
-                <div class="message-bubble p-4 rounded-3xl text-sm shadow-xl ${isMe ? 'bg-emerald-600 text-white rounded-br-none' : 'bg-zinc-900 text-zinc-100 rounded-bl-none'}">
-                    ${m.text}
-                    <div class="text-[8px] mt-2 opacity-40 text-right font-bold">${new Date(m.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
-                </div>
-            `;
-            container.appendChild(wrap);
-        });
-        container.scrollTop = container.scrollHeight;
-    }
-
-    async function sendMsg() {
-        const input = document.getElementById('msg-input');
-        const text = input.value.trim();
-        if (!text || !activeContact) return;
-
-        saveMessage(activeContact.id, text, 'sent');
-        
-        // In this version, we send raw text unless a public key exchange happened.
-        // For a true E2E, the partners must share public keys first.
-        let payload = text; 
-        
-        if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({
-                type: 'message',
-                to: activeContact.id,
-                from: myId,
-                text: payload
-            }));
-        }
-
-        renderMessages();
-        input.value = '';
-        input.style.height = 'auto';
-    }
-
-    function saveMessage(id, text, type) {
-        const log = JSON.parse(localStorage.getItem('chat_' + id) || '[]');
-        log.push({ text, type, time: Date.now() });
-        localStorage.setItem('chat_' + id, JSON.stringify(log));
-    }
-
-    function backToList() {
-        activeContact = null;
-        document.getElementById('sidebar').classList.remove('hidden');
-        document.getElementById('chat-container').classList.add('hidden', 'md:flex');
-        renderContacts();
-    }
-
-    function copyMyId() {
-        const el = document.createElement('textarea');
-        el.value = myId;
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand('copy');
-        document.body.removeChild(el);
-    }
-
-    // Auto-resize textarea
-    document.getElementById('msg-input').oninput = function() {
-        this.style.height = 'auto';
-        this.style.height = (this.scrollHeight) + 'px';
-    };
-    
-    document.getElementById('msg-input').onkeydown = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMsg();
-        }
-    };
+// Nachricht im Chatfenster anzeigen
+function addMessage(sender, text) {
+    const div = document.createElement("div");
+    div.className = "message";
+    div.innerHTML = `<span class="sender">${sender}:</span> ${text}`;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+}
 </script>
+
 </body>
 </html>
-
