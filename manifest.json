@@ -1,23 +1,40 @@
 {
-  "name": "ShadowFX",
+  "name": "ShadowFX Pro Messenger",
   "short_name": "ShadowFX",
-  "start_url": "https://66-phantom-ghost.github.io/cryp/index.html",
+  "description": "End-to-End verschlüsselter High-Security Messenger",
+  "start_url": "index.html",
   "display": "standalone",
-  "background_color": "#0b141a",
-  "theme_color": "#202c33",
-  "description": "End-to-End verschlüsselter Messenger",
+  "display_override": ["window-controls-overlay", "minimal-ui"],
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "orientation": "portrait",
-  "categories": ["social", "communication"],
+  "categories": [
+    "social",
+    "communication",
+    "security"
+  ],
   "icons": [
     {
       "src": "https://66-phantom-ghost.github.io/cryp/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "https://66-phantom-ghost.github.io/cryp/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
-  ]
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Neuer Chat",
+      "short_name": "Chat",
+      "url": "index.html?action=new_chat",
+      "icons": [{ "src": "https://66-phantom-ghost.github.io/cryp/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false
 }
