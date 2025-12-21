@@ -3,79 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>ShadowFX | Pro Messenger</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
         :root { --primary: #ef4444; --bg: #000000; }
         body { 
             background-color: var(--bg); color: #e4e4e7; font-family: 'Inter', sans-serif; 
             height: 100dvh; margin: 0; overflow: hidden; -webkit-tap-highlight-color: transparent;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
         }
-        .ios-blur { background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); }
-        .bubble { max-width: 75%; padding: 10px 14px; border-radius: 18px; font-size: 14px; position: relative; transition: transform 0.2s; display: flex; flex-direction: column; }
-        .bubble-me { background: var(--primary); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
-        .bubble-peer { background: #1c1c1e; align-self: flex-start; border-bottom-left-radius: 4px; }
+        .ios-blur { background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); }
         .no-select { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-        .offline-notice { position: fixed; top: 0; left: 0; right: 0; z-index: 9999; background: #ef4444; color: white; font-size: 10px; font-weight: 800; text-align: center; padding: 6px; text-transform: uppercase; letter-spacing: 0.1em; transition: all 0.3s ease; }
-        .animate-slide-up { animation: slideUp 0.3s ease-out; }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        .full-page-view { position: fixed; inset: 0; background: black; z-index: 10000; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); visibility: hidden; }
+        .full-page-view.active { transform: translateX(0); visibility: visible; }
+
+        .key-display-box { font-family: 'JetBrains Mono', monospace; font-size: 11px; background: #09090b; padding: 16px; border-radius: 12px; border: 1px dashed #27272a; word-break: break-all; color: #71717a; }
+        .key-id-badge { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700; color: #ef4444; letter-spacing: -1px; text-shadow: 0 0 15px rgba(239,68,68,0.4); }
+        
+        .bubble { max-width: 80%; padding: 10px 14px; border-radius: 18px; font-size: 14px; line-height: 1.4; margin-bottom: 4px; position: relative; word-wrap: break-word; }
+        .bubble-in { background: #1c1c1e; color: #fff; align-self: flex-start; border-bottom-left-radius: 4px; }
+        .bubble-out { background: #ef4444; color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+        
+        .nav-active { color: #ef4444 !important; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .status-online { background: #10b981; box-shadow: 0 0 8px #10b981; }
+        
+        .btn-action { transition: all 0.2s; font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
+        .btn-action:active { transform: scale(0.96); opacity: 0.8; }
+        
+        @keyframes slideIn { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .msg-anim { animation: slideIn 0.2s ease-out forwards; }
+
+        .settings-item { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #111; cursor: pointer; }
+        .settings-item:active { background: #0a0a0a; }
+
+        .sfx-panel { position: fixed; inset: 0; background: black; z-index: 30000; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; }
+        .sfx-panel.active { transform: translateY(0); }
     </style>
 </head>
 <body class="no-select">
 
-    <div id="offline-banner" class="offline-notice hidden">Relay-Verbindung unterbrochen – Reconnect...</div>
+    <div id="banner" class="fixed top-0 left-0 right-0 z-[50000] p-3 text-center text-[10px] font-bold uppercase hidden"></div>
 
-    <!-- Onboarding / Login -->
+    <!-- Onboarding -->
     <div id="onboarding" class="fixed inset-0 bg-black z-[6000] p-10 flex flex-col justify-center items-center text-center">
         <div class="w-20 h-20 bg-red-500/10 rounded-[2rem] flex items-center justify-center mb-6 border border-red-500/20">
-            <i data-lucide="shield-check" class="w-10 h-10 text-red-500"></i>
+            <i data-lucide="shield" class="w-10 h-10 text-red-500"></i>
         </div>
-        <h1 class="text-2xl font-bold mb-8 uppercase tracking-tighter text-white">ShadowFX Pro</h1>
+        <h1 class="text-2xl font-bold mb-8 uppercase tracking-tighter text-white">ShadowFX</h1>
         <div class="w-full max-w-xs space-y-3">
             <input type="text" id="user-display-input" placeholder="PSEUDONYM" class="w-full bg-zinc-900 p-4 rounded-xl border border-zinc-800 text-center text-white font-bold outline-none text-xs uppercase">
-            <button onclick="setupApp()" class="w-full bg-red-500 p-4 rounded-xl font-bold text-white uppercase text-xs active:scale-95 transition-all">Einsteigen</button>
+            <button onclick="setupApp()" class="w-full bg-red-500 p-4 rounded-xl font-bold text-white uppercase text-xs btn-action">Identity erstellen</button>
         </div>
     </div>
 
     <!-- Main UI -->
     <div id="app-ui" class="flex flex-col h-full hidden">
-        <header class="ios-blur pt-12 pb-4 px-6 border-b border-zinc-900 flex justify-between items-center z-50">
-            <div class="flex items-center gap-3">
-                <button id="back-btn" onclick="nav('chats')" class="hidden w-8 h-8 flex items-center justify-center text-white"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
-                <h1 id="view-title" class="font-bold text-xl uppercase tracking-tighter text-white">Chats</h1>
+        <header class="ios-blur pt-14 pb-4 px-6 border-b border-zinc-900 flex justify-between items-center z-50">
+            <h1 id="view-title" class="font-bold text-2xl tracking-tight text-white">Tunnel</h1>
+            <div class="flex items-center gap-4">
+                <div id="connection-indicator" class="status-dot status-offline bg-zinc-800"></div>
+                <button onclick="openSettings()" class="w-10 h-10 bg-zinc-900 rounded-full flex items-center justify-center border border-zinc-800 active:scale-90 transition-transform">
+                    <i data-lucide="user" class="w-5 h-5 text-zinc-300"></i>
+                </button>
             </div>
-            <div id="connection-indicator" class="w-2 h-2 rounded-full bg-zinc-700 transition-colors duration-500"></div>
         </header>
+        
         <main id="main-content" class="flex-1 overflow-y-auto p-4 flex flex-col gap-2"></main>
         
-        <!-- Tab Bar -->
-        <nav id="bottom-nav" class="ios-blur pb-8 pt-2 px-10 border-t border-zinc-900 flex justify-around items-center z-50">
-            <button onclick="nav('chats')" id="nav-chats" class="p-2 text-white"><i data-lucide="message-circle"></i></button>
-            <button onclick="nav('invite')" id="nav-invite" class="p-2 text-zinc-600"><i data-lucide="share-2"></i></button>
-            <button onclick="fullReset()" class="p-2 text-zinc-600"><i data-lucide="trash-2"></i></button>
+        <nav class="ios-blur pb-10 pt-2 px-10 border-t border-zinc-900 flex justify-around items-center z-50">
+            <button onclick="nav('chats')" id="nav-btn-chats" class="p-4 text-zinc-600"><i data-lucide="message-circle"></i></button>
+            <button onclick="nav('keys')" id="nav-btn-keys" class="p-4 text-zinc-600"><i data-lucide="key"></i></button>
         </nav>
     </div>
 
-    <!-- Join Modal -->
-    <div id="invite-modal" class="fixed inset-0 z-[7000] bg-black/95 p-8 flex flex-col justify-center items-center hidden">
-        <h2 class="text-xl font-bold mb-4 uppercase text-white">Tunnel beitreten</h2>
-        <textarea id="invite-input" placeholder="SFX#..." class="w-full h-32 bg-zinc-900 border border-zinc-800 p-4 rounded-xl font-mono text-white text-[10px] mb-4 outline-none resize-none"></textarea>
-        <button onclick="processInviteCode()" class="w-full bg-white text-black p-4 rounded-xl font-bold uppercase text-xs">Aktivieren</button>
-        <button onclick="$('invite-modal').classList.add('hidden')" class="mt-6 text-zinc-600 text-[10px] uppercase font-bold">Abbrechen</button>
+    <!-- SETTINGS PANEL -->
+    <div id="settings-panel" class="sfx-panel overflow-hidden">
+        <header class="ios-blur pt-14 pb-4 px-6 border-b border-zinc-900 flex items-center justify-between">
+            <button onclick="closeSettings()" class="text-zinc-500 p-2"><i data-lucide="x" class="w-5 h-5"></i></button>
+            <h2 class="font-bold text-white text-lg">Profil</h2>
+            <div class="w-9"></div>
+        </header>
+        <div class="flex-1 overflow-y-auto pb-20">
+            <div class="p-8 flex flex-col items-center border-b border-zinc-900">
+                <div class="w-20 h-20 bg-zinc-900 rounded-full mb-4 flex items-center justify-center border border-zinc-800">
+                    <i data-lucide="camera" class="w-6 h-6 text-zinc-700"></i>
+                </div>
+                <input type="text" id="settings-name-input" onchange="updateProfileName(this.value)" class="bg-transparent text-white font-bold text-xl text-center outline-none" value="...">
+                <p id="settings-bio-label" class="text-zinc-500 text-xs mt-1">Status bearbeiten...</p>
+            </div>
+            <div id="settings-list">
+                <div class="settings-item" onclick="openSubMenu('account')">
+                    <div class="flex items-center gap-4"><i data-lucide="user-cog" class="w-5 h-5 text-zinc-400"></i> <span class="text-sm">Konto</span></div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-zinc-800"></i>
+                </div>
+                <div class="settings-item" onclick="openSubMenu('privacy')">
+                    <div class="flex items-center gap-4"><i data-lucide="lock" class="w-5 h-5 text-zinc-400"></i> <span class="text-sm">Datenschutz</span></div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-zinc-800"></i>
+                </div>
+                <div class="settings-item" onclick="comingSoon()"><div class="flex items-center gap-4"><i data-lucide="palette" class="w-5 h-5 text-zinc-400"></i> <span class="text-sm">Chats & Design</span></div><i data-lucide="chevron-right" class="w-4 h-4 text-zinc-800"></i></div>
+                <div class="settings-item" onclick="comingSoon()"><div class="flex items-center gap-4"><i data-lucide="help-circle" class="w-5 h-5 text-zinc-400"></i> <span class="text-sm">Hilfe</span></div><i data-lucide="chevron-right" class="w-4 h-4 text-zinc-800"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUBMENU PANEL -->
+    <div id="submenu-panel" class="sfx-panel">
+        <header class="ios-blur pt-14 pb-4 px-6 border-b border-zinc-900 flex items-center gap-4">
+            <button onclick="closeSubMenu()" class="text-red-500 p-1"><i data-lucide="chevron-left" class="w-6 h-6"></i></button>
+            <h2 id="submenu-title" class="font-bold text-white text-lg">Konto</h2>
+        </header>
+        <div id="submenu-content" class="flex-1 overflow-y-auto p-6"></div>
+    </div>
+
+    <!-- Chat View -->
+    <div id="chat-view" class="full-page-view flex flex-col bg-black">
+        <header class="ios-blur pt-14 pb-4 px-6 border-b border-zinc-900 flex items-center gap-4 z-50">
+            <button onclick="closeChat()" class="text-zinc-500 p-1"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
+            <h2 id="chat-title" class="font-bold text-white text-lg truncate flex-1">...</h2>
+        </header>
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-2"></div>
+        <div class="p-4 pb-12 bg-black border-t border-zinc-900 flex gap-2">
+            <input type="text" id="chat-input" placeholder="Sichere Nachricht..." class="flex-1 bg-zinc-900 border border-zinc-800 rounded-2xl px-5 py-4 text-white text-sm outline-none">
+            <button onclick="sendMessage()" class="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center text-white"><i data-lucide="send" class="w-5 h-5"></i></button>
+        </div>
+    </div>
+
+    <!-- Invite Modal -->
+    <div id="invite-modal" class="fixed inset-0 z-[19000] bg-black/98 p-8 flex flex-col justify-center items-center hidden">
+        <h2 class="text-xl font-bold mb-6 uppercase text-white tracking-tighter">Code einlösen</h2>
+        <textarea id="invite-input" placeholder="SFX# CODE HIER EINFÜGEN" class="w-full h-40 bg-zinc-900 border border-zinc-800 p-5 rounded-2xl font-mono text-white text-[10px] mb-6 outline-none resize-none"></textarea>
+        <button onclick="processInviteCode()" class="w-full bg-red-500 text-white p-5 rounded-2xl font-bold uppercase text-xs">Anfrage Senden</button>
+        <button onclick="$('invite-modal').classList.add('hidden')" class="mt-8 text-zinc-700 text-[11px] uppercase font-bold">Abbrechen</button>
     </div>
 
     <script>
         const $ = id => document.getElementById(id);
-        
-        // Nutzt die Adresse aus deinem Go/React-Setup
         const RELAY_HOST = "unwintry-strapping-winford.ngrok-free.dev"; 
-        
         let socket, isConnected = false;
-        let state = { profiles: [], activeProfileId: null, view: 'chats', activeChatId: null, generatedCode: null };
+        let state = { profiles: [], activeProfileId: null, view: 'chats', currentChatId: null };
 
-        // Kryptographie Helfer
         async function generateKeyPair() { return await crypto.subtle.generateKey({ name: "RSA-OAEP", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" }, true, ["encrypt", "decrypt"]); }
         async function exportKey(key) { const format = key.type === "public" ? "spki" : "pkcs8"; const exported = await crypto.subtle.exportKey(format, key); return btoa(String.fromCharCode(...new Uint8Array(exported))); }
         async function importPublicKey(pem) { return await crypto.subtle.importKey("spki", new Uint8Array(atob(pem).split("").map(c => c.charCodeAt(0))).buffer, { name: "RSA-OAEP", hash: "SHA-256" }, true, ["encrypt"]); }
@@ -86,244 +159,140 @@
         function getActiveProfile() { return state.profiles.find(p => p.id === state.activeProfileId); }
 
         function initSocket() {
-            if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) return;
-            
-            console.log("Versuche Verbindung zu:", RELAY_HOST);
+            if (socket) { socket.close(); }
             socket = new WebSocket(`wss://${RELAY_HOST}`);
-            
-            socket.onopen = () => {
-                isConnected = true;
-                $('connection-indicator').className = 'w-2 h-2 rounded-full bg-emerald-500';
-                $('offline-banner').classList.add('hidden');
-                const p = getActiveProfile();
-                if (p) {
-                    socket.send(JSON.stringify({ type: 'OPEN_ANON_QUEUE', queueId: p.queueId }));
-                    console.log("Queue geöffnet:", p.queueId);
-                }
-            };
-            
-            socket.onmessage = async (e) => {
-                try {
-                    const data = JSON.parse(e.data);
-                    if (data.type === 'RELAY_IN') handleRelay(data.payload);
-                } catch(err) { console.error("Message parse error", err); }
-            };
-            
-            socket.onclose = () => { 
-                isConnected = false; 
-                $('connection-indicator').className = 'w-2 h-2 rounded-full bg-red-500'; 
-                if (getActiveProfile()) {
-                    $('offline-banner').classList.remove('hidden');
-                }
-                setTimeout(initSocket, 5000); 
-            };
-
-            socket.onerror = (err) => {
-                console.error("WebSocket Error:", err);
-            };
+            socket.onopen = () => { isConnected = true; $('connection-indicator').className = 'status-dot status-online'; const p = getActiveProfile(); if (p) socket.send(JSON.stringify({ type: 'OPEN_ANON_QUEUE', queueId: p.queueId })); };
+            socket.onmessage = async (e) => { const data = JSON.parse(e.data); if (data.type === 'RELAY_IN') handleIncomingRelay(data.payload); };
+            socket.onclose = () => { isConnected = false; $('connection-indicator').className = 'status-dot bg-zinc-800'; setTimeout(initSocket, 5000); };
         }
 
-        async function handleRelay(payload) {
-            const p = getActiveProfile();
-            if (!p) return;
+        async function handleIncomingRelay(payload) {
+            const p = getActiveProfile(); if (!p) return;
             try {
                 const privKey = await importPrivateKey(p.privateKeyPem);
                 const decryptedStr = await decryptRSA(privKey, payload.text);
                 const msgObj = JSON.parse(decryptedStr);
-
+                if (msgObj.type === 'HANDSHAKE_REQ') {
+                    if (!p.currentKeyId || msgObj.targetKid !== p.currentKeyId) return;
+                    if (!p.requests) p.requests = [];
+                    p.requests.unshift({ n: msgObj.name, pk: payload.from, q: msgObj.q, kid: msgObj.targetKid });
+                    save(); render(); showBanner("Neue Anfrage"); return;
+                }
                 if (msgObj.type === 'ACCEPT_HANDSHAKE') {
-                    if (!p.contacts.find(c => c.pubKey === payload.from)) {
-                        p.contacts.push({ id: 'C-'+Date.now(), name: msgObj.name, pubKey: payload.from, queueId: msgObj.q });
-                        save(); render();
-                    }
-                    return;
+                    p.contacts.push({ name: msgObj.name, pubKey: payload.from, queueId: msgObj.q, messages: [] });
+                    save(); render(); showBanner("Handshake Erfolg"); return;
                 }
-
                 let contact = p.contacts.find(c => c.pubKey === payload.from);
-                if (contact) {
-                    if (!p.messages[contact.id]) p.messages[contact.id] = [];
-                    p.messages[contact.id].push({ type: 'peer', text: msgObj.text, time: Date.now() });
-                } else {
-                    if (!p.pendingRequests.find(r => r.pubKey === payload.from)) {
-                        p.pendingRequests.push({ pubKey: payload.from, name: msgObj.name, queueId: msgObj.q, firstMsg: msgObj.text || "Anfrage erhalten" });
-                    }
-                }
-                save(); render();
-            } catch(e) { console.error("Entschlüsselung fehlgeschlagen", e); }
+                if (contact) { contact.messages.push({ from: 'them', text: msgObj.text, time: Date.now() }); save(); if (state.currentChatId === contact.pubKey) renderChatMessages(); else showBanner(`Neu: ${contact.name}`); }
+            } catch(e) {}
         }
 
-        function setupApp() {
-            const name = $('user-display-input').value.trim();
-            if (!name) return;
-            generateKeyPair().then(async keys => {
-                const p = {
-                    id: 'P-' + Date.now(), name,
-                    queueId: 'Q-' + Math.random().toString(36).substring(2, 12).toUpperCase(),
-                    pubKey: await exportKey(keys.publicKey),
-                    privateKeyPem: await exportKey(keys.privateKey),
-                    contacts: [], pendingRequests: [], messages: {}
-                };
-                state.profiles = [p]; state.activeProfileId = p.id;
-                save(); bootstrap();
-            });
-        }
-
-        function bootstrap() {
-            const p = getActiveProfile();
-            if(!p) return;
-            $('onboarding').classList.add('hidden');
-            $('app-ui').classList.remove('hidden');
-            initSocket(); render();
-        }
-
-        function nav(v) { 
-            state.view = v; 
-            if (v !== 'invite') state.generatedCode = null; 
-            $('nav-chats').className = v === 'chats' ? 'p-2 text-white' : 'p-2 text-zinc-600';
-            $('nav-invite').className = v === 'invite' ? 'p-2 text-white' : 'p-2 text-zinc-600';
-            render(); 
-        }
-
-        function generateInvite() {
-            const p = getActiveProfile();
-            const shareData = btoa(JSON.stringify({ n: p.name, k: p.pubKey, q: p.queueId }));
-            state.generatedCode = `SFX#${shareData}`;
-            render();
-        }
-
-        async function processInviteCode() {
-            const code = $('invite-input').value.trim();
-            if (!code.startsWith('SFX#')) return;
-            try {
-                const data = JSON.parse(atob(code.split('#')[1]));
-                const p = getActiveProfile();
-                const payload = { name: p.name, q: p.queueId, text: "Tunnel-Anfrage" };
-                const peerKey = await importPublicKey(data.k);
-                const enc = await encryptRSA(peerKey, JSON.stringify(payload));
-                socket.send(JSON.stringify({ type: 'CHAT_MSG', to: data.q, payload: { from: p.pubKey, text: enc } }));
-                $('invite-modal').classList.add('hidden');
-                $('invite-input').value = '';
-                showBanner("Anfrage gesendet!");
-            } catch(e) { showBanner("Fehler beim Code", "#ef4444"); }
-        }
-
-        async function acceptReq(index) {
-            const p = getActiveProfile();
-            const req = p.pendingRequests[index];
-            const cid = 'C-' + Date.now();
-            
-            p.contacts.push({ id: cid, name: req.name, pubKey: req.pubKey, queueId: req.queueId });
-            p.messages[cid] = [{ type: 'peer', text: req.firstMsg, time: Date.now() }];
-            p.pendingRequests.splice(index, 1);
-
-            const peerKey = await importPublicKey(req.pubKey);
-            const handshake = { type: 'ACCEPT_HANDSHAKE', name: p.name, q: p.queueId };
-            const enc = await encryptRSA(peerKey, JSON.stringify(handshake));
-            socket.send(JSON.stringify({ type: 'CHAT_MSG', to: req.queueId, payload: { from: p.pubKey, text: enc } }));
-
-            save(); render();
-        }
-
+        function nav(v) { state.view = v; $('nav-btn-chats').classList.toggle('nav-active', v === 'chats'); $('nav-btn-keys').classList.toggle('nav-active', v === 'keys'); render(); }
+        
         function render() {
-            const p = getActiveProfile();
-            const content = $('main-content');
-            if(!p) return;
-            
-            $('back-btn').classList.add('hidden');
-            $('bottom-nav').classList.remove('hidden');
-            $('view-title').innerText = state.view === 'chats' ? 'Chats' : (state.view === 'invite' ? 'Einladen' : 'Chat');
-            
+            const p = getActiveProfile(); if (!p) return;
+            const content = $('main-content'); content.innerHTML = "";
+            $('view-title').innerText = state.view === 'keys' ? "Security" : "Tunnel";
+
             if (state.view === 'chats') {
-                content.innerHTML = `<button onclick="$('invite-modal').classList.remove('hidden')" class="w-full bg-zinc-900 p-4 rounded-xl mb-4 text-[10px] font-bold text-red-500 uppercase border border-zinc-800">Key einlösen</button>`;
-                p.pendingRequests.forEach((r, i) => {
-                    content.innerHTML += `<div class="p-4 bg-red-500/10 border border-red-500/30 rounded-xl mb-2 flex justify-between items-center"><span class="text-xs font-bold text-white">${r.name} will chatten</span><button onclick="acceptReq(${i})" class="bg-white text-black px-3 py-1 rounded-lg text-[10px] font-bold">ANNEHMEN</button></div>`;
-                });
-                p.contacts.forEach(c => {
-                    content.innerHTML += `<div onclick="state.activeChatId='${c.id}';state.view='chat-detail';render()" class="p-4 bg-zinc-900 rounded-xl mb-2 flex justify-between items-center active:scale-[0.98] transition-transform"><span class="font-bold text-sm text-white">${c.name}</span><i data-lucide="chevron-right" class="w-4 h-4 opacity-20"></i></div>`;
-                });
-            } else if (state.view === 'invite') {
-                if (!state.generatedCode) {
-                    content.innerHTML = `
-                        <div class="flex-1 flex flex-col items-center justify-center p-6 text-center h-full">
-                            <div class="w-16 h-16 bg-red-500/5 border border-red-500/20 rounded-3xl flex items-center justify-center mb-6">
-                                <i data-lucide="key" class="text-red-500 w-8 h-8"></i>
-                            </div>
-                            <h2 class="text-white font-bold mb-2 uppercase text-sm">Tunnel-Key</h2>
-                            <p class="text-[10px] text-zinc-500 mb-8 uppercase leading-relaxed tracking-widest">
-                                Generiere einen einmaligen Tunnel-Key,<br>um eine Verbindung zu starten.
-                            </p>
-                            <button onclick="generateInvite()" class="w-full bg-red-500 text-white p-4 rounded-xl font-bold text-xs uppercase shadow-lg shadow-red-500/20">Tunnel-Key generieren</button>
-                        </div>
-                    `;
-                } else {
-                    content.innerHTML = `
-                        <div class="p-6 text-center animate-slide-up">
-                            <p class="text-[10px] text-zinc-500 mb-4 uppercase tracking-widest text-zinc-400">Dein RSA Tunnel Key</p>
-                            <div class="bg-zinc-900 p-4 rounded-xl font-mono text-[9px] break-all mb-4 text-zinc-300 border border-zinc-800 select-all leading-relaxed">
-                                ${state.generatedCode}
-                            </div>
-                            <button onclick="copy('${state.generatedCode}')" class="w-full bg-white text-black p-4 rounded-xl font-bold text-xs uppercase mb-4 active:bg-zinc-200">Key Kopieren</button>
-                            <button onclick="state.generatedCode=null;render()" class="text-zinc-600 text-[10px] font-bold uppercase hover:text-zinc-400">Verwerfen</button>
-                        </div>
-                    `;
+                content.innerHTML = `<button onclick="$('invite-modal').classList.remove('hidden')" class="w-full bg-zinc-900/40 p-5 rounded-3xl text-[10px] font-bold text-white uppercase border border-zinc-800/50 mb-6 msg-anim">Code einlösen</button>`;
+                if (p.requests?.length > 0) {
+                    p.requests.forEach((r, i) => {
+                        content.innerHTML += `<div class="bg-zinc-900/60 p-5 rounded-3xl mb-3 flex justify-between items-center border border-red-900/20 msg-anim">
+                            <div><div class="text-white font-bold text-sm">${r.n}</div><div class="text-[9px] text-zinc-500 uppercase mt-1">ID: ${r.kid}</div></div>
+                            <div class="flex gap-2"><button onclick="declineRequest(${i})" class="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center"><i data-lucide="x" class="w-4 h-4"></i></button><button onclick="acceptRequest(${i})" class="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center"><i data-lucide="check" class="w-4 h-4"></i></button></div>
+                        </div>`;
+                    });
                 }
-            } else if (state.view === 'chat-detail') {
-                $('back-btn').classList.remove('hidden');
-                $('bottom-nav').classList.add('hidden');
-                const c = p.contacts.find(c => c.id === state.activeChatId);
-                const msgs = p.messages[c.id] || [];
-                $('view-title').innerText = c.name;
-                content.innerHTML = `<div class="flex-1 overflow-y-auto flex flex-col gap-2 pb-20" id="chat-box"></div><div class="fixed bottom-4 left-4 right-4 flex gap-2"><input id="msg-in" class="flex-1 bg-zinc-900 p-4 rounded-xl outline-none text-white border border-zinc-800" placeholder="Nachricht..."><button onclick="sendMessage()" class="bg-red-500 px-6 rounded-xl font-bold text-white"><i data-lucide="send" class="w-5 h-5"></i></button></div>`;
-                const box = $('chat-box');
-                msgs.forEach(m => {
-                    box.innerHTML += `<div class="bubble ${m.type==='me'?'bubble-me':'bubble-peer'} animate-slide-up">${m.text}</div>`;
+                p.contacts.forEach(c => { 
+                    content.innerHTML += `<div onclick="openChat('${c.pubKey}')" class="p-6 bg-zinc-900/30 rounded-[2rem] mb-3 flex justify-between items-center border border-zinc-900/50 active:scale-[0.98]">
+                        <div class="font-bold text-sm text-white">${c.name}</div><i data-lucide="chevron-right" class="w-4 h-4 text-zinc-800"></i>
+                    </div>`; 
                 });
-                box.scrollTop = box.scrollHeight;
+            } else if (state.view === 'keys') {
+                const code = "SFX#" + btoa(JSON.stringify({ n: p.name, k: p.pubKey, q: p.queueId, kid: p.currentKeyId }));
+                content.innerHTML = `
+                    <div class="space-y-6 msg-anim">
+                        <div class="bg-zinc-950 p-8 rounded-[2rem] border border-zinc-900">
+                            <p class="text-[10px] text-zinc-600 font-bold uppercase mb-4 text-center">Aktive KeyID</p>
+                            <div class="key-id-badge mb-8 text-center">${p.currentKeyId || "---"}</div>
+                            <p class="text-[10px] text-zinc-600 font-bold uppercase mb-2">Dein Einmal-Code</p>
+                            <div class="key-display-box mb-6 text-center">${p.currentKeyId ? code : 'KEIN CODE AKTIV'}</div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button onclick="rotateKeys()" class="bg-red-500 text-white p-4 rounded-2xl text-[10px] font-bold uppercase btn-action">Neu</button>
+                                <button onclick="deleteKey()" class="bg-zinc-900 text-zinc-400 p-4 rounded-2xl text-[10px] font-bold uppercase btn-action">Löschen</button>
+                            </div>
+                            ${p.currentKeyId ? `<button onclick="copy('${code}')" class="w-full mt-4 text-[9px] text-zinc-500 uppercase font-bold">Code Kopieren</button>` : ''}
+                        </div>
+                    </div>`;
             }
             lucide.createIcons();
         }
 
+        function rotateKeys() { const p = getActiveProfile(); p.currentKeyId = 'K-' + Math.random().toString(36).substring(2, 8).toUpperCase(); save(); render(); showBanner("Keys rotiert", "#10b981"); }
+        function deleteKey() { const p = getActiveProfile(); p.currentKeyId = null; save(); render(); showBanner("Ghost Mode aktiv", "#3f3f46"); }
+        function openSettings() { const p = getActiveProfile(); if(p) { $('settings-name-input').value = p.name; $('settings-bio-label').innerText = p.bio || "ShadowFX Messenger"; } $('settings-panel').classList.add('active'); }
+        function closeSettings() { $('settings-panel').classList.remove('active'); }
+        function openSubMenu(type) {
+            const p = getActiveProfile(); const container = $('submenu-content'); container.innerHTML = "";
+            if(type === 'account') {
+                $('submenu-title').innerText = "Konto";
+                container.innerHTML = `<div class="p-6 bg-zinc-900/50 rounded-3xl border border-zinc-800 text-center"><p class="text-[10px] text-zinc-500 uppercase mb-2">KeyID</p><div class="text-white font-mono font-bold mb-6">${p.currentKeyId || 'Inaktiv'}</div><button onclick="fullReset()" class="w-full bg-red-500/10 p-4 rounded-xl text-red-500 font-bold uppercase text-[10px] border border-red-500/20">Session löschen</button></div>`;
+            } else if(type === 'privacy') {
+                $('submenu-title').innerText = "Datenschutz";
+                container.innerHTML = `<div class="space-y-1"><div class="settings-item px-0"><span>Online-Status</span> <span class="text-xs text-red-500">Privat</span></div><div class="settings-item px-0 border-none"><span>Lesebestätigung</span> <span class="text-xs text-zinc-500">Inaktiv</span></div></div>`;
+            }
+            $('submenu-panel').classList.add('active'); lucide.createIcons();
+        }
+        function closeSubMenu() { $('submenu-panel').classList.remove('active'); }
+        function comingSoon() { showBanner("In Kürze verfügbar", "#3f3f46"); }
+        function updateProfileName(val) { const p = getActiveProfile(); p.name = val; save(); render(); }
+        function save() { localStorage.setItem('sfx_v7_state', JSON.stringify(state)); }
+        function showBanner(t, c="#ef4444") { const b = $('banner'); b.innerText = t; b.style.backgroundColor = c; b.classList.remove('hidden'); setTimeout(() => b.classList.add('hidden'), 2000); }
+        function copy(text) { const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showBanner("Kopiert", "#10b981"); }
+        function fullReset() { if(confirm("Account löschen?")) { localStorage.clear(); location.reload(); } }
+
+        async function processInviteCode() {
+            const code = $('invite-input').value.trim(); if (!code.startsWith('SFX#')) return showBanner("Ungültiger Code");
+            try {
+                const target = JSON.parse(atob(code.split('#')[1])); const p = getActiveProfile();
+                const peerKey = await importPublicKey(target.k);
+                const encrypted = await encryptRSA(peerKey, JSON.stringify({ type: 'HANDSHAKE_REQ', name: p.name, q: p.queueId, targetKid: target.kid }));
+                socket.send(JSON.stringify({ type: 'CHAT_MSG', to: target.q, payload: { from: p.pubKey, text: encrypted } }));
+                showBanner("Anfrage raus", "#10b981"); $('invite-modal').classList.add('hidden'); $('invite-input').value = "";
+            } catch(e) { showBanner("Fehler"); }
+        }
+
+        async function acceptRequest(index) {
+            const p = getActiveProfile(); const req = p.requests.splice(index, 1)[0];
+            p.contacts.push({ name: req.n, pubKey: req.pk, queueId: req.q, messages: [] });
+            const peerKey = await importPublicKey(req.pk);
+            const encrypted = await encryptRSA(peerKey, JSON.stringify({ type: 'ACCEPT_HANDSHAKE', name: p.name, q: p.queueId }));
+            socket.send(JSON.stringify({ type: 'CHAT_MSG', to: req.q, payload: { from: p.pubKey, text: encrypted } }));
+            save(); render();
+        }
+        function declineRequest(index) { const p = getActiveProfile(); p.requests.splice(index, 1); save(); render(); }
+        function openChat(pk) { state.currentChatId = pk; $('chat-title').innerText = getActiveProfile().contacts.find(c => c.pubKey === pk).name; $('chat-view').classList.add('active'); renderChatMessages(); }
+        function closeChat() { state.currentChatId = null; $('chat-view').classList.remove('active'); }
+        function renderChatMessages() { const contact = getActiveProfile().contacts.find(c => c.pubKey === state.currentChatId); const container = $('chat-messages'); container.innerHTML = ""; contact.messages.forEach(m => { const el = document.createElement('div'); el.className = `bubble msg-anim ${m.from === 'me' ? 'bubble-out' : 'bubble-in'}`; el.innerText = m.text; container.appendChild(el); }); container.scrollTop = container.scrollHeight; }
         async function sendMessage() {
-            const inp = $('msg-in');
-            const text = inp.value.trim();
-            if(!text || !isConnected) return;
-            const p = getActiveProfile();
-            const contact = p.contacts.find(c => c.id === state.activeChatId);
-            p.messages[contact.id].push({ type: 'me', text, time: Date.now() });
-            
+            const p = getActiveProfile(); const contact = p.contacts.find(c => c.pubKey === state.currentChatId);
+            const text = $('chat-input').value.trim(); if (!text || !isConnected) return;
             const peerKey = await importPublicKey(contact.pubKey);
-            const enc = await encryptRSA(peerKey, JSON.stringify({ text }));
-            socket.send(JSON.stringify({ type: 'CHAT_MSG', to: contact.queueId, payload: { from: p.pubKey, text: enc } }));
-            
-            inp.value = ''; save(); render();
+            const encrypted = await encryptRSA(peerKey, JSON.stringify({ text }));
+            socket.send(JSON.stringify({ type: 'CHAT_MSG', to: contact.queueId, payload: { from: p.pubKey, text: encrypted } }));
+            contact.messages.push({ from: 'me', text, time: Date.now() }); save(); renderChatMessages(); $('chat-input').value = "";
         }
 
-        function showBanner(t, c="#10b981") { 
-            const b = $('offline-banner');
-            b.innerText = t; b.style.backgroundColor = c; 
-            b.classList.remove('hidden'); 
-            setTimeout(() => b.classList.add('hidden'), 2000); 
+        function setupApp() { 
+            const name = $('user-display-input').value.trim() || "Anonym"; 
+            generateKeyPair().then(async keys => { 
+                const p = { id: 'P-' + Date.now(), name, bio: "ShadowFX", queueId: 'Q-' + Math.random().toString(36).substring(2, 12).toUpperCase(), currentKeyId: 'K-' + Math.random().toString(36).substring(2, 8).toUpperCase(), pubKey: await exportKey(keys.publicKey), privateKeyPem: await exportKey(keys.privateKey), contacts: [], requests: [] }; 
+                state.profiles = [p]; state.activeProfileId = p.id; save(); bootstrap(); 
+            }); 
         }
-
-        function save() { localStorage.setItem('sfx_data', JSON.stringify(state)); }
-
-        function copy(text) {
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            textArea.style.position = "fixed"; textArea.style.opacity = "0";
-            document.body.appendChild(textArea);
-            textArea.select();
-            const success = document.execCommand('copy');
-            document.body.removeChild(textArea);
-            if (success) showBanner("Kopiert!");
-        }
-
-        function fullReset() { if(confirm("ALLES LÖSCHEN?")) { localStorage.clear(); location.reload(); } }
-        
-        window.onload = () => {
-            const saved = localStorage.getItem('sfx_data');
-            if(saved) { state = JSON.parse(saved); bootstrap(); }
-        };
+        function bootstrap() { $('onboarding').classList.add('hidden'); $('app-ui').classList.remove('hidden'); initSocket(); nav('chats'); }
+        window.onload = () => { const saved = localStorage.getItem('sfx_v7_state'); if(saved) { state = JSON.parse(saved); bootstrap(); } lucide.createIcons(); };
     </script>
 </body>
 </html>
